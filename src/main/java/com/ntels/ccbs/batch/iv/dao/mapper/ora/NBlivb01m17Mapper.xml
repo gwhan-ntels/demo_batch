@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m17Mapper">
+
+	<select id="getPrintCustInfo" resultType="PrintCustInfo">
+		SELECT
+		DISTINCT
+		A.SO_ID
+		,B.BILL_SEQ_NO
+		,A.PYM_ACNT_ID
+		,A.CUST_NM
+		,A.ACNT_NM
+		,A.CUST_TP
+		,A.ZIP_CD
+		,A.BIZ_REG_NO
+		,A.BUSI_CNDT
+		,A.BUSI_TP
+		,A.TAX_TP
+		,A.PZIP_CD AS PAY_ZIP_CD
+		,A.PBASE_ADDR AS PAY_BASE_ADDR
+		,A.PADDR_DTL AS PAY_ADDR_DTL
+		,A.PEML AS PAY_EML
+		,A.PYM_MTHD
+		,A.BILL_MDM_SMS_YN
+		,A.BILL_MDM_EML_YN
+		,A.BNK_CD
+		,( SELECT COMMON_CD_NM FROM TSYCO_CODE_DETAIL
+		   WHERE COMMON_GRP = 'BL00081' AND COMMON_CD = A.BNK_CD ) AS BNK_NM
+		,A.ACNT_OWNER_NM
+		,A.ACNT_NO
+		,A.PYM_DT
+		FROM IFNBRM_CUST_INFO A,
+		     TBLIV_BILL_MAST  B
+		WHERE 1=1
+		AND   B.SO_ID        =#{soId}
+		AND   B.BILL_YYMM    = #{billYymm}
+		AND   B.BILL_CYCL     = #{billCycl}
+		AND   A.SO_ID        = B.SO_ID
+		AND   A.PYM_ACNT_ID  = B.PYM_ACNT_ID
+	</select>
+	
+	<select id="getPrintCt" resultType="PrintCt">
+		  SELECT
+		A.BILL_SEQ_NO
+		,A.USE_YYMM
+		,A.PROD_CMPS_ID
+		,B.INV_ITM_CD
+		,MAX(A.BILL_YYMM) AS BILL_YYMM
+		,MAX(A.BILL_CYCL) AS BILL_CYCL
+		,MAX(A.BILL_DT) AS BILL_DT
+		,MAX(A.SO_ID) AS SO_ID
+		,MAX(A.GRP_ID) AS GRP_ID
+		,MAX(A.PYM_ACNT_ID) AS PYM_ACNT_ID
+		,MAX(A.CUST_ID) AS CUST_ID
+		,MAX(A.CTRT_ID) AS CTRT_ID
+		,MAX(A.PROD_GRP) AS PROD_GRP
+		,MAX(A.BILL_MM_TP) AS BILL_MM_TP
+		,SUM(A.USG_CNT) AS USG_CNT
+		,SUM(A.USG_AMT) AS USG_AMT
+		,SUM(A.BILL_AMT)  AS PRINT_AMT
+		,A.USE_YYMM || '01'  AS USE_STRT_DT    
+		,NULL                   USE_END_DT 
+		FROM TBLIV_BILL A, IFNBRM_SVC_RATE_ITM_INFO B
+		WHERE  A.SO_ID = #{soId}
+		AND    A.BILL_YYMM = #{billYymm}
+		AND    A.BILL_CYCL = #{billCycl}
+		AND    A.BILL_DT   = #{billDt}
+		AND    B.SO_ID     = A.SO_ID
+		AND    B.SVC_RATE_ITM_TYP_CD = A.CHRG_ITM_CD
+	    GROUP BY A.BILL_SEQ_NO
+	    , A.USE_YYMM
+	    , A.PROD_CMPS_ID
+	    , B.INV_ITM_CD
+	</select>
+	
+	<insert id="insertPrintCustInfo">
+		INSERT INTO TBLIV_PRINT_CUST_INFO
+		(
+			SO_ID
+			, BILL_SEQ_NO
+			, PYM_ACNT_ID
+			, CUST_NM
+			, ACNT_NM
+			, CUST_TP
+			, ZIP_CD
+			, BIZ_REG_NO
+			, BUSI_CNDT
+			, BUSI_TP
+			, TAX_TP
+			, PAY_ZIP_CD
+			, PAY_BASE_ADDR
+			, PAY_ADDR_DTL
+			, PAY_EML
+			, PYM_MTHD
+			, BILL_MDM_SMS_YN
+			, BILL_MDM_EML_YN
+			, BNK_CD
+			, BNK_NM
+			, ACNT_OWNER_NM
+			, ACNT_NO
+			, PYM_DT
+			, REGR_ID
+			, REG_DATE
+			, CHGR_ID
+			, CHG_DATE
+		)
+		VALUES
+		(
+			#{soId}
+			, #{billSeqNo}
+			, #{pymAcntId}
+			, #{custNm}
+			, #{acntNm}
+			, #{custTp}
+			, #{zipCd}
+			, #{bizRegNo}
+			, #{busiCndt}
+			, #{busiTp}
+			, #{taxTp}
+			, #{payZipCd}
+			, #{payBaseAddr}
+			, #{payAddrDtl}
+			, #{payEml}
+			, #{pymMthd}
+			, #{billMdmSmsYn}
+			, #{billMdmEmlYn}
+			, #{bnkCd}
+			, #{bnkNm}
+			, #{acntOwnerNm}
+			, #{acntNo}
+			, #{pymDt}
+			, #{regrId}
+			, #{regDate}
+			, #{chgrId}
+			, #{chgDate}
+		)
+	</insert>
+	
+	<insert id="insertPrintCt">
+		INSERT INTO TBLIV_PRINT_CT
+		(
+			BILL_SEQ_NO
+			, USE_YYMM
+			, PROD_CMPS_ID
+			, INV_ITM_CD
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_GRP
+			, BILL_MM_TP
+			, USG_CNT
+			, USG_AMT
+			, PRINT_AMT
+			, USE_STRT_DT
+			, USE_END_DT
+			, REG_DATE
+		)
+		VALUES
+		(
+			#{billSeqNo}
+			, #{useYymm}
+			, #{prodCmpsId}
+			, #{invItmCd}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{soId}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{prodGrp}
+			, #{billMmTp}
+			, #{usgCnt}
+			, #{usgAmt}
+			, #{printAmt}
+			, #{useStrtDt}
+			, #{useEndDt}
+			, #{regDate}
+		)
+	</insert>
+
+</mapper>

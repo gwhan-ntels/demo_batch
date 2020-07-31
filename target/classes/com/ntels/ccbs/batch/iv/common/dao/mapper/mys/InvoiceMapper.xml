@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.common.dao.mapper.InvoiceMapper">
+	
+	<select id="getInvcRissSeq" resultType="int">
+		SELECT MAX(INVC_RISS_SEQ) AS INVC_RISS_SEQ
+		FROM TBLIV_INVOICE
+		WHERE SO_ID = #{invoice.soId}
+		AND BILL_YYMM = #{invoice.billYymm}
+		AND BILL_SEQ_NO = #{invoice.billSeqNo}
+	</select>
+	
+	<select id="getM0000DByBillSeqNo" resultType="Invoice">
+		SELECT
+			A.SO_ID AS SO_ID
+			, A.BILL_YYMM AS BILL_YYMM
+			, A.BILL_SEQ_NO AS BILL_SEQ_NO
+			, A.BILL_SEQ_NO AS FLD001
+			, A.PYM_ACNT_ID AS FLD002
+			, B.ACNT_NM AS FLD003
+			, B.NADDR_DTL AS FLD004
+			, A.PROD_NM AS FLD005
+			, A.BILL_DT AS FLD006
+			, CASE WHEN C.IPG1000008 IS NULL THEN 0 ELSE C.IPG1000008 END AS FLD007
+			, A.PAY_DUE_DT AS FLD008
+			, CASE WHEN C.IPG1000007 IS NULL THEN 0 ELSE C.IPG1000007 END AS FLD009
+			, CASE WHEN C.IPG1000009 IS NULL THEN 0 ELSE C.IPG1000009 END AS FLD010
+			, CASE WHEN C.IPG1000008 IS NULL THEN 0 ELSE C.IPG1000008 END
+				+ CASE WHEN C.IPG1000007 IS NULL THEN 0 ELSE C.IPG1000007 END AS FLD012
+			, CASE WHEN C.BILL_AMT IS NULL THEN 0 ELSE C.BILL_AMT END AS FLD013
+		FROM
+		(
+			SELECT
+				A.BILL_SEQ_NO
+				, A.PYM_ACNT_ID
+				, A.PAY_DUE_DT
+				, A.SO_ID
+				, A.BILL_YYMM
+				, A.BILL_DT
+				, C.PROD_NM
+			FROM
+			(
+				SELECT
+					X.BILL_SEQ_NO AS BILL_SEQ_NO
+					, X.PYM_ACNT_ID AS PYM_ACNT_ID
+					, X.PAY_DUE_DT AS PAY_DUE_DT
+					, X.SO_ID AS SO_ID
+					, X.BILL_YYMM AS BILL_YYM
+					, X.BILL_DT AS BILL_DT
+					, MIN(Y.CTRT_ID) AS CTRT_ID
+				FROM TBLIV_BILL_TGT_CUST X
+					LEFT OUTER JOIN TBLIV_BILL_TGT_SVC_CMPS Y
+					ON X.BILL_SEQ_NO = Y.BILL_SEQ_NO
+					AND X.BILL_YYMM = Y.BILL_YYMM
+					AND X.SO_ID = Y.SO_ID
+				WHERE 1 = 1
+				AND X.BILL_SEQ_NO = #{billSeqNo}
+				AND X.BILL_YYMM = #{billYymm}
+				AND X.SO_ID = #{soId}
+				GROUP BY X.BILL_SEQ_NO
+					, X.PYM_ACNT_ID
+					, X.PAY_DUE_DT
+					, X.SO_ID
+					, X.BILL_YYMM
+					, X.BILL_DT
+			) A
+			, TCMCT_CTRT_INFO B
+			, IFNBRM_PROD_INFO C
+			WHERE 1 = 1
+			AND B.CTRT_ID = A.CTRT_ID
+			AND B.SO_ID = A.SO_ID
+			AND B.INACT_DTTM = '99991231235959'
+			AND B.BASIC_PROD_CD = C.PROD_CD
+			AND C.MSTR_FL = '1'
+		) A 
+		LEFT OUTER JOIN (
+			SELECT
+				PYM_ACNT_ID
+				, ACNT_NM
+				, NADDR_DTL
+			FROM IFNBRM_CUST_INFO
+			WHERE 1 = 1
+			AND SO_ID = #{soId}
+			AND PYM_ACNT_ID = #{pymAcntId}
+		) B ON A.PYM_ACNT_ID = B.PYM_ACNT_ID
+		LEFT OUTER JOIN (
+			SELECT
+				X.BILL_SEQ_NO AS BILL_SEQ_NO
+				, SUM(X.BILL_AMT) AS BILL_AMT
+				, SUM(X.BILL_AMT) - CASE WHEN SUM(X.RCPT_AMT) &lt; 0 THEN 0 ELSE SUM(X.RCPT_AMT) END AS IPG1000008
+			FROM TBLIV_BILL X
+				, IFNBRM_SVC_RATE_ITM_ATTR_INFO Y
+				--, TP_INV_ITM Z
+			WHERE 1 = 1
+			AND X.BILL_SEQ_NO = #{billSeqNo}
+			AND X.BILL_YYMM = #{billYymm}
+			AND X.SO_ID = #{soId}
+			AND Y.SVC_RATE_ITM_TYP_CD = X.CHRG_ITM_CD
+			AND Y.INACT_DT = '99991231'
+			-- AND Z.INV_ITM_CD = Y.INV_ITM_CD
+			-- AND Z.EXPIRAT_DT = '99991231'
+			GROUP BY X.BILL_SEQ_NO
+		) C ON A.BILL_SEQ_NO = C.BILL_SEQ_NO
+		LEFT OUTER JOIN (
+			SELECT
+				A.BILL_SEQ_NO AS BILL_SEQ_NO
+				, CASE A.INV_ITM_CD = 'IP00000326' THEN A.BILL_AMT ELSE 0 END AS IPG1000007
+				, CASE A.INV_ITM_CD = 'IP00000326' THEN A.BILL_AMT ELSE 0 END * (-1) AS IPG1000009
+			FROM
+			(
+				SELECT
+					X.THS_BILL_SEQ_NO AS BILL_SEQ_NO
+					, X.BILL_YYMM AS BILL_YYMM
+					, 'IP00000326' AS INV_ITM_CD
+					, SUM(Y.BILL_AMT - Y.RCPT_AMT) AS BILL_AMT
+				FROM
+				(
+					SELECT
+						THS_BILL_SEQ_NO
+						, PYM_ACNT_ID
+						, BILL_YYMM
+						, SO_ID
+					FROM TBLUP_UPYM_OBJ X
+					WHERE 1 = 1
+					AND THS_BILL_SEQ_NO = #{billSeqNo}
+					AND SO_ID = #{soId}
+					GROUP BY THS_BILL_SEQ_NO 
+						, PYM_ACNT_ID 
+						, BILL_YYMM 
+						, SO_ID 
+				) X
+				, TBLIV_BILL Y
+				WHERE 1 = 1
+				AND Y.PYM_ACNT_ID = X.PYM_ACNT_ID
+				AND Y.BILL_YYMM = X.BILL_YYMM
+				AND Y.SO_ID = X.SO_ID
+				AND Y.BILL_YYMM  &lt; #{billYymm}
+				GROUP BY X.THS_BILL_SEQ_NO
+					, X.BILL_YYMM
+				UNION ALL
+				SELECT
+					BILL_SEQ_NO AS BILL_SEQ_NO
+					, BILL_YYMM AS BILL_YYMM
+					, 'IP00000328' AS INV_ITM_CD
+					, SUM(BILL_APLY_AMT) AS BILL_AMT
+				FROM TBLIV_OVERPAY_BILL_APLY Z
+				WHERE 1 = 1
+				AND BILL_SEQ_NO = #{billSeqNo}
+				AND SO_ID = #{soId}
+				GROUP BY BILL_SEQ_NO
+				, BILL_YYMM
+			) A
+			GROUP BY A.BILL_SEQ_NO 
+		) D ON A.BILL_SEQ_NO = D.BILL_SEQ_NO
+	</select>
+	
+	<select id="getD1010DByBillSeqNo" resultType="Invoice">
+		SELECT
+			SO_ID AS SO_ID
+			, BILL_YYMM AS BILL_YYMM
+			, BILL_SEQ_NO AS BILL_SEQ_NO
+			, PRINT_PRI_NO AS PRINT_PRI_NO
+			, INV_ITM_CD AS FLD001
+			, INV_ITM_NM AS FLD002
+			, BILL_AMT AS FLD003
+		FROM
+		(
+			SELECT
+				A.BILL_SEQ_NO AS BILL_SEQ_NO
+				, A.BILL_YYMM AS BILL_YYMM
+				, A.SO_ID AS SO_ID
+				, C.INV_ITM_CD AS INV_ITM_CD
+				, C.INV_ITM_NM AS INV_ITM_NM
+				, C.PRINT_PRI_NO AS PRINT_PRI_NO
+				, SUM(A.BILL_AMT) AS BILL_AMT
+			FROM TBLIV_BILL A
+				, IFNBRM_SVC_RATE_ITM_ATTR_INFO B
+				, TP_INV_ITM C
+			WHERE A.BILL_SEQ_NO = #{billSeqNo}
+			AND A.SO_ID = #{soId}
+			AND A.BILL_YYMM = #{billYymm}
+			AND A.CHRG_ITM_CD = B.SVC_RATE_ITM_TYP_CD
+			AND B.INACT_DT = '99991231'
+			AND B.INV_ITM_CD = C.INV_ITM_CD
+			AND C.EXPIRAT_DT = '99991231'
+			GROUP BY A.BILL_SEQ_NO
+				, A.BILL_YYMM
+				, A.SO_ID
+				, C.INV_ITM_CD
+				, C.INV_ITM_NM
+				, C.PRINT_PRI_NO
+			UNION ALL
+			SELECT
+				BILL_SEQ_NO
+				, BILL_YYMM
+				, SO_ID
+				, 'AAAAAAAAAA'
+				, '*Total (Excl)'
+				, 50000
+				, VAT_DISCOUNT_EXCP_AMT
+			FROM 
+			(
+				SELECT
+					A.BILL_SEQ_NO AS BILL_SEQ_NO
+					, A.BILL_YYMM AS BILL_YYMM
+					, A.SO_ID AS SO_ID
+					, SUM(CASE WHEN B.INV_ITM_CD IN ('IP00000208','IP90000011','IP00000323','IP00000322') THEN 0 ELSE A.BILL_AMT END) AS VAT_DISCOUNT_EXCP_AMT
+					, SUM(CASE WHEN B.INV_ITM_CD IN ('IP00000323','IP00000322') THEN 0 ELSE A.BILL_AMT END) AS DISCOUNT_EXCP_AMT
+					, SUM(A.RCPT_AMT) AS RCPT_AMT
+					, SUM(A.BILL_AMT) AS TOTAL_AMT
+				FROM TBLIV_BILL A
+					, IFNBRM_SVC_RATE_ITM_ATTR_INFO B
+				WHERE A.BILL_SEQ_NO = #{billSeqNo}
+				AND A.SO_ID = #{soId}
+				AND A.BILL_YYMM = #{billYymm}
+				AND A.CHRG_ITM_CD = B.SVC_RATE_ITM_TYP_CD
+				AND B.INACT_DT = '99991231'
+				GROUP BY A.BILL_SEQ_NO
+					, A.BILL_YYMM
+					, A.SO_ID
+			)
+			UNION ALL
+			SELECT
+				BILL_SEQ_NO
+				, BILL_YYMM
+				, SO_ID
+				, 'BBBBBBBBBB'
+				, '*Total amount inclusive VAT'
+				, 70000
+				, DISCOUNT_EXCP_AMT
+			FROM
+			(
+				SELECT
+					A.BILL_SEQ_NO AS BILL_SEQ_NO
+					, A.BILL_YYMM AS BILL_YYMM
+					, A.SO_ID AS SO_ID
+					, SUM(CASE WHEN B.INV_ITM_CD IN ('IP00000208','IP90000011','IP00000323','IP00000322') THEN 0 ELSE A.BILL_AMT END) AS VAT_DISCOUNT_EXCP_AMT
+					, SUM(CASE WHEN B.INV_ITM_CD IN ('IP00000323','IP00000322') THEN 0 ELSE A.BILL_AMT END) AS DISCOUNT_EXCP_AMT
+					, SUM(A.RCPT_AMT) AS RCPT_AMT
+					, SUM(A.BILL_AMT) AS TOTAL_AMT
+				FROM TBLIV_BILL A
+					, IFNBRM_SVC_RATE_ITM_ATTR_INFO B
+				WHERE A.BILL_SEQ_NO = #{billSeqNo}
+				AND A.SO_ID = #{soId}
+				AND A.BILL_YYMM = #{billYymm}
+				AND A.CHRG_ITM_CD = B.SVC_RATE_ITM_TYP_CD
+				AND B.INACT_DT = '99991231'
+				GROUP BY A.BILL_SEQ_NO
+					, A.BILL_YYMM
+					, A.SO_ID
+			)
+			UNION ALL
+			SELECT
+				BILL_SEQ_NO
+				, BILL_YYMM
+				, SO_ID
+				, 'CCCCCCCCCC'
+				, 'Received Amount'
+				, 90000
+				, RCPT_AMT * (-1)
+			FROM
+			(
+				SELECT
+					A.BILL_SEQ_NO AS BILL_SEQ_NO
+					, A.BILL_YYMM AS BILL_YYMM
+					, A.SO_ID AS SO_ID
+					, SUM(CASE WHEN B.INV_ITM_CD IN ('IP00000208','IP90000011','IP00000323','IP00000322') THEN 0 ELSE A.BILL_AMT END) AS VAT_DISCOUNT_EXCP_AMT
+					, SUM(CASE WHEN B.INV_ITM_CD IN ('IP00000323','IP00000322') THEN 0 ELSE A.BILL_AMT END) AS DISCOUNT_EXCP_AMT
+					, SUM(A.RCPT_AMT) AS RCPT_AMT
+					, SUM(A.BILL_AMT) AS TOTAL_AMT
+				FROM TBLIV_BILL A
+					, IFNBRM_SVC_RATE_ITM_ATTR_INFO B
+				WHERE A.BILL_SEQ_NO = #{billSeqNo}
+				AND A.SO_ID = #{soId}
+				AND A.BILL_YYMM = #{billYymm}
+				AND A.CHRG_ITM_CD = B.SVC_RATE_ITM_TYP_CD
+				AND B.INACT_DT = '99991231'
+				GROUP BY A.BILL_SEQ_NO
+					, A.BILL_YYMM
+					, A.SO_ID
+			)
+			WHERE RCPT_AMT != 0
+		)
+		WHERE BILL_AMT != 0
+		ORDER BY BILL_SEQ_NO
+			, PRINT_PRI_NO
+	</select>
+	
+	<insert id="insertInvoice">
+		INSERT INTO TBLIV_INVOICE
+		(
+			SO_ID
+			, BILL_YYMM
+			, BILL_SEQ_NO
+			, INVC_RISS_SEQ
+			, INVC_SECT_SEQ
+			, FLD000
+			, FLD001
+			, FLD002
+			, FLD003
+			, FLD004
+			, FLD005
+			, FLD006
+			, FLD007
+			, FLD008
+			, FLD009
+			, FLD010
+			, FLD011
+			, FLD012
+			, FLD013
+			, FLD014
+			, FLD015
+			, FLD016
+			, FLD017
+			, FLD018
+			, FLD019
+			, FLD020
+			, FLD021
+			, FLD022
+			, FLD023
+			, FLD024
+			, FLD025
+			, FLD026
+			, FLD027
+			, FLD028
+			, FLD029
+			, FLD030
+			, FLD031
+			, FLD032
+			, FLD033
+			, FLD034
+			, FLD035
+			, FLD036
+			, FLD037
+			, FLD038
+			, FLD039
+			, FLD040
+			, FLD041
+			, FLD042
+			, FLD043
+			, FLD044
+			, FLD045
+			, FLD046
+			, FLD047
+			, FLD048
+			, FLD049
+			, FLD050
+			, FLD051
+			, FLD052
+			, FLD053
+			, FLD054
+			, FLD055
+			, FLD056
+			, FLD057
+			, FLD058
+			, FLD059
+			, FLD060
+			, FLD061
+			, FLD062
+			, FLD063
+			, FLD064
+			, FLD065
+			, FLD066
+			, FLD067
+			, FLD068
+			, FLD069
+			, FLD070
+			, FLD071
+			, FLD072
+			, FLD073
+			, FLD074
+			, FLD075
+			, FLD076
+			, FLD077
+			, FLD078
+			, FLD079
+			, FLD080
+			, FLD081
+			, FLD082
+			, FLD083
+			, FLD084
+			, FLD085
+			, FLD086
+			, FLD087
+			, FLD088
+			, FLD089
+			, FLD090
+			, FLD091
+			, FLD092
+			, FLD093
+			, FLD094
+			, FLD095
+			, FLD096
+			, FLD097
+			, FLD098
+			, FLD099
+		)
+		VALUES
+		(
+			#{soId}
+			, #{billYymm}
+			, #{billSeqNo}
+			, #{invcRissSeq}
+			, #{invcSectSeq}
+			, #{fld000}
+			, #{fld001}
+			, #{fld002}
+			, #{fld003}
+			, #{fld004}
+			, #{fld005}
+			, #{fld006}
+			, #{fld007}
+			, #{fld008}
+			, #{fld009}
+			, #{fld010}
+			, #{fld011}
+			, #{fld012}
+			, #{fld013}
+			, #{fld014}
+			, #{fld015}
+			, #{fld016}
+			, #{fld017}
+			, #{fld018}
+			, #{fld019}
+			, #{fld020}
+			, #{fld021}
+			, #{fld022}
+			, #{fld023}
+			, #{fld024}
+			, #{fld025}
+			, #{fld026}
+			, #{fld027}
+			, #{fld028}
+			, #{fld029}
+			, #{fld030}
+			, #{fld031}
+			, #{fld032}
+			, #{fld033}
+			, #{fld034}
+			, #{fld035}
+			, #{fld036}
+			, #{fld037}
+			, #{fld038}
+			, #{fld039}
+			, #{fld040}
+			, #{fld041}
+			, #{fld042}
+			, #{fld043}
+			, #{fld044}
+			, #{fld045}
+			, #{fld046}
+			, #{fld047}
+			, #{fld048}
+			, #{fld049}
+			, #{fld050}
+			, #{fld051}
+			, #{fld052}
+			, #{fld053}
+			, #{fld054}
+			, #{fld055}
+			, #{fld056}
+			, #{fld057}
+			, #{fld058}
+			, #{fld059}
+			, #{fld060}
+			, #{fld061}
+			, #{fld062}
+			, #{fld063}
+			, #{fld064}
+			, #{fld065}
+			, #{fld066}
+			, #{fld067}
+			, #{fld068}
+			, #{fld069}
+			, #{fld070}
+			, #{fld071}
+			, #{fld072}
+			, #{fld073}
+			, #{fld074}
+			, #{fld075}
+			, #{fld076}
+			, #{fld077}
+			, #{fld078}
+			, #{fld079}
+			, #{fld080}
+			, #{fld081}
+			, #{fld082}
+			, #{fld083}
+			, #{fld084}
+			, #{fld085}
+			, #{fld086}
+			, #{fld087}
+			, #{fld088}
+			, #{fld089}
+			, #{fld090}
+			, #{fld091}
+			, #{fld092}
+			, #{fld093}
+			, #{fld094}
+			, #{fld095}
+			, #{fld096}
+			, #{fld097}
+			, #{fld098}
+			, #{fld099}
+		)
+	</insert>
+
+</mapper>

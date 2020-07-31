@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.ArrearsMapper">
+
+	<select id="getArrearsInfoList" resultType="arrears">
+		SELECT /* ORDERED PARALLEL(A 8) PARALLEL(F 8) PARALLEL(G 8) PARALLEL(B 8) */
+		    A.BILL_SEQ_NO
+		    , A.SO_ID
+		    , A.BILL_MM_TP
+		    , A.USE_YYMM
+		    , A.PROD_CMPS_ID
+		    , A.SVC_CMPS_ID
+		    , A.BILL_YYMM
+		    , A.BILL_CYCL
+		    , A.BILL_DT
+		    , A.PYM_ACNT_ID
+		    , B.CUST_ID
+		    , A.CTRT_ID
+		    , A.CRNCY_CD
+		    , A.EXRATE
+		    , E.SET_VAL DELAY_RATE
+		    , TRUNCATE((SUM(IFNULL((A.BILL_AMT-(A.RCPT_AMT-IFNULL(C.RCPT_AMT,0))),0))* E.SET_VAL/100),-1) DELAY_FEE
+		    , #{chAppYn} CH_APP_YN
+		    , #{chAppYymm} CH_APP_YYMM
+		    , #{chDelayImposeYn} CH_DELAY_IMPOSE_YN
+		    , MAX(A.GRP_ID) AS GRP_ID
+		    , MAX(A.ATRT_CORP_ID) ATRT_CORP_ID
+		    , MAX(A.ATRT_EMP_ID) ATRT_EMP_ID
+		    , MAX(A.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+		    , SUM(IFNULL((A.BILL_AMT-(A.RCPT_AMT-IFNULL(C.RCPT_AMT,0))),0)) BILL_AMT
+		FROM TBLIV_BILL A LEFT OUTER JOIN 
+		(
+		    SELECT
+		        XA.BILL_SEQ_NO BILL_SEQ_NO
+		        , XB.USE_YYMM USE_YYMM
+		        , XB.PROD_CMPS_ID PROD_CMPS_ID
+		        , XB.SVC_CMPS_ID SVC_CMPS_ID
+		        , XB.CHRG_ITM_CD CHRG_ITM_CD
+		        , SUM(XB.RCPT_AMT) RCPT_AMT
+		    FROM TBLPY_RCPT XA
+		    , TBLPY_RCPT_DTL XB
+		    WHERE XA.BILL_YYMM = #{befBillYymm} 
+		    AND XA.DPST_DT &gt; #{befPayDueDt}
+		    AND XA.PYM_SEQ_NO = XB.PYM_SEQ_NO
+		    AND XB.SO_ID =#{soId}
+		    AND XA.CNCL_YN = 'N'
+		    GROUP BY XA.BILL_SEQ_NO
+		        , XB.USE_YYMM
+		        , XB.PROD_CMPS_ID
+		        , XB.SVC_CMPS_ID
+		        , XB.CHRG_ITM_CD
+		) C ON A.BILL_SEQ_NO = C.BILL_SEQ_NO
+			AND A.USE_YYMM = C.USE_YYMM
+			AND A.PROD_CMPS_ID = C.PROD_CMPS_ID
+			AND A.SVC_CMPS_ID = C.SVC_CMPS_ID
+			AND A.CHRG_ITM_CD = C.CHRG_ITM_CD
+		, IFNBRM_CUST_INFO B
+		, IFNBRM_CTRT_INFO G
+		, TBLCH_MULTI_SEQ Z
+		, IFNBRM_SVC_RATE_ITM_ATTR_INFO D
+		, TBLIV_BILL_CYCL_STP E
+		, TBLIV_BILL_TGT_CUST F
+		WHERE 1=1
+		AND Z.SO_ID = #{soId}    
+		AND Z.GUBUN = '2'
+		AND Z.P_SEQ = #{pSeq}
+		AND A.BILL_SEQ_NO LIKE SUBSTR(#{befBillYymm},3,4)||'%'
+		AND A.BILL_YYMM = #{befBillYymm}     
+		AND A.BILL_CYCL = #{billCycl}   
+		AND A.SO_ID = #{soId}
+		AND A.PYM_ACNT_ID NOT IN (
+		    SELECT PYM_ACNT_ID
+		    FROM TBLIV_BILL_ARRS_EXPT
+		    WHERE BILL_YYMM =#{befBillYymm}
+		)
+		AND A.SO_ID =  B.SO_ID
+		AND A.CUST_ID = B.CUST_ID
+		AND A.PYM_ACNT_ID =  B.PYM_ACNT_ID
+		AND EXISTS (
+		    SELECT 1
+		    FROM TBLIV_BILL_WRK G
+		    WHERE G.BILL_YYMM = #{billYymm}
+		    AND G.BILL_CYCL = #{billCycl}
+		    AND G.BILL_DT = #{billDt}
+		    AND G.SO_ID = #{soId}
+		    AND G.CHRG_ITM_CD != 'SR301'
+		    AND G.PYM_ACNT_ID = A.PYM_ACNT_ID
+		)
+		AND A.CTRT_ID = G.CTRT_ID
+		AND A.SO_ID = G.SO_ID
+		AND G.INACT_DTTM = '99991231235959'
+		AND G.CTRT_STAT != '90'
+		AND IFNULL(B.ARRS_NOBILL_YN,'N') = 'N'
+		AND A.CHRG_ITM_CD = D.SVC_RATE_ITM_TYP_CD
+		AND D.ATTR_CD = 'DF060'
+		AND D.INACT_DT = '99991231'
+		AND D.ATTR_VAL != '0'
+		AND A.SO_ID = E.SO_ID
+		AND '00019' = E.SET_ITM_ID
+		AND A.BILL_YYMM = E.BILL_YYMM 
+		AND A.BILL_CYCL = E.BILL_CYCL
+		AND A.BILL_SEQ_NO = F.BILL_SEQ_NO
+		AND A.BILL_CYCL = F.BILL_CYCL
+		AND IFNULL(F.BILL_EXPT_YN,'N') = 'N'
+		AND F.SML_AMT_YN = 'N'
+		AND IFNULL(F.PAY_MTHD,'00') != '05'
+		AND A.SO_ID = F.SO_ID
+		AND A.PYM_ACNT_ID &gt;= Z.STRT_NO
+		AND A.PYM_ACNT_ID &lt;= Z.END_NO
+		GROUP BY A.BILL_SEQ_NO
+		    , A.SO_ID
+		    , A.BILL_MM_TP
+		    , A.USE_YYMM
+		    , A.PROD_CMPS_ID
+		    , A.SVC_CMPS_ID
+		    , A.BILL_YYMM
+		    , A.BILL_CYCL
+		    , A.BILL_DT
+		    , A.PYM_ACNT_ID
+		    , B.CUST_ID
+		    , A.CTRT_ID
+		    , A.CRNCY_CD
+		    , A.EXRATE
+		    , E.SET_VAL
+		HAVING SUM(A.BILL_AMT-(A.RCPT_AMT-IFNULL(C.RCPT_AMT,0))) &gt; 0
+		ORDER BY A.BILL_SEQ_NO
+		    , A.SO_ID
+		    , A.BILL_MM_TP
+	</select>
+	
+	<insert id="insertArrs">
+		INSERT INTO TBLIV_ARRS
+		(
+			BILL_SEQ_NO
+			, USE_YYMM
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, DELAY_FEE
+			, BILL_APLY_YN
+			, APLY_YYMM
+			, DELAY_LEVY_YN
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, REG_DATE
+			, BILL_MM_TP
+			, UPAY_AMT
+		)
+		VALUES
+		(
+			#{billSeqNo}
+			, #{useYymm}
+			, #{prodCmpsId}
+			, #{svcCmpsId}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{soId}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{delayFee}
+			, #{billAplyYn}
+			, #{aplyYymm}
+			, #{delayLevyYn}
+			, #{atrtCorpId}
+			, #{atrtEmpId}
+			, #{crncyCd}
+			, #{exrate}
+			, #{exrateAplyDt}
+			, #{regDate}
+			, #{billMmTp}
+			, #{upayAmt}
+		)
+	</insert>
+	
+	<select id="getArrsAplyInfoList" resultType="billWork">
+		SELECT   
+			F.BILL_SEQ_NO   AS OLD_BILL_SEQ_NO
+			, F.USE_YYMM
+			, F.PROD_CMPS_ID
+			, F.SVC_CMPS_ID
+			, #{billYymm} AS BILL_YYMM
+			, #{billCycl} AS BILL_CYCL
+			, #{billDt}   AS BILL_DT
+			, F.SO_ID
+			, F.GRP_ID
+			, F.PYM_ACNT_ID
+			, F.CUST_ID
+			, F.CTRT_ID
+			, F.BIZ_CL
+			, F.PROD_CD
+			, F.SVC_CD
+			, F.PROD_GRP
+			, F.SVC_GRP
+			, F.BILL_MM_TP
+			, F.SALE_TP
+			, 0 AS USG_CNT
+			, 0 AS USG_QTY
+			, 0 AS USG_AMT
+			, SUM(F.DELAY_FEE) AS BILL_AMT
+			, 0 AS RCPT_AMT
+			, SUM(F.DELAY_FEE) AS WON_BILL_AMT
+			, SUM(F.DELAY_FEE) DELAY_FEE
+			, 0 AS ADJ_AMT
+			, SUM(F.DELAY_FEE) AS ADJ_PRV_BILL_AMT
+			, #{payDueDt} AS PAY_DUE_DT
+			, F.ATRT_CORP_ID
+			, MAX(F.ATRT_EMP_ID) ATRT_EMP_ID
+			, F.CRNCY_CD
+			, F.EXRATE
+			, MAX(F.EXRATE_APLY_DT) EXRATE_APLY_DT
+			, '01' AS SALE_TP
+			, 0 AS RCPT_AMT
+			, 'N' AS FULL_PAY_YN
+			, F.CHRG_ITM_CD
+		FROM
+		(
+			SELECT /* ORDERED PARALLEL(A 8) PARALLEL(B 8) USE_HASH(A B) */
+				' '  NEW_SEQ_NO
+				, A.BILL_SEQ_NO
+				, A.USE_YYMM
+				, A.PROD_CMPS_ID
+				, A.SVC_CMPS_ID
+				, A.SO_ID
+				, MAX(A.GRP_ID) AS GRP_ID
+				, A.PYM_ACNT_ID
+				, A.CUST_ID
+				, A.CTRT_ID
+				, B.BIZ_CL
+				, MAX(B.PROD_CD) AS PROD_CD
+				, MAX(B.SVC_CD) AS SVC_CD
+				, MAX(B.PROD_GRP) AS PROD_GRP
+				, MAX(B.SVC_GRP) AS SVC_GRP
+				, MAX(B.BILL_MM_TP) AS BILL_MM_TP
+				, MAX(B.SALE_TP) AS SALE_TP
+				, A.DELAY_FEE
+				, MAX(A.ATRT_CORP_ID) AS ATRT_CORP_ID
+				, MAX(A.ATRT_EMP_ID) AS ATRT_EMP_ID
+				, A.CRNCY_CD
+				, A.EXRATE
+				, A.EXRATE_APLY_DT
+				, D.REF_CODE AS CHRG_ITM_CD
+			FROM TBLIV_ARRS A
+			, TBLIV_BILL B
+			, IFNBRM_SVC_RATE_ITM_ATTR_INFO C
+			, TSYCO_CODE_DETAIL D
+			, TBLCH_MULTI_SEQ Z
+			WHERE A.APLY_YYMM = #{billYymm}
+			AND A.SO_ID = #{soId}
+			AND A.BILL_SEQ_NO  = B.BILL_SEQ_NO
+			AND A.PROD_CMPS_ID = B.PROD_CMPS_ID
+			AND A.SVC_CMPS_ID = B.SVC_CMPS_ID
+			AND A.USE_YYMM = B.USE_YYMM
+			AND A.BILL_YYMM = B.BILL_YYMM
+			AND A.SO_ID = B.SO_ID
+			AND A.DELAY_FEE != 0
+			AND B.CHRG_ITM_CD = C.SVC_RATE_ITM_TYP_CD
+			AND C.ATTR_CD = 'DF060'
+			AND C.INACT_DT = '99991231'
+			AND C.ATTR_VAL != '0'
+			AND D.COMMON_GRP ='BL00000'
+			AND D.COMMON_CD = '01'
+			AND D.USE_YN = 'Y'
+			AND Z.SO_ID = #{soId}
+			AND Z.GUBUN = '2'
+			AND Z.P_SEQ = #{pSeq}
+			AND A.PYM_ACNT_ID &gt;= Z.STRT_NO
+			AND A.PYM_ACNT_ID &lt;= Z.END_NO
+			GROUP BY A.BILL_SEQ_NO
+				, A.USE_YYMM
+				, A.PROD_CMPS_ID
+				, A.SVC_CMPS_ID
+				, A.SO_ID
+				, B.BIZ_CL
+				, A.PYM_ACNT_ID
+				, A.CUST_ID
+				, A.CTRT_ID
+				, A.CRNCY_CD
+				, A.DELAY_FEE
+				, A.EXRATE
+				, A.EXRATE_APLY_DT
+				, D.REF_CODE
+		)  F
+		GROUP BY F.BILL_SEQ_NO
+			, F.USE_YYMM
+			, F.PROD_CMPS_ID
+			, F.SVC_CMPS_ID
+			, F.SO_ID
+			, F.GRP_ID
+			, F.PYM_ACNT_ID
+			, F.CUST_ID
+			, F.CTRT_ID
+			, F.BIZ_CL
+			, F.PROD_CD
+			, F.SVC_CD
+			, F.PROD_GRP
+			, F.SVC_GRP
+			, F.BILL_MM_TP
+			, F.SALE_TP
+			, F.ATRT_CORP_ID
+			, F.CRNCY_CD
+			, F.EXRATE
+			, F.CHRG_ITM_CD
+	</select>
+	
+    <update id="updateArrsInfo">
+		UPDATE TBLIV_ARRS
+		SET BILL_APLY_YN = 'Y'
+		WHERE BILL_SEQ_NO = #{oldBillSeqNo}
+    </update>
+	
+</mapper>

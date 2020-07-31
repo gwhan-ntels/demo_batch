@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.up.common.dao.mapper.UpCommonMapper">
+
+	<update id="updateUpymJobDtl">
+        UPDATE  TBLUP_UPYM_JOB_DTL
+	       SET  END_TIME = #{endTime}
+		       ,PROC_CNT = #{dbCnt}
+               ,ERROR_CODE = #{errorCode}
+	           ,ERROR_MSG = #{errorMsg}
+         WHERE  SO_ID = #{soId}
+           AND  UPYM_BS_YYMM = #{inDate}
+	       AND  PROC_SEQ_NO = #{procSeqNo}
+	       AND  PROC_STAT = #{procStat}
+	</update>
+
+</mapper>

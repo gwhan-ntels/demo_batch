@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.common.dao.mapper.RateInfoMapper">
+    <select id="listMulti"  resultType="Multi" >
+        SELECT 
+         	A.SO_ID
+            ,A.MULTI_CYCL
+            ,A.MULTI_CYCL_NM
+            ,A.SEQ
+            ,A.SEQ_NM
+            ,A.BILL_MM
+            ,A.BILL_DT
+            ,A.BILL_ST_MM
+            ,A.BILL_UNIT
+            ,A.USE_ST_MM
+            ,A.USE_ST_DT
+            ,A.USE_ED_MM
+            ,A.USE_ED_DT
+            ,A.REAL_USE_ED_DT
+		FROM            
+        (SELECT SO_ID
+              ,MULTI_CYCL
+              ,MULTI_CYCL_NM
+              ,SEQ
+              ,SEQ_NM
+              ,BILL_MM
+              ,BILL_DT
+              ,BILL_ST_MM
+              ,BILL_UNIT
+              ,USE_ST_MM
+              ,USE_ST_DT
+              ,USE_ED_MM
+              ,USE_ED_DT
+              ,USE_ED_DT REAL_USE_ED_DT
+        FROM   TBLCH_MULTI_CYCL
+        WHERE  SO_ID = #{soId}
+        AND    MULTI_CYCL = #{multiCycl}
+        AND    SEQ = #{seq}) A
+    </select>
+
+     <select id="listMultiCtrt"  resultType="Multi" >
+        SELECT STRT_NO
+              ,END_NO
+        FROM   TBLCH_MULTI_SEQ
+        WHERE  SO_ID = #{soId}
+        AND    P_SEQ = #{pSeq}
+        AND    GUBUN = '1'
+    </select>
+
+    <select id="listRateItm" resultType="RateInfo" >
+        SELECT A.SO_ID
+               ,B.CHRG_CTGRY
+               ,B.SVC_RATE_ITM_TYP_CD
+               ,B.PROD_CD
+               ,A.RATE_ITM_CD
+               ,A.ACT_DT
+               ,A.INACT_DT
+               ,A.FCTR_CD
+               ,A.FCTR_NO
+               ,A.RATE_INFO_EXE_FL
+               ,A.FCTR_REF_TYP
+               ,A.TABLE_ID
+               ,A.COLMN_ID
+               ,A.COND_OPERATOR
+               ,A.OPRND_REF_FL
+               ,A.OPRND_1
+               ,A.OPRND_2
+               ,A.OPRND_FCTR_CD_1
+               ,A.OPRND_FCTR_CD_2
+               ,A.FCTR_VAL1
+               ,A.FCTR_VAL2
+               ,A.FCTR_VAL3
+               ,A.FCTR_VAL4
+               ,A.FCTR_VAL5
+               ,A.FCTR_VAL6
+               ,A.FCTR_VAL7
+               ,A.FCTR_VAL8
+               ,A.FCTR_VAL9
+               ,A.RATE_REF_FL
+               ,A.RATE_VAL
+               ,A.RATE_FCTR_CD
+               ,A.CRNCY_CD
+               ,B.DIS_SVC_RATE_ITM_TYP_CD
+               ,A.DIVI_RATE_AMT
+               ,A.QTY_REF_FL
+               ,A.QTY
+               ,A.QTY_FCTR_CD
+               ,(SELECT MAX(FCTR_NO)
+                 FROM   IFNBRM_RATE_INFO C
+                 WHERE  C.SO_ID = A.SO_ID
+                 AND    C.RATE_ITM_CD = A.RATE_ITM_CD
+                 AND    C.ACT_DT = A.ACT_DT
+                 AND    C.INACT_DT = A.INACT_DT
+                 AND    C.FCTR_REF_TYP IN ('T','F')
+                 GROUP BY RATE_ITM_CD, ACT_DT, INACT_DT) AS FCTR_CNT
+        FROM   IFNBRM_RATE_INFO A ,
+               IFNBRM_RATE_ITM_INFO B
+        WHERE  A.SO_ID = #{soId}
+        AND    A.SO_ID = B.SO_ID
+        AND    A.RATE_ITM_CD = B.RATE_ITM_CD
+        AND    B.RATE_LOCAT = 'B'
+        AND    B.CHRG_CTGRY = #{chrgCtgry}
+        AND    A.FCTR_REF_TYP IN ('T','F')
+        AND    A.ACT_DT &lt;= #{endDate}
+        AND    A.INACT_DT &gt;= #{startDate}
+        AND    B.ACT_DT &lt;= #{endDate}
+        AND    B.INACT_DT &gt;= #{startDate}
+        ORDER BY B.PROD_CD, B.RATE_PRI_NO, A.RATE_ITM_CD, A.ACT_DT, A.FCTR_NO
+    </select>
+        
+     <select id="listRrateAttr" resultType="RateAttr">
+        SELECT R.RATE_ITM_CD
+              ,MAX(R.DAY_VAL)    AS VAL1
+              ,MAX(R.DAILY_VAL)  AS VAL2
+              ,MAX(R.UP_VAL)     AS VAL3
+              ,MAX(R.UP_POS_VAL) AS VAL4
+              ,MAX(R.VAT_VAL)    AS VAL5
+        FROM  (SELECT RATE_ITM_CD
+                     ,CASE WHEN ATTR_CD = 'AT005' THEN ATTR_CD ELSE '' END AS DAY_YN
+                     ,CASE WHEN ATTR_CD = 'AT005' THEN ATTR_VAL ELSE '' END AS DAY_VAL
+                     ,CASE WHEN ATTR_CD = 'AT004' THEN ATTR_CD ELSE '' END AS DAILY_YN
+                     ,CASE WHEN ATTR_CD = 'AT004' THEN ATTR_VAL ELSE '' END AS DAILY_VAL
+                     ,CASE WHEN ATTR_CD = 'AT001' THEN ATTR_CD ELSE '' END AS UP_YN
+                     ,CASE WHEN ATTR_CD = 'AT001' THEN ATTR_VAL ELSE '' END AS UP_VAL
+                     ,CASE WHEN ATTR_CD = 'AT002' THEN ATTR_CD ELSE '' END AS UP_POS
+                     ,CASE WHEN ATTR_CD = 'AT002' THEN ATTR_VAL ELSE '' END AS UP_POS_VAL
+                     ,CASE WHEN ATTR_CD = 'AT003' THEN ATTR_CD ELSE '' END AS VAT
+                     ,CASE WHEN ATTR_CD = 'AT003' THEN ATTR_VAL ELSE '' END AS VAT_VAL
+               FROM IFNBRM_RATE_ITM_ATTR_INFO
+               WHERE  SO_ID = #{soId}
+               AND    ACT_DT &lt;= #{endDate}
+               AND    INACT_DT &gt;= #{startDate}
+               AND    ATTR_CD IN ('AT004','AT001','AT002','AT005','AT003')
+               AND    RATE_ITM_CD IN (SELECT RATE_ITM_CD FROM IFNBRM_RATE_ITM_INFO A WHERE SO_ID = A.SO_ID AND A.CHRG_CTGRY ='R' AND A.RATE_LOCAT = 'B')
+              ) R
+        GROUP  BY R.RATE_ITM_CD
+        ORDER  BY R.RATE_ITM_CD
+    </select>
+     
+    <select id="listDrateAttr" resultType="RateAttr">
+        SELECT R.RATE_ITM_CD
+              ,'*'              AS VAL1
+              ,MAX(R.DAILY_VAL)   AS VAL2
+              ,MAX(R.PERCENT_VAL) AS VAL3
+              ,MAX(R.MOTHOD_VAL)  AS VAL4
+              ,MAX(R.VAT_VAL)     AS VAL5
+        FROM  (SELECT RATE_ITM_CD
+                     ,CASE WHEN ATTR_CD = 'AT008' THEN ATTR_CD ELSE '' END AS DAILY_YN
+                     ,CASE WHEN ATTR_CD = 'AT008' THEN ATTR_VAL ELSE '' END AS DAILY_VAL
+                     ,CASE WHEN ATTR_CD = 'AT009' THEN ATTR_CD ELSE '' END AS PERCENT
+                     ,CASE WHEN ATTR_CD = 'AT009' THEN ATTR_VAL ELSE '' END AS PERCENT_VAL
+                     ,CASE WHEN ATTR_CD = 'AT010' THEN ATTR_CD ELSE '' END AS MOTHOD
+                     ,CASE WHEN ATTR_CD = 'AT010' THEN ATTR_VAL ELSE '' END AS MOTHOD_VAL
+                     ,CASE WHEN ATTR_CD = 'AT003' THEN ATTR_CD ELSE '' END AS VAT
+                     ,CASE WHEN ATTR_CD = 'AT003' THEN ATTR_VAL ELSE '' END AS VAT_VAL
+               FROM   IFNBRM_RATE_ITM_ATTR_INFO
+               WHERE  SO_ID = #{soId}
+               AND    ACT_DT &lt;= #{endDate}
+               AND    INACT_DT &gt;= #{startDate}
+               AND    ATTR_CD IN ('AT008','AT009','AT010','AT003')
+               AND    RATE_ITM_CD IN (SELECT RATE_ITM_CD FROM IFNBRM_RATE_ITM_INFO A WHERE SO_ID = A.SO_ID AND A.CHRG_CTGRY ='D' AND A.RATE_LOCAT = 'B')
+              ) R
+        GROUP  BY R.RATE_ITM_CD
+        ORDER  BY R.RATE_ITM_CD
+    </select>
+
+    <select id="listDiscExcl" resultType="DiscExcl">
+        SELECT RATE_ITM_CD
+              ,EXCL_SVC_RATE_ITM_TYP_CD
+        FROM   IFNBRM_DISC_EXCL
+        WHERE  SO_ID = #{soId}
+        AND    ACT_DT &lt;= #{endDate} 
+        AND    INACT_DT &gt;= #{startDate} 
+        ORDER  BY RATE_ITM_CD
+    </select>
+
+    <select id="listRateFctr" resultType="RateFctr">
+        SELECT A.PROD_CD
+              ,D.FCTR_CD
+              ,D.FCTR_REF_TYP
+              ,D.TABLE_ID
+              ,D.COLMN_ID
+              ,D.DATA_TYP
+              ,D.REF_CD
+        FROM   TPMPD_PROD A
+              ,TPMPD_RATE_ITM B
+              ,TPMPD_RATE_ITM_FCTR C
+              ,TPMBI_FCTR D
+        WHERE  1=1
+        AND    A.PROD_CD = B.PROD_CD
+        AND    B.RATE_ITM_CD = C.RATE_ITM_CD
+        AND    C.FCTR_CD = D.FCTR_CD
+        AND    #{startDate} BETWEEN A.ACT_DT AND A.INACT_DT
+        AND    #{startDate} BETWEEN B.ACT_DT AND B.INACT_DT
+        AND    #{startDate} BETWEEN C.ACT_DT AND C.INACT_DT
+        AND    #{startDate} BETWEEN D.ACT_DT AND D.INACT_DT
+        GROUP  BY A.PROD_CD, D.FCTR_CD, D.FCTR_REF_TYP, D.TABLE_ID, D.COLMN_ID, D.DATA_TYP, D.REF_CD
+        ORDER  BY A.PROD_CD, D.FCTR_CD
+    </select>
+     
+     <select id="listCrateAttr" resultType="RateAttr">
+        SELECT RATE_ITM_CD
+              ,MAX(CANCEL_CHRG_VAL) AS VAL1
+        FROM  (
+               SELECT RATE_ITM_CD
+                     ,CASE WHEN ATTR_CD = 'AT039' THEN ATTR_CD  ELSE '' END AS CANCEL_CHRG_YN
+                     ,CASE WHEN ATTR_CD = 'AT039' THEN ATTR_VAL ELSE '' END AS CANCEL_CHRG_VAL
+               FROM   IFNBRM_RATE_ITM_ATTR_INFO
+               WHERE  1=1
+               AND    SO_ID    = #{soId}
+               AND    ACT_DT   &lt;= #{endDate}
+               AND    INACT_DT &gt;= #{startDate}
+               AND    ATTR_CD  IN ('AT039')
+               AND    RATE_ITM_CD IN (SELECT RATE_ITM_CD FROM IFNBRM_RATE_ITM_INFO A WHERE SO_ID = A.SO_ID AND A.CHRG_CTGRY ='Z' AND A.RATE_LOCAT = 'B')
+              )
+        GROUP  BY RATE_ITM_CD
+        ORDER  BY RATE_ITM_CD
+    </select>
+</mapper>

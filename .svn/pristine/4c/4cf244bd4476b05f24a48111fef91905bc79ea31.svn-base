@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m07Mapper">
+    
+	<select id="listInfo"  resultType="CBillComm"> 
+	       SELECT
+                #{billYymm}              AS BILL_YYMM,
+                #{billCycl}              AS BILL_CYCL,
+                #{billDt}                AS BILL_DT,
+                #{exrateAplyDt}          AS EXRATE_APLY_DT,
+                #{payDueDt}              AS PAY_DUE_DT,
+                A.BILL_SEQ_NO,
+                A.PROD_CMPS_ID,
+                A.SVC_CMPS_ID,
+                A.BILL_MM_TP,
+                A.SO_ID,
+                A.PYM_ACNT_ID,
+                A.CTRT_ID,
+                A.CRNCY_CD,
+                A.SVC_CD,
+                A.BIZ_CL,
+                A.PROD_GRP,
+                A.EXRATE,
+                A.CHRG_ITM_CD,
+                A.AUTO_DC_RATE,
+                MAX(A.GRP_ID)         AS GRP_ID,                            -- // 단체ID
+                MAX(A.PROD_CD)        AS PROD_CD,                           -- // 상품
+                MAX(A.CUST_ID)        AS CUST_ID,                           -- // 고객ID
+                MAX(A.SVC_GRP)        AS SVC_GRP,                           -- // 서비스그룹
+                MAX(A.ATRT_CORP_ID)   AS ATRT_CORP_ID,                      -- // 유치업체
+                MAX(A.ATRT_EMP_ID)    AS ATRT_EMP_ID,                       -- // 유치사원
+                SUM(A.BILL_AMT)       AS BILL_AMT,
+                SUM(A.WON_BILL_AMT)   AS WON_BILL_AMT,
+                MAX(A.USE_YYMM)       AS USE_YYMM,
+                0  AS USG_CNT,          
+                0  AS USG_QTY,   
+                0  AS USG_AMT,       
+                0  AS RCPT_AMT,
+                0  AS ADJ_AMT,
+                SUM(A.BILL_AMT)      AS ADJ_PRV_BILL_AMT
+
+          FROM (
+          SELECT
+		        A.BILL_SEQ_NO,                                              -- // 청구일련번호
+                A.BILL_MM_TP,                                               -- // 당후납 구분
+                A.SO_ID,                                                    -- // 계열사ID
+                A.PROD_CMPS_ID,                                             -- // 상품구성ID
+                A.SVC_CMPS_ID,                                              -- // 서비스구성ID
+                A.GRP_ID,                                                   -- // 단체ID
+                A.PYM_ACNT_ID,                                              -- // 납부계정ID
+                A.CUST_ID,                                                  -- // 고객ID
+                A.CTRT_ID,                                                  -- // 계약ID
+                A.PROD_CD,                                                  -- // 상품코드
+                A.SVC_CD,                                                   -- // 서비스코드
+                A.BIZ_CL,                                                   -- // 사업구분
+                A.PROD_GRP,                                                 -- // 상품그룹
+                A.SVC_GRP,
+                A.ATRT_CORP_ID,                                             -- // 유치업체
+                A.ATRT_EMP_ID,                                              -- // 유치사원
+                A.EXRATE,                                                   -- // 환율
+				, CAST(E.SET_VAL AS UNSIGNED) AS AUTO_DC_RATE	             		 -- // 자동이체할인율
+   				, -TRUNCATE(A.BILL_AMT * CAST(E.SET_VAL AS UNSIGNED) / 100, 0) AS BILL_AMT
+				, -TRUNCATE(A.WON_BILL_AMT * CAST(E.SET_VAL AS UNSIGNED) / 100, 0) AS WON_BILL_AMT
+                A.CRNCY_CD,
+                F.REF_CODE               AS CHRG_ITM_CD,
+                A.USE_YYMM
+           FROM TBLIV_BILL_WRK                 A,  -- // 청구내역
+                IFNBRM_CUST_INFO               B,  -- // 납부계정
+                TBLIV_EXRATE_INFO              C,  -- // 환율정보
+                IFNBRM_SVC_RATE_ITM_ATTR_INFO  D,
+                TBLIV_BILL_CYCL_STP            E,
+                TSYCO_CODE_DETAIL              F,
+                TBLCH_MULTI_SEQ                Z
+         WHERE A.BILL_YYMM                    = #{billYymm}   -- // 청구년월
+            AND A.BILL_CYCL                   = #{billCycl}   -- // 청구주기
+            AND A.BILL_DT                     = #{billDt}     -- // 청구일자
+            AND A.SO_ID                       = #{soId}
+            AND A.SO_ID                       = B.SO_ID
+            AND A.PYM_ACNT_ID                 = B.PYM_ACNT_ID  --  // 납부계정
+            AND A.CUST_ID					  = B.CUST_ID
+            AND B.PYM_MTHD                  IN ('02','04')     --  // 납부방법('01': 지로, '02':자동이체, '04': 신용카드) MVNO CMS사용안함
+            AND A.CRNCY_CD                   = C.CRNCY_CD      --  // 화폐코드
+            AND C.EXRATE_APLY_DT             = #{exrateAplyDt}      -- // 환율기준일자
+            AND D.SVC_RATE_ITM_TYP_CD        = A.CHRG_ITM_CD
+            AND IFNULL(CAST(E.SET_VAL  AS UNSIGNED),1) != 0
+            AND D.ATTR_CD                    = 'DF061'      -- // 자동이체 할인 여부
+            AND D.INACT_DT                   = '99991231'
+            AND D.ATTR_VAL                  != '0'
+            AND D.SO_ID                      = A.SO_ID
+            AND A.BILL_AMT                  != 0
+            AND A.SO_ID                      = E.SO_ID
+            AND '00020'                      = E.SET_ITM_ID   -- // 설정항목 :자동이체할인율
+            AND A.BILL_YYMM                  = E.BILL_YYMM
+            AND A.BILL_CYCL                  = E.BILL_CYCL
+            AND A.PAY_DUE_DT                 = #{payDueDt}
+            AND F.COMMON_GRP                 = 'BL00000'
+            AND F.COMMON_CD                  ='03'
+            AND F.USE_YN = 'Y'
+            AND Z.SO_ID                      = #{soId}    
+            AND Z.GUBUN                  = '2'
+		    AND Z.P_SEQ                      = #{pSeq}
+		    AND A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+		   	AND A.PYM_ACNT_ID  &lt;= Z.END_NO 		
+         ) A
+          GROUP BY A.BILL_SEQ_NO,
+                   A.PROD_CMPS_ID,
+                   A.SVC_CMPS_ID,
+                   A.BILL_MM_TP,
+                   A.SO_ID,
+                   A.PYM_ACNT_ID,
+                   A.CTRT_ID,
+                   A.CRNCY_CD,
+                   A.SVC_CD,
+                   A.BIZ_CL,
+                   A.PROD_GRP,
+                   A.EXRATE,
+                   A.CHRG_ITM_CD,
+                   A.AUTO_DC_RATE
+         HAVING SUM(A.BILL_AMT) != 0
+          ORDER BY 1, 3, 2 
+  </select>
+    
+   
+</mapper>

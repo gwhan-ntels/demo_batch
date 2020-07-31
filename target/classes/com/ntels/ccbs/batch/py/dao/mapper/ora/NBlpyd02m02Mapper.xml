@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.py.dao.mapper.NBlpyd02m02Mapper">
+	
+	<select id="getBillSeqByPymAcntId" resultType="String">
+		SELECT BILL_SEQ_NO
+		FROM TBLIV_BILL_MAST
+		WHERE PYM_ACNT_ID = #{pymAcntId}
+		AND FULL_PAY_YN = 'N'
+	</select>
+
+</mapper>

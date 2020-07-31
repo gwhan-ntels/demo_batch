@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.dao.mapper.NBlchb08m01Mapper">
+	<select id="listNBlchb08m01"  resultType="NBlchb08m01"> 
+        SELECT
+               #{clcWrkNo}               AS CLC_WRK_NO,
+               #{soId}                   AS SO_ID,
+               #{pSeq}                   AS P_SEQ,
+               to_char(add_months(to_date(#{billYymm},'yyyymm'), 1), 'yyyymm') AS BILL_YYMM,
+               #{billCycl} AS BILL_CYCL,
+               SUBSTR(#{startDate},1,6)   AS USE_YYMM,
+               A.SVC_CMPS_ID,
+               B.RATE_ITM_CD,
+               SUBSTR(A.ACT_DTTM, 1, 8)   AS ACT_DT,
+               SUBSTR(A.INACT_DTTM, 1, 8) AS INACT_DT,
+               A.RATE_STRT_DT,
+               A.TERM_DT,
+               A.CTRT_STAT,
+               A.PROD_CD,
+               A.CUST_ID,
+               A.CTRT_ID,
+               A.PROD_CMPS_ID,
+               0                          AS USE_AMT,
+               0                          AS VAT,
+               B.CHRG_CTGRY,
+               B.SVC_RATE_ITM_TYP_CD,
+               A.PYM_ACNT_ID,
+               '0000000000'               AS GRP_ID,
+               '1'                        AS USE_QTY_UT,
+               0                          AS USE_QTY,
+               0                          AS USE_CNT,
+               B.CRNCY_CD,
+               A.SVC_STS_CD,
+               A.SVC_TEL_NO,
+               A.FCTR_CD1,
+               A.FCTR_VAL1,
+               A.FCTR_CD2,
+               A.FCTR_VAL2,
+               A.FCTR_CD3,
+               A.FCTR_VAL3,
+               A.FCTR_CD4,
+               A.FCTR_VAL4,
+               A.FCTR_CD5,
+               A.FCTR_VAL5,
+               A.FCTR_CD6,
+               A.FCTR_VAL6,
+               A.FCTR_CD7,
+               A.FCTR_VAL7,
+               A.FCTR_CD8,
+               A.FCTR_VAL8,
+               A.FCTR_CD9,
+               A.FCTR_VAL9,
+               ''                         AS REG_DATE,
+               A.PROC_RATE,
+               B.RATE_VAL,
+               TRUNC(MONTHS_BETWEEN (TO_DATE(TERM_DT, 'YYYYMMDD') , TO_DATE(RATE_STRT_DT, 'YYYYMMDD')), 0)   AS USE_MONTHS
+        FROM   IFNBRM_CTRT_INFO A
+              ,(
+                SELECT DISTINCT
+                       B.PROD_CD, B.RATE_ITM_CD, B.CHRG_CTGRY, B.SVC_RATE_ITM_TYP_CD, C.CRNCY_CD, C.RATE_VAL
+                FROM   IFNBRM_SVC_RATE_ITM_INFO A
+                      ,IFNBRM_RATE_ITM_INFO B
+                      ,IFNBRM_RATE_INFO C 
+                      ,IFNCRM_PROD_INFO D
+                WHERE  1=1
+                AND    A.SVC_RATE_ITM_TYP_CD = 'SR872'
+                AND    A.SVC_RATE_ITM_TYP_CD = B.SVC_RATE_ITM_TYP_CD
+                AND    B.RATE_ITM_CD = C.RATE_ITM_CD
+                AND    B.PROD_CD = D.PROD_CD
+                AND    D.BASIC_PROD_FL = 'B'
+                AND    #{startDate} BETWEEN B.ACT_DT AND B.INACT_DT
+                AND    #{startDate} BETWEEN C.ACT_DT AND C.INACT_DT
+                AND    #{startDate} BETWEEN D.ACT_DT AND D.INACT_DT
+               ) B
+        WHERE  1=1
+        AND    A.SO_ID = #{soId}
+        AND    SUBSTR(A.ACT_DTTM, 1, 6) = #{billYymm}                                   /* 전월 해지 된 내역 조회  */
+        AND    A.SVC_STS_CD = '90'
+        AND    A.SVC_CHG_CL = '0310'
+        AND    A.TERM_DT &lt; ADD_MONTHS(TO_DATE(RATE_STRT_DT, 'YYYYMMDD'), A.PROM_CNT) /* 24 개월 미만 */
+        AND    SUBSTR(A.ACT_DTTM, 1, 8) &lt;&gt; SUBSTR(A.INACT_DTTM, 1, 8)
+        AND    A.PROD_CD = B.PROD_CD
+        AND    A.CTRT_ID BETWEEN #{strtNo} AND #{endNo}
+        ORDER BY A.CTRT_ID, A.SVC_CMPS_ID, A.ACT_DTTM DESC
+	</select>
+    
+    <insert id = "saveNBlchb08m01"  parameterType="NBlchb08m01"> 
+        INSERT INTO TBLCH_CHRG_TEMP
+            (CLC_WRK_NO, SO_ID, P_SEQ, BILL_YYMM, BILL_CYCL, USE_YYMM, CTRT_ID, CUST_ID, PYM_ACNT_ID, PROD_CMPS_ID, SVC_CMPS_ID, ACT_DT, INACT_DT
+            ,PROD_CD, CHRG_CTGRY, RATE_ITM_CD, SVC_RATE_ITM_TYP_CD, GRP_ID, USE_QTY_UT, USE_AMT, USE_QTY, USE_CNT, CRNCY_CD, VAT, REG_DATE
+            ,RATE_STRT_DT, TERM_DT, CTRT_STAT, SVC_TEL_NO, FCTR_CD1, FCTR_VAL1, FCTR_CD2, FCTR_VAL2, FCTR_CD3, FCTR_VAL3, FCTR_CD4, FCTR_VAL4
+            ,FCTR_CD5,  FCTR_VAL5, FCTR_CD6, FCTR_VAL6, FCTR_CD7, FCTR_VAL7, FCTR_CD8, FCTR_VAL8, FCTR_CD9, FCTR_VAL9, SVC_STS_CD, PROC_RATE)
+        VALUES 
+            (#{clcWrkNo}, #{soId}, #{pSeq}, #{billYymm}, #{billCycl}, #{useYymm}, #{ctrtId}, #{custId}, #{pymAcntId}, #{prodCmpsId}, #{svcCmpsId}, #{actDt}, #{inactDt}
+            ,#{prodCd}, #{chrgCtgry}, #{rateItmCd}, #{svcRateItmTypCd}, #{grpId}, #{useQtyUt}, #{useAmt}, #{useQty}, #{useCnt}, #{crncyCd}, #{vat}, #{regDate}
+            ,#{rateStrtDt}, #{termDt}, #{ctrtStat}, #{svcTelNo}, #{fctrCd1}, #{fctrVal1}, #{fctrCd2}, #{fctrVal2}, #{fctrCd3}, #{fctrVal3}, #{fctrCd4}, #{fctrVal4}
+            ,#{fctrCd5}, #{fctrVal5}, #{fctrCd6}, #{fctrVal6}, #{fctrCd7}, #{fctrVal7}, #{fctrCd8}, #{fctrVal8}, #{fctrCd9}, #{fctrVal9}, #{svcStsCd}, #{procRate})
+    </insert>
+     <!-- 
+        INSERT INTO TBLCH_CHRG
+            (CLC_WRK_NO,  BILL_YYMM,    BILL_CYCL, USE_YYMM,    SVC_CMPS_ID
+            ,RATE_ITM_CD, SO_ID,        GRP_ID,    PYM_ACNT_ID, CUST_ID
+            ,CTRT_ID,     PROD_CMPS_ID, USE_AMT,   USE_QTY_UT,  USE_QTY
+            ,USE_CNT,     CRNCY_CD,     REG_DATE,  VAT)
+        VALUES 
+            (#{clcWrkNo},  #{billYymm},   #{billCycl}, #{useYymm},   #{svcCmpsId}
+            ,#{rateItmCd}, #{soId},       #{grpId},    #{pymAcntId}, #{custId}
+            ,#{ctrtId},    #{prodCmpsId}, #{useAmt},   #{useQtyUt},  #{useQty}
+            ,#{useCnt},    #{crncyCd},    #{regDate},  #{vat}) -->
+</mapper>

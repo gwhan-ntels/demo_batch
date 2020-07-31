@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.common.dao.mapper.CBLMapper">
+
+	<select id="getCyclStpSetVal" resultType="com.ntels.ccbs.batch.iv.common.entity.BillCyclStp">
+		SELECT
+			SET_VAL
+		FROM TBLIV_BILL_CYCL_STP
+		WHERE BILL_YYMM = #{billYymm}
+			AND BILL_CYCL = #{billCycl}
+			AND SET_ITM_ID = #{setItmId}
+			AND SO_ID = #{soId}
+	</select>
+
+	<select id="getSetLoc" resultType="String">
+		SELECT
+			SET_LOC
+		FROM TBLIV_BILL_STP_ITM
+		WHERE SET_ITM_ID = #{setItmId}
+		ORDER BY EFT_BGN_YYMM DESC
+	</select>
+	
+	<select id="getStpSetVal" resultType="BillStp">
+		SELECT
+			SET_VAL
+		FROM TBLIV_BILL_STP
+		WHERE  1=1
+				AND SO_ID = #{soId}
+				AND SET_ITM_ID = #{setItmId}
+		<where>
+			<if test="billYymm != null">
+				AND #{billYymm} BETWEEN EFT_BGN_YYMM AND EFT_END_YYMM
+			</if>
+			<if test="setLoc == 2">
+				AND BILL_YYMM = #{billYymm}
+				AND BILL_CYCL = #{billCycl}
+			</if>
+		</where>
+		ORDER BY EFT_BGN_YYMM DESC
+	</select>
+	
+	<select id="getExrateAplyDt" resultType="com.ntels.ccbs.batch.iv.common.entity.BillCyclStp">
+		SELECT
+			MAX(EXRATE_APLY_DT) AS EXRATE_APLY_DT
+		FROM TBLIV_EXRATE_INFO
+		WHERE EXRATE_APLY_DT &lt;= #{currentDate}
+	</select>
+
+</mapper>

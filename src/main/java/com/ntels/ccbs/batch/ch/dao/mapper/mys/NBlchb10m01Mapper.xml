@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.dao.mapper.NBlchb10m01Mapper">
+    <select id = "listCharge"  resultType="NBlchb10m01">
+        SELECT CLC_WRK_NO,
+               BILL_YYMM,
+               BILL_CYCL,
+               USE_YYMM,
+               SVC_CMPS_ID,
+               RATE_ITM_CD,
+               SO_ID,
+               GRP_ID,
+               PYM_ACNT_ID,
+               CUST_ID,
+               CTRT_ID,
+               PROD_CMPS_ID ,
+               SUM(USE_AMT) AS USE_AMT,
+               USE_QTY_UT,
+               USE_QTY,
+               USE_CNT,
+               CRNCY_CD,
+               SUM(VAT) AS VAT
+        FROM   TBLCH_CHRG_TEMP
+        WHERE  SO_ID = #{soId}
+        AND    CLC_WRK_NO = #{clcWrkNo}
+        AND    P_SEQ = #{pSeq}
+        GROUP BY CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID, RATE_ITM_CD,USE_QTY_UT,USE_CNT, USE_QTY,SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID, CTRT_ID, PROD_CMPS_ID, CRNCY_CD
+    </select>
+
+    <insert id = "saveCharge"  parameterType="NBlchb10m01">
+        INSERT INTO TBLCH_CHRG
+            (CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID
+            ,RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID
+            ,CTRT_ID, PROD_CMPS_ID, USE_AMT, USE_QTY_UT, USE_QTY
+            ,USE_CNT, CRNCY_CD, REG_DATE, VAT)
+        VALUES
+            (#{clcWrkNo}, #{billYymm}, #{billCycl}, #{useYymm}, #{svcCmpsId}
+            ,#{rateItmCd}, #{soId}, #{grpId}, #{pymAcntId}, #{custId}
+            ,#{ctrtId}, #{prodCmpsId}, #{useAmt}, #{useQtyUt}, #{useQty}
+            ,#{useCnt}, #{crncyCd}, #{regDate}, #{vat})
+    </insert>
+    
+    
+     <insert id = "saveChargeUsage" parameterType = "NBlchb10m01">
+		INSERT INTO TBLCH_CHRG 
+		    (CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID
+            ,RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID
+            ,CTRT_ID, PROD_CMPS_ID, USE_AMT, USE_QTY_UT, USE_QTY
+            ,USE_CNT, CRNCY_CD, REG_DATE, VAT)
+        	SELECT 
+				SO_ID, CTRT_ID, BILL_YYMM, 'N' AS HOT_BILL_YN, BILL_CYCL AS MULTI_CYCL, #{pSeq} AS MULTI_SEQ, 
+				MIN(ACT_DT) AS USE_ST_DATE, MAX(INACT_DT) AS USE_ED_DATE, '9' AS PROCESS_STAT, #{today} AS BILL_PROCESS_DT 
+			FROM TBLCH_CHRG_TEMP
+			WHERE SO_ID = #{soId}
+			AND CLC_WRK_NO  = #{clcWrkNo}
+			AND P_SEQ = #{pSeq}
+			GROUP BY SO_ID, CTRT_ID, BILL_YYMM, BILL_CYCL) TEMP, TBLCH_MULTI_CHRG_HIST HIST
+			WHERE HIST.SO_ID = TEMP.SO_ID 
+			AND HIST.CTRT_ID = TEMP.CTRT_ID
+    </insert>   
+    
+</mapper>

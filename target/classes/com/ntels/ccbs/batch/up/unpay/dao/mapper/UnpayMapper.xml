@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.up.unpay.dao.mapper.UnpayMapper">
+
+	<insert id="insertUnpaymentObj">
+		INSERT INTO TBLUP_UPYM_OBJ
+		(
+			UPYM_CRT_YYMM
+			, UPYM_CRT_CYCL
+			, UPYM_CRT_DT
+			, BILL_SEQ_NO
+			, CTRT_ID
+			, SVC_CMPS_ID
+			, BILL_MM_TP
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, PYM_ACNT_ID
+			, UPYM_AMT
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, REG_DATE
+			, THS_BILL_SEQ_NO	
+		)
+		VALUES
+		(
+			#{upymObj.upymCrtYymm}
+			, #{upymObj.upymCrtCycl}
+			, #{upymObj.upymCrtDt}
+			, #{upymObj.billSeqNo}
+			, #{upymObj.ctrtId}
+			, #{upymObj.svcCmpsId}
+			, #{upymObj.billMmTp}
+			, #{upymObj.billYymm}
+			, #{upymObj.billCycl}
+			, #{upymObj.billDt}
+			, #{upymObj.soId}
+			, #{upymObj.pymAcntId}
+			, #{upymObj.upymAmt}
+			, #{upymObj.crncyCd}
+			, #{upymObj.exrate}
+			, #{upymObj.exrateAplyDt}
+			, #{upymObj.regDate}
+			, #{upymObj.thsBillSeqNo}
+		)
+	</insert>
+
+</mapper>

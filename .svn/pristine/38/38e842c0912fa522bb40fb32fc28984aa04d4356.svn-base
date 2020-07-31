@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.common.dao.mapper.BillCommMapper">
+
+	<update id="updateChrgAdjAply">
+		UPDATE TBLIV_CHRG_ADJ_APLY SET
+			DCSN_PROC_STAT = #{dcsnProcStat}
+			, CHG_DATE = #{chgDate}
+		WHERE ADJ_NO = #{adjNo}
+	</update>
+
+</mapper>

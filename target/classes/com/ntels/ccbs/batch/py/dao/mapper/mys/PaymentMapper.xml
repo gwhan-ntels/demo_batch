@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.py.dao.mapper.PaymentMapper">
+
+	<select id="getBillRcptAmt" resultType="double">
+		SELECT RCPT_AMT
+		FROM TBLIV_BILL
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND USE_YYMM = #{useYymm}
+		AND PROD_CMPS_ID = #{prodCmpsId}
+		AND SVC_CMPS_ID = #{svcCmpsId}
+		AND CHRG_ITM_CD = #{chrgItmCd}
+	</select>
+
+	<select id="getUnpayAmtFromBillMast" resultType="double">
+		SELECT UNPAY_AMT
+		FROM TBLIV_BILL_MAST
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+	</select>
+
+	<select id="getBillMastInfo" resultType="CBillComm">
+		SELECT
+			UNPAY_AMT
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+		FROM TBLIV_BILL_MAST
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+	</select>
+	
+	<select id="getBillListByBillSeqNo" resultType="CBillComm">
+		SELECT
+			PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, CHRG_ITM_CD
+			, BILL_AMT
+			, RCPT_AMT
+			, FULL_PAY_YN
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, BILL_SEQ_NO
+			, USE_YYMM
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, CUST_ID
+			, CTRT_ID
+			, PYM_ACNT_ID
+		FROM TBLIV_BILL
+		WHERE BILL_SEQ_NO =  #{billSeqNo}
+		ORDER BY BILL_AMT ASC
+	</select>
+
+	<insert id="insertRcptDtlSelectBill">
+		INSERT INTO TBLPY_RCPT_DTL
+		(
+		     PYM_SEQ_NO
+		     , USE_YYMM
+		     , PROD_CMPS_ID
+		     , SVC_CMPS_ID
+		     , CHRG_ITM_CD
+		     , BILL_AMT
+		     , PRE_RCPT_AMT
+		     , RCPT_AMT
+		     , PRE_SO_ID
+		     , SO_ID
+		     , GRP_ID
+		     , CUST_ID
+		     , CTRT_ID
+		     , CRNCY_CD
+		     , EXRATE
+		     , EXRATE_APLY_DT
+		     , REG_DATE
+		     , BILL_SEQ_NO
+		)
+		SELECT
+		     #{receiptDetail.pymSeqNo}
+		     , USE_YYMM
+		     , PROD_CMPS_ID
+		     , SVC_CMPS_ID
+		     , CHRG_ITM_CD
+		     , BILL_AMT
+		     , RCPT_AMT
+		     , BILL_AMT - RCPT_AMT
+		     , SO_ID
+		     , SO_ID
+		     , GRP_ID
+		     , CUST_ID
+		     , CTRT_ID
+		     , CRNCY_CD
+		     , EXRATE
+		     , EXRATE_APLY_DT
+		     , #{receiptDetail.regDate}
+		     , BILL_SEQ_NO
+		FROM TBLIV_BILL
+		WHERE BILL_SEQ_NO = #{receiptDetail.billSeqNo}
+	</insert>
+	
+	<insert id="insertRcptSelectBill">
+		INSERT INTO TBLPY_RCPT
+		(
+		     PYM_SEQ_NO
+		     , BILL_SEQ_NO
+		     , BILL_YYMM
+		     , BILL_CYCL
+		     , BILL_DT
+		     , PYM_ACNT_ID
+		     , PAY_PROC_DT
+		     , DPST_PROC_DT
+		     , DPST_DT
+		     , DPST_CL
+		     , PRE_RCPT_AMT
+		     , PAY_OBJ_AMT
+		     , PAY_APLY_AMT
+		     , PREPAY_APLY_AMT
+		     , PAY_TP
+		     , DPST_SEQ_NO
+		     , PREPAY_TRANS_SEQ_NO
+		     , AMBG_TRANS_SEQ_NO
+		     , ASSR_TRANS_SEQ_NO
+		     , CRNCY_CD
+		     , EXRATE
+		     , EXRATE_APLY_DT
+		     , CNCL_YN
+		     , REG_DATE
+		     , RCPT_AMT
+		     , TRANS_DT
+		     , SO_ID
+		     , REGR_ID
+		)
+		SELECT
+		     #{receipt.pymSeqNo}
+		     , #{receipt.billSeqNo}
+		     , #{receipt.billYymm}
+		     , #{receipt.billCycl}
+		     , #{receipt.billDt}
+		     , PYM_ACNT_ID
+		     , #{receipt.payProcDt}
+		     , DPST_PROC_DT
+		     , DPST_DT
+		     , DPST_CL
+		     , #{receipt.preRcptAmt}
+		     , #{receipt.payObjAmt}
+		     , #{receipt.payAplyAmt}
+		     , 0
+		     , '1'
+		     , DPST_SEQ_NO
+		     , ''
+		     , ''
+		     , ''
+		     , CRNCY_CD
+		     , EXRATE
+		     , EXRATE_APLY_DT
+		     , CNCL_YN
+		     , #{receipt.regDate}
+		     , #{receipt.rcptAmt}
+		     , TRANS_DT
+		     , SO_ID
+		     , REGR_ID
+		FROM TBLPY_DPST
+		WHERE DPST_SEQ_NO = #{receipt.dpstSeqNo}
+	</insert>
+	
+	<update id="updateBillMastRcptAmt">
+		UPDATE TBLIV_BILL_MAST SET
+			RCPT_AMT = RCPT_AMT + #{bill.rcptAmt}
+			, UNPAY_AMT = UNPAY_AMT - #{bill.rcptAmt}
+			, FULL_PAY_YN = #{bill.fullPayYn}
+		WHERE BILL_SEQ_NO = #{bill.billSeqNo}
+	</update>
+
+	<update id="updateFullPayBill">
+		UPDATE TBLIV_BILL SET
+			RCPT_AMT = RCPT_AMT + (BILL_AMT - RCPT_AMT)
+			, FULL_PAY_YN = 'Y'
+			, CHG_DATE = #{bill.chgDate}
+		WHERE BILL_SEQ_NO = #{bill.billSeqNo}
+	</update>
+	
+	<update id="updateBillRcptAmt">
+		UPDATE TBLIV_BILL SET
+			RCPT_AMT = RCPT_AMT + #{bill.rcptAmt}
+			, FULL_PAY_YN = CASE WHEN RCPT_AMT + #{bill.rcptAmt} = BILL_AMT THEN 'Y' ELSE 'N' END
+			, CHG_DATE = #{bill.chgDate}
+		WHERE BILL_SEQ_NO = #{bill.billSeqNo}
+		AND CHRG_ITM_CD = #{bill.chrgItmCd}
+		AND PROD_CMPS_ID = #{bill.prodCmpsId}
+		AND SVC_CMPS_ID = #{bill.svcCmpsId}
+	</update>
+	
+	<update id="updateDpstProc">
+		UPDATE TBLPY_DPST
+		<set>
+			<if test="deposit.payProcDt != null">
+				PAY_PROC_DT = #{deposit.payProcDt},
+			</if>
+			<if test="deposit.prepayTgtYn != null">
+				PREPAY_TGT_YN = #{deposit.prepayTgtYn},
+			</if>
+			<if test="deposit.ambgTgtYn != null">
+				AMBG_TGT_YN = #{deposit.ambgTgtYn},
+			</if>
+			<if test="deposit.payProcYn != null">
+				PAY_PROC_YN = #{deposit.payProcYn}
+			</if>
+		</set>
+		WHERE DPST_SEQ_NO = #{deposit.dpstSeqNo}
+	</update>
+	
+	<update id="updateBillCancel">
+		UPDATE TBLIV_BILL SET 
+		     RCPT_AMT = RCPT_AMT - #{rcptAmt}
+		     , FULL_PAY_YN =  'N'
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		     AND USE_YYMM = #{useYymm}
+		     AND PROD_CMPS_ID = #{prodCmpsId}
+		     AND SVC_CMPS_ID = #{svcCmpsId}
+		     AND CHRG_ITM_CD = #{chrgItmCd}
+	</update>
+	
+	<update id="updateBillMastCancel">
+		UPDATE TBLIV_BILL_MAST SET
+			RCPT_AMT = RCPT_AMT - #{bill.rcptAmt}
+			, UNPAY_AMT = UNPAY_AMT + #{bill.rcptAmt}
+			, FULL_PAY_YN = 'N'
+		WHERE BILL_SEQ_NO = #{bill.billSeqNo}
+	</update>
+
+</mapper>
+	

@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.GenerateBillWorkMapper">
+
+	<!-- 청구전 요금 조정 대상 조회 쿼리 -->
+	<select id="getAdjInfoBeforeBillList" resultType="billWork">
+		SELECT /* INDEX(A IX_TBLIV_CHRG_ADJ_APLY_06) */
+		       A.ADJ_NO
+		     , K.BILL_SEQ_NO
+		     , CASE J.USE_MM_TYP WHEN '0' THEN #{billYymm} ELSE #{useYymm} END AS USE_YYMM 
+		     , B.PROD_CMPS_ID
+		     , B.SVC_CMPS_ID
+		     , B.CHRG_ITM_CD
+		     , #{billYymm}           AS BILL_YYMM
+		     , #{billCycl}           AS BILL_CYCL
+		     , #{billDt}             AS BILL_DT
+		     , B.SO_ID               
+		     , B.GRP_ID              
+		     , A.PYM_ACNT_ID         
+		     , C.CUST_ID             
+		     , B.CTRT_ID             
+		     , J.PROD_CD             
+		     , J.SVC_CD              
+		     , NULL BIZ_CL           
+		     , J.PROD_GRP            
+		     , J.SVC_GRP             
+		     , J.USE_MM_TYP          AS BILL_MM_TP
+		     , '01' SALE_TP          
+		     , #{payDueDt}           AS PAY_DUE_DT
+		     , 'N'                   AS FULL_PAY_YN
+		     , CASE WHEN MAX(C.ORG_ID) IS NULL THEN 'CCBS' ELSE MAX(C.ORG_ID) END AS ATRT_CORP_ID
+		     , CASE WHEN MAX(C.USR_ID) IS NULL THEN ' '    ELSE MAX(C.USR_ID) END AS ATRT_EMP_ID
+		     , B.CRNCY_CD
+		     , MAX(B.EXRATE)         AS EXRATE
+		     , MAX(B.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+		     , 'N' DEBT_PROC_YN
+		     , SUM(B.ADJ_APPL_AMT)   AS ADJ_APPL_AMT
+		     , 'NBliv01m08' CHGR_ID
+		FROM   TBLIV_CHRG_ADJ_APLY     A
+		     , TBLIV_CHRG_ADJ_APLY_DTL B
+		     , IFNBRM_CTRT_INFO        C
+		     , IFNBRM_PROD_INFO        J
+		     , TSYCO_CODE_DETAIL       Z
+		     , TBLIV_BILL_WRK          K
+		     , TBLCH_MULTI_SEQ Z1
+		WHERE  A.HOPE_APLY_YYMM  = #{billYymm} 
+		AND    A.DCSN_PROC_STAT  IN ('03')       
+		AND    Z.COMMON_GRP      =  'BL00024'  /* BL00043 2020.07.30 HAN */
+		AND    Z.USE_YN          = 'Y'
+		AND    A.ADJ_RESN_CD     = Z.COMMON_CD
+		AND    B.ADJ_NO          = A.ADJ_NO      -- 조정번호
+		AND    B.SO_ID           = #{soId}
+		AND    B.ADJ_APPL_AMT   != 0
+		AND    C.CTRT_ID         = B.CTRT_ID
+		AND    C.SO_ID           = B.SO_ID
+		AND    C.INACT_DTTM      LIKE '9999123123595%'
+		AND    C.PROD_CMPS_ID    = B.PROD_CMPS_ID
+		AND    C.SVC_CMPS_ID     = B.SVC_CMPS_ID
+		AND    J.SO_ID           = C.SO_ID
+		AND    J.PROD_CD         = C.PROD_CD
+		AND    J.ACT_DT         &lt;= CONCAT(CASE A.ADJ_PT WHEN '2' THEN B.USE_YYMM ELSE #{billYymm} END, '01')
+		AND    J.INACT_DT       &gt;= CONCAT(CASE A.ADJ_PT WHEN '2' THEN B.USE_YYMM ELSE #{billYymm} END, '01')
+		AND    K.BILL_SEQ_NO     LIKE CONCAT(SUBSTR(#{billYymm},3,2), '%')  /* 청구년월, 사용월은 현재월 기준으로 처리한다  */ /* CONCAT로 수정 2020.07.30 HAN */
+		AND    K.USE_YYMM        = #{useYymm}
+		AND    K.PROD_CMPS_ID    = B.PROD_CMPS_ID
+		AND    K.SVC_CMPS_ID     = B.SVC_CMPS_ID
+		AND    K.CHRG_ITM_CD     = B.CHRG_ITM_CD
+		AND    K.SO_ID           = B.SO_ID
+		AND    Z1.SO_ID          = #{soId}
+		AND    Z1.GUBUN          = '2'
+		AND    Z1.P_SEQ          = #{pSeq}
+		AND    A.PYM_ACNT_ID    &gt;= Z1.STRT_NO
+		AND    A.PYM_ACNT_ID    &lt;= Z1.END_NO
+		GROUP  BY A.ADJ_NO
+		        , K.BILL_SEQ_NO
+		        , A.ADJ_PT
+		        , B.USE_YYMM
+		        , B.PROD_CMPS_ID
+		        , B.SVC_CMPS_ID
+		        , B.CHRG_ITM_CD
+		        , B.SO_ID
+		        , B.GRP_ID
+		        , A.PYM_ACNT_ID
+		        , C.CUST_ID
+		        , B.CTRT_ID
+		        , J.PROD_CD
+		        , J.SVC_CD
+		        , J.PROD_GRP
+		        , J.SVC_GRP
+		        , J.USE_MM_TYP
+		        , B.CRNCY_CD
+	</select>
+	
+	<update id="updateAdjBeforeBill">
+    UPDATE TBLIV_BILL_WRK
+    SET    ADJ_AMT      = BILL_AMT * (-1)
+         , BILL_AMT     = 0
+         , WON_BILL_AMT = 0
+         , INPT_MENU_ID = #{inptMenuId}
+         , CHGR_ID      = #{chgrId}
+         , CHG_DATE     = #{chgDate}
+    WHERE  SO_ID        = #{soId}
+    AND    BILL_SEQ_NO  = #{billSeqNo}
+    AND    USE_YYMM     = #{useYymm}
+    AND    PROD_CMPS_ID = #{prodCmpsId}
+    AND    SVC_CMPS_ID  = #{svcCmpsId}
+    AND    CHRG_ITM_CD  = #{chrgItmCd}
+	</update>
+	
+	<update id="updateAdjAply">
+    UPDATE TBLIV_CHRG_ADJ_APLY
+    SET    DCSN_PROC_STAT = '05'
+         , BILL_APLY_DT   = DATE_FORMAT(SYSDATE(), '%Y%m%d')
+         , BILL_YYMM      = CASE WHEN ADJ_PT = '1' THEN DATE_FORMAT(SYSDATE(), '%Y%m') ELSE BILL_YYMM END
+         , BILL_CYCL      = CASE WHEN ADJ_PT = '1' THEN '01' ELSE BILL_CYCL END
+         , BILL_DT        = CASE WHEN ADJ_PT = '1' THEN #{billDt} ELSE BILL_DT END
+         , BILL_SEQ_NO    = CASE WHEN ADJ_PT = '1' THEN #{billSeqNo} ELSE BILL_SEQ_NO END
+         , INPT_MENU_ID   = #{inptMenuId}
+         , CHGR_ID        = #{chgrId}
+         , CHG_DATE       = #{chgDate}
+    WHERE  ADJ_NO         = #{adjNo}
+	</update>
+	
+	
+	
+	
+	
+	
+	
+	<select id="getAdjInfoAfterBillList" resultType="billWork">
+    SELECT /* INDEX(A IX_TBLIV_CHRG_ADJ_APLY_06) */
+           A.ADJ_NO
+         , NULL AS BILL_SEQ_NO
+         , CASE J.USE_MM_TYP WHEN '0' THEN #{billYymm} ELSE #{useYymm} END AS USE_YYMM
+         , B.PROD_CMPS_ID
+         , B.SVC_CMPS_ID
+         , B.CHRG_ITM_CD
+         , #{billYymm} AS BILL_YYMM
+         , #{billCycl} AS BILL_CYCL
+         , #{billDt} AS BILL_DT
+         , B.SO_ID
+         , B.GRP_ID
+         , A.PYM_ACNT_ID
+         , C.CUST_ID
+         , B.CTRT_ID
+         , C.PROD_CD
+         , J.SVC_CD
+         , NULL BIZ_CL
+         , J.PROD_GRP
+         , J.SVC_GRP
+         , J.USE_MM_TYP BILL_MM_TP
+         , '01' SALE_TP
+         , #{payDueDt} AS PAY_DUE_DT
+         , 'N'  FULL_PAY_YN
+         , CASE WHEN MAX(C.ORG_ID) IS NULL THEN 'CCBS' ELSE MAX(C.ORG_ID) END AS ATRT_CORP_ID
+         , CASE WHEN MAX(C.USR_ID) IS NULL THEN ' ' ELSE MAX(C.USR_ID) END AS ATRT_EMP_ID
+         , B.CRNCY_CD
+         , MAX(B.EXRATE) AS EXRATE
+         , MAX(B.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+         , 'N'  DEBT_PROC_YN
+         , SUM(B.ADJ_APPL_AMT) AS ADJ_APPL_AMT
+         , 'NBliv01m08' CHGR_ID
+    FROM   TBLIV_CHRG_ADJ_APLY A
+         , TBLIV_CHRG_ADJ_APLY_DTL B
+         , IFNBRM_CTRT_INFO C
+         , IFNBRM_PROD_INFO J
+         , TSYCO_CODE_DETAIL Z
+         , TBLCH_MULTI_SEQ Z1
+    WHERE  A.HOPE_APLY_YYMM &lt;= #{billYymm}
+    AND    A.DCSN_PROC_STAT IN ('03','12')
+    AND    B.ADJ_NO = A.ADJ_NO
+    AND    B.ADJ_APPL_AMT != 0
+    AND    A.ADJ_PT = '1'
+    AND    B.SO_ID = #{soId}
+    AND    C.CTRT_ID = B.CTRT_ID
+    AND    C.SO_ID = B.SO_ID
+    AND    C.INACT_DTTM LIKE '9999123123595%'
+    AND    C.PROD_CMPS_ID = B.PROD_CMPS_ID
+    AND    C.SVC_CMPS_ID = B.SVC_CMPS_ID
+    AND    J.SO_ID = C.SO_ID
+    AND    J.PROD_CD = C.PROD_CD
+    AND    J.ACT_DT &lt;= CASE A.ADJ_PT WHEN '2' THEN B.USE_YYMM ELSE #{billYymm} END || '01'
+    AND    J.INACT_DT &gt;= CASE A.ADJ_PT WHEN '2' THEN B.USE_YYMM ELSE #{billYymm} END || '01'
+    AND    Z.COMMON_GRP =  'BL00024'
+    AND    Z.USE_YN = 'Y'
+    AND    A.ADJ_RESN_CD = Z.COMMON_CD
+    AND    Z1.SO_ID = #{soId}
+    AND    Z1.GUBUN = '2'
+    AND    Z1.P_SEQ = #{pSeq}
+    AND    A.PYM_ACNT_ID  &gt;= Z1.STRT_NO
+    AND    A.PYM_ACNT_ID  &lt;= Z1.END_NO
+    GROUP  BY A.ADJ_NO
+            , A.ADJ_PT
+            , B.USE_YYMM
+            , B.PROD_CMPS_ID
+            , B.SVC_CMPS_ID
+            , B.CHRG_ITM_CD
+            , B.SO_ID
+            , B.GRP_ID
+            , A.PYM_ACNT_ID
+            , C.CUST_ID
+            , B.CTRT_ID
+            , C.PROD_CD
+            , J.SVC_CD
+            , J.PROD_GRP
+            , J.SVC_GRP
+            , J.USE_MM_TYP
+            , B.CRNCY_CD
+	</select>
+	
+	
+	<select id="getBillWorkForAdj">
+		SELECT P.USE_YYMM
+		     , P.WON_BILL_AMT
+		     , P.ADJ_PRV_BILL_AMT
+		     , P.ADJ_AMT
+		     , P.BILL_AMT
+		     , P.EXRATE
+		FROM   TBLIV_BILL_WRK  P
+		WHERE  P.SO_ID = #{soId}  
+		AND    P.BILL_SEQ_NO = #{billSeqNo}
+		AND    P.USE_YYMM = #{useYymm}
+		AND    P.PROD_CMPS_ID = #{prodCmpsId}
+		AND    P.SVC_CMPS_ID = #{svcCmpsId}
+		AND    P.CHRG_ITM_CD = #{chrgItmCd}
+		AND    ROWNUM = 1
+	</select>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+
+	<!-- 청구내역 생성을 위한 계산 정보 조회 -->
+	<select id="getChInfoListForBillWork" resultType="billWork">
+    SELECT A.CLC_WRK_NO
+         , A.USE_YYMM
+         , A.PROD_CMPS_ID
+         , A.SVC_CMPS_ID
+         , A.SO_ID
+         , A.GRP_ID
+         , A.PYM_ACNT_ID
+         , A.CUST_ID
+         , A.CTRT_ID
+         , A.SALE_TP
+         , A.USG_CNT
+         , A.USG_QTY
+         , A.BILL_AMT
+         , A.CRNCY_CD
+         , A.CHRG_ITM_CD
+         , A.BILL_YYMM
+         , A.BILL_CYCL
+         , A.EXRATE
+         , A.EXRATE_APLY_DT
+         , A.PROD_CD
+         , A.SVC_CD
+         , A.BIZ_CL
+         , A.PROD_GRP
+         , A.SVC_GRP
+         , A.ATRT_CORP_ID
+         , A.ATRT_EMP_ID
+         , A.USG_AMT
+         , A.BILL_DT
+         , A.PAY_DUE_DT
+         , A.BILL_MM_TP
+    FROM  (
+           SELECT #{clcWrkNo}                    AS CLC_WRK_NO
+                , A.USE_YYMM                     AS USE_YYMM
+                , A.PROD_CMPS_ID                 AS PROD_CMPS_ID
+                , A.SVC_CMPS_ID                  AS SVC_CMPS_ID
+                , A.SO_ID                        AS SO_ID
+                , A.GRP_ID                       AS GRP_ID
+                , A.PYM_ACNT_ID                  AS PYM_ACNT_ID
+                , A.CUST_ID                      AS CUST_ID
+                , A.CTRT_ID                      AS CTRT_ID
+                , A.SALE_TP                      AS SALE_TP
+                , CASE WHEN A.USG_CNT IS NULL THEN 0
+                       ELSE A.USG_CNT END        AS USG_CNT
+                , CASE WHEN A.USG_QTY IS NULL THEN 0
+                       ELSE A.USG_QTY END        AS USG_QTY
+                , CASE WHEN A.BILL_AMT IS NULL THEN 0
+                       ELSE A.BILL_AMT END       AS BILL_AMT
+                , A.CRNCY_CD                     AS CRNCY_CD
+                , A.CHRG_ITM_CD                  
+                , A.BILL_YYMM                    AS BILL_YYMM
+                , A.BILL_CYCL                    AS BILL_CYCL
+                , D.EXRATE                       AS EXRATE
+                , D.EXRATE_APLY_DT               AS EXRATE_APLY_DT
+                , C.PROD_CD                      AS PROD_CD
+                , C.SVC_CD                       AS SVC_CD
+                , ' '                            AS BIZ_CL
+                , C.PROD_GRP                     AS PROD_GRP
+                , C.SVC_GRP                      AS SVC_GRP
+                , C.ORG_ID                       AS ATRT_CORP_ID
+                , C.USR_ID                       AS ATRT_EMP_ID
+                , CASE WHEN A.USG_AMT IS NULL THEN 0
+                       ELSE A.USG_AMT END        AS USG_AMT
+                , #{billDt}                      AS BILL_DT
+                , #{payDueDt}                    AS PAY_DUE_DT
+                , B2.USE_MM_TYP                  AS BILL_MM_TP
+           FROM  (
+                  SELECT A.USE_YYMM                AS USE_YYMM
+                       , A.PROD_CMPS_ID          AS PROD_CMPS_ID
+                       , A.SVC_CMPS_ID           AS SVC_CMPS_ID
+                       , A.SO_ID                 AS SO_ID
+                       , ''                      AS GRP_ID
+                       , A.PYM_ACNT_ID           AS PYM_ACNT_ID
+                       , A.CUST_ID               AS CUST_ID
+                       , A.CTRT_ID               AS CTRT_ID
+                       , '01'                    AS SALE_TP
+                       , SUM(A.USE_CNT)          AS USG_CNT
+                       , SUM(A.USE_QTY)          AS USG_QTY
+                       , SUM(A.USE_AMT)          AS BILL_AMT
+                       , SUM(A.USE_AMT)          AS USG_AMT
+                       , A.CRNCY_CD              AS CRNCY_CD
+                       , B1.SVC_RATE_ITM_TYP_CD  AS CHRG_ITM_CD
+                       , A.BILL_YYMM       AS BILL_YYMM
+                       , A.BILL_CYCL       AS BILL_CYCL
+                  FROM   TBLCH_CHRG A
+                       , IFNBRM_RATE_ITM_INFO B1
+                       , TBLCH_MULTI_SEQ Z
+                  WHERE  1=1
+                  AND    Z.SO_ID         = #{soId}
+                  AND    Z.GUBUN         = '2'
+                  AND    Z.P_SEQ         = #{pSeq}
+                  AND    A.CLC_WRK_NO    = #{clcWrkNo}
+                  AND    A.BILL_YYMM     = #{billYymm}
+                  AND    A.BILL_CYCL     = #{billCycl}
+                  AND    A.SO_ID         = #{soId}
+                  AND    A.USE_AMT      != 0
+                  AND    B1.ACT_DT      &lt;= CONCAT(A.BILL_YYMM,'01')
+                  AND    B1.INACT_DT    &gt;= CONCAT(A.BILL_YYMM,'01')
+                  AND    B1.RATE_ITM_CD  = A.RATE_ITM_CD
+                  AND    A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+                  AND    A.PYM_ACNT_ID  &lt;= Z.END_NO
+                  GROUP BY A.USE_YYMM
+                         , A.SVC_CMPS_ID
+                         , A.PROD_CMPS_ID
+                         , A.PYM_ACNT_ID
+                         , A.SO_ID
+                         , A.GRP_ID
+                         , A.CUST_ID
+                         , A.CTRT_ID
+                         , A.CRNCY_CD
+                         , B1.SVC_RATE_ITM_TYP_CD
+                         , A.BILL_YYMM
+                         , A.BILL_CYCL
+                  ORDER BY A.SVC_CMPS_ID
+                         , A.PROD_CMPS_ID
+                         , A.USE_YYMM
+                 ) A
+               , (
+                  SELECT A.CLC_WRK_NO
+                       , A.BILL_YYMM
+                       , A.BILL_CYCL
+                       , A.SO_ID
+                       , A.USE_YYMM
+                       , A.PROD_CMPS_ID
+                       , A.SVC_CMPS_ID
+                       , A.PROD_CD
+                       , A.SVC_CD
+                       , A.PROD_GRP
+                       , A.SVC_GRP
+                       , A.ORG_ID
+                       , A.USR_ID
+                       , A.CTRT_ID
+                  FROM   TBLCH_SVC_CMPS_MT A
+                       , TBLCH_MULTI_SEQ Z
+                  WHERE  1=1
+                  AND    Z.SO_ID         = #{soId}
+                  AND    Z.GUBUN         = '2'
+                  AND    Z.P_SEQ         = #{pSeq}
+                  AND    A.SO_ID         = #{soId}
+                  AND    A.BILL_YYMM     = #{billYymm}
+                  AND    A.CLC_WRK_NO    = #{clcWrkNo}
+                  AND    A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+                  AND    A.PYM_ACNT_ID  &lt;= Z.END_NO
+                  GROUP  BY A.CLC_WRK_NO
+                          , A.BILL_YYMM
+                          , A.BILL_CYCL
+                          , A.SO_ID
+                          , A.USE_YYMM
+                          , A.PROD_CMPS_ID
+                          , A.SVC_CMPS_ID
+                          , A.PROD_CD
+                          , A.SVC_CD
+                          , A.PROD_GRP
+                          , A.SVC_GRP
+                          , A.ORG_ID
+                          , A.USR_ID
+                          , A.CTRT_ID
+                 ) C
+                , TPMPD_PROD B2
+                , TBLIV_EXRATE_INFO D
+           WHERE  A.CRNCY_CD          = D.CRNCY_CD
+           AND    D.EXRATE_APLY_DT    = #{exchRateAppDt}
+           AND    C.CLC_WRK_NO        = #{clcWrkNo}
+           AND    C.BILL_YYMM         = A.BILL_YYMM
+           AND    C.BILL_CYCL         = A.BILL_CYCL
+           AND    C.SO_ID             = A.SO_ID
+           AND    C.USE_YYMM          = A.USE_YYMM
+           AND    C.SVC_CMPS_ID       = A.SVC_CMPS_ID
+           AND    B2.SO_ID            = A.SO_ID
+           AND    B2.INACT_DT        &gt;= CONCAT(A.BILL_YYMM,'01')
+           AND    B2.ACT_DT          &lt;= CONCAT(A.BILL_YYMM,'01')
+           AND    B2.PROD_CD          = C.PROD_CD 
+          ) A
+	</select>
+	
+	<insert id="insertBillWork">
+		INSERT INTO TBLIV_BILL_WRK
+		(
+			BILL_SEQ_NO
+			, USE_YYMM
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, CHRG_ITM_CD
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_CD
+			, SVC_CD
+			, BIZ_CL
+			, PROD_GRP
+			, SVC_GRP
+			, BILL_MM_TP
+			, SALE_TP
+			, USG_CNT
+			, USG_AMT
+			, ADJ_PRV_BILL_AMT
+			, ADJ_AMT
+			, BILL_AMT
+			, PAY_DUE_DT
+			, RCPT_AMT
+			, FULL_PAY_YN
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, WON_BILL_AMT
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, SALE_ITM_CD
+			, PREPAY_OCC_SEQ_NO
+			, PREPD_CTRT_ID
+			, REG_DATE
+			, CHG_DATE
+			, DEBT_PROC_YN
+		)
+		VALUES
+		(
+			#{billSeqNo}
+			, #{useYymm}
+			, #{prodCmpsId}
+			, #{svcCmpsId}
+			, #{chrgItmCd}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{soId}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{prodCd}
+			, #{svcCd}
+			, #{bizCl}
+			, #{prodGrp}
+			, #{svcGrp}
+			, #{billMmTp}
+			, #{saleTp}
+			, #{usgQty}
+			, #{usgAmt}
+			, #{adjPrvBillAmt}
+			, #{adjAmt}
+			, #{billAmt}
+			, #{payDueDt}
+			, #{rcptAmt}
+			, #{fullPayYn}
+			, #{atrtCorpId}
+			, #{atrtEmpId}
+			, #{wonBillAmt}
+			, #{crncyCd}
+			, #{exrate}
+			, #{exrateAplyDt}
+			, #{saleItmCd}
+			, #{prepayOccSeqNo}
+			, #{prepdCtrtId}
+			, now()
+			, now()
+			, #{debtProcYn}
+		)
+	</insert>
+	
+	<!-- 자동이체 할인 적용 대상 리스트 조회 -->
+	<select id="getAutoTransferDiscountInfoList" resultType="billWork">
+		SELECT
+			#{billYymm} AS BILL_YYMM
+			, #{billCycl} AS BILL_CYCL
+			, #{billDt} AS BILL_DT
+			, #{exrateAplyDt} AS EXRATE_APLY_DT
+			, #{payDueDt} AS PAY_DUE_DT
+			, A.BILL_SEQ_NO
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PYM_ACNT_ID
+			, A.CTRT_ID
+			, A.CRNCY_CD
+			, A.SVC_CD
+			, A.BIZ_CL
+			, A.PROD_GRP
+			, A.EXRATE
+			, A.CHRG_ITM_CD
+			, A.AUTO_DC_RATE
+			, MAX(A.GRP_ID)         AS GRP_ID                            -- // 단체ID
+			, MAX(A.PROD_CD)        AS PROD_CD                           -- // 상품
+			, MAX(A.CUST_ID)        AS CUST_ID                           -- // 고객ID
+			, MAX(A.SVC_GRP)        AS SVC_GRP                           -- // 서비스그룹
+			, MAX(A.ATRT_CORP_ID)   AS ATRT_CORP_ID                      -- // 유치업체
+			, MAX(A.ATRT_EMP_ID)    AS ATRT_EMP_ID                       -- // 유치사원
+			, SUM(A.BILL_AMT)       AS BILL_AMT
+			, SUM(A.WON_BILL_AMT)   AS WON_BILL_AMT
+			, MAX(A.USE_YYMM)       AS USE_YYMM
+			, 0 AS USG_CNT
+			, 0 AS USG_QTY
+			, 0 AS USG_AMT
+			, 0 AS RCPT_AMT
+			, 0 AS ADJ_AMT
+			, SUM(A.BILL_AMT) AS ADJ_PRV_BILL_AMT
+		FROM
+		(
+			SELECT
+				A.BILL_SEQ_NO                                              -- // 청구일련번호
+				, A.BILL_MM_TP                                               -- // 당후납 구분
+				, A.SO_ID                                                    -- // 계열사ID
+				, A.PROD_CMPS_ID                                             -- // 상품구성ID
+				, A.SVC_CMPS_ID                                              -- // 서비스구성ID
+				, A.GRP_ID                                                   -- // 단체ID
+				, A.PYM_ACNT_ID                                              -- // 납부계정ID
+				, A.CUST_ID                                                  -- // 고객ID
+				, A.CTRT_ID                                                  -- // 계약ID
+				, A.PROD_CD                                                  -- // 상품코드
+				, A.SVC_CD                                                   -- // 서비스코드
+				, A.BIZ_CL                                                   -- // 사업구분
+				, A.PROD_GRP                                                 -- // 상품그룹
+				, A.SVC_GRP
+				, A.ATRT_CORP_ID                                             -- // 유치업체
+				, A.ATRT_EMP_ID                                              -- // 유치사원
+				, A.EXRATE                                                   -- // 환율
+				, CAST(E.SET_VAL AS UNSIGNED) AS AUTO_DC_RATE	     		 -- // 자동이체할인율
+				, -TRUNCATE(A.BILL_AMT * CAST(E.SET_VAL AS UNSIGNED) / 100, 0) AS BILL_AMT
+				, -TRUNCATE(A.WON_BILL_AMT * CAST(E.SET_VAL AS UNSIGNED) / 100, 0) AS WON_BILL_AMT
+				, A.CRNCY_CD
+				, F.REF_CODE AS CHRG_ITM_CD
+				, A.USE_YYMM
+			FROM TBLIV_BILL_WRK              A  -- // 청구내역
+			, IFNBRM_CUST_INFO               B  -- // 납부계정
+			, TBLIV_EXRATE_INFO              C  -- // 환율정보
+			, IFNBRM_SVC_RATE_ITM_ATTR_INFO  D
+			, TBLIV_BILL_CYCL_STP            E
+			, TSYCO_CODE_DETAIL              F
+			, TBLCH_MULTI_SEQ                Z
+			WHERE A.BILL_YYMM                 = #{billYymm}   -- // 청구년월
+			AND A.BILL_CYCL                   = #{billCycl}   -- // 청구주기
+			AND A.BILL_DT                     = #{billDt}     -- // 청구일자
+			AND A.SO_ID                       = #{soId}
+			AND A.SO_ID                       = B.SO_ID
+			AND A.PYM_ACNT_ID                 = B.PYM_ACNT_ID  --  // 납부계정
+			AND A.CUST_ID					  = B.CUST_ID
+			AND B.PYM_MTHD                  IN ('02','04')     --  // 납부방법('01': 지로, '02':자동이체, '04': 신용카드) MVNO CMS사용안함
+			AND A.CRNCY_CD                   = C.CRNCY_CD      --  // 화폐코드
+			AND C.EXRATE_APLY_DT             = #{exrateAplyDt} -- // 환율기준일자
+			AND D.SVC_RATE_ITM_TYP_CD        = A.CHRG_ITM_CD
+			AND IFNULL(CAST(E.SET_VAL  AS UNSIGNED),1) != 0
+			AND D.ATTR_CD                    = 'DF061'         -- // 자동이체 할인 여부
+			AND D.INACT_DT                   = '99991231'
+			AND D.ATTR_VAL                  != '0'
+			AND D.SO_ID                      = A.SO_ID
+			AND A.BILL_AMT                  != 0
+			AND A.SO_ID                      = E.SO_ID
+			AND '00020'                      = E.SET_ITM_ID   -- // 설정항목 :자동이체할인율
+			AND A.BILL_YYMM                  = E.BILL_YYMM
+			AND A.BILL_CYCL                  = E.BILL_CYCL
+			AND A.PAY_DUE_DT                 = #{payDueDt}
+			AND F.COMMON_GRP                 = 'BL00000'
+			AND F.COMMON_CD                  ='03'
+			AND F.USE_YN = 'Y'
+			AND Z.SO_ID                      = #{soId}    
+			AND Z.GUBUN                  = '2'
+			AND Z.P_SEQ                      = #{pSeq}
+			AND A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+			AND A.PYM_ACNT_ID  &lt;= Z.END_NO 		
+		) A
+		GROUP BY A.BILL_SEQ_NO
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PYM_ACNT_ID
+			, A.CTRT_ID
+			, A.CRNCY_CD
+			, A.SVC_CD
+			, A.BIZ_CL
+			, A.PROD_GRP
+			, A.EXRATE
+			, A.CHRG_ITM_CD
+			, A.AUTO_DC_RATE
+		HAVING SUM(A.BILL_AMT) != 0
+		ORDER BY 1, 3, 2
+	</select>
+	
+
+	
+	<update id="updateAdjAfterBill">
+		UPDATE TBLIV_BILL_WRK SET
+		    BILL_AMT = BILL_AMT + #{adjApplAmt}
+		    ,ADJ_AMT = ADJ_AMT + #{adjApplAmt}
+		    ,WON_BILL_AMT = WON_BILL_AMT + #{adjApplAmt}
+		    ,CHG_DATE = #{chgDate}
+		WHERE BILL_SEQ_NO  = #{billSeqNo}
+		AND USE_YYMM     = #{useYymm}
+		AND PROD_CMPS_ID = #{prodCmpsId}
+		AND SVC_CMPS_ID  = #{svcCmpsId}
+		AND CHRG_ITM_CD  = #{chrgItmCd}
+		AND SO_ID        = #{soId}
+	</update>
+	
+	
+</mapper>

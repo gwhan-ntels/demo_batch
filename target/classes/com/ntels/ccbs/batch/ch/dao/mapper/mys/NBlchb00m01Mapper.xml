@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.dao.mapper.NBlchb00m01Mapper">
+	<select id="listNBlchb00m01All"  resultType="NBlchb00m01">  
+    SELECT DISTINCT $COL_NM
+    FROM   TCMCT_CTRT_INFO CT
+           LEFT OUTER JOIN TCMCT_PROM_CTRT_INFO CTP
+           ON   CT.PROM_ID  = CTP.PROM_CTRT_ID
+           AND  CTP.MSTR_FL = 'Y'
+           AND  CTP.USE_YN  = 'Y'
+           LEFT OUTER JOIN TCMCT_CTRT_INFO_EXT CTE
+           ON   CT.EXT_ID   = CTE.EXT_ID
+           AND  CT.ACT_DTTM = CTE.ACT_DTTM
+         , TCMCT_SVC_CMPS_INFO SVC
+           LEFT OUTER JOIN TCMCT_SVC_CMPS_INFO_EXT SVCE
+           ON   SVC.EXT_ID = SVCE.EXT_ID
+         , TCMCT_PROD_CMPS_INFO PC
+         , TCMCU_PYM_ACNT_INFO CUA
+    WHERE  CT.SO_ID            = SVC.SO_ID
+    AND    SVC.SO_ID           = PC.SO_ID
+    AND    CT.SO_ID            = CUA.SO_ID
+    AND    CT.CTRT_ID          = SVC.CTRT_ID
+    AND    CT.CTRT_ID          = PC.CTRT_ID
+    AND    SVC.PROD_CMPS_ID    = PC.PROD_CMPS_ID
+    AND    CT.INACT_DTTM       &gt; SVC.ACT_DTTM
+    AND    CT.INACT_DTTM       &lt;= SVC.INACT_DTTM
+    AND    CT.ACT_DTTM         &gt;= SVC.ACT_DTTM
+    AND    SVC.INACT_DTTM      = PC.INACT_DTTM
+    AND    SVC.ORDER_ID        = PC.ORDER_ID
+    AND    CT.PYM_ACNT_ID      = CUA.PYM_ACNT_ID
+    AND    CT.SO_ID            = #{soId}
+    ORDER  BY CTE.PROC_RATE, SVC.PROD_CD, CT.SO_ID, CT.CTRT_ID, SVC.PROD_CMPS_ID, CT.INACT_DTTM
+	</select>
+
+	<select id="listNBlchb00m01"  resultType="NBlchb00m01">
+    SELECT DISTINCT $COL_NM
+    FROM   TCMCT_CTRT_INFO CT
+           LEFT OUTER JOIN TCMCT_PROM_CTRT_INFO CTP
+           ON   CT.PROM_ID  = CTP.PROM_CTRT_ID
+           AND  CTP.MSTR_FL = 'Y'
+           AND  CTP.USE_YN  = 'Y'
+           LEFT OUTER JOIN TCMCT_CTRT_INFO_EXT CTE
+           ON   CT.EXT_ID   = CTE.EXT_ID
+           AND   CT.ACT_DTTM = CTE.ACT_DTTM
+         , TCMCT_SVC_CMPS_INFO SVC
+           LEFT OUTER JOIN TCMCT_SVC_CMPS_INFO_EXT SVCE
+           ON   SVC.EXT_ID = SVCE.EXT_ID
+         , TCMCT_PROD_CMPS_INFO PC
+         , TCMCU_PYM_ACNT_INFO CUA
+    WHERE  CT.SO_ID            = SVC.SO_ID
+    AND    SVC.SO_ID           = PC.SO_ID
+    AND    CT.SO_ID            = CUA.SO_ID
+    AND    CT.CTRT_ID          = SVC.CTRT_ID
+    AND    CT.CTRT_ID          = PC.CTRT_ID
+    AND    SVC.PROD_CMPS_ID    = PC.PROD_CMPS_ID
+    AND    CT.INACT_DTTM       &gt; SVC.ACT_DTTM
+    AND    CT.INACT_DTTM       &lt;= SVC.INACT_DTTM
+    AND    CT.ACT_DTTM         &gt;= SVC.ACT_DTTM
+    AND    SVC.INACT_DTTM      = PC.INACT_DTTM
+    AND    SVC.ORDER_ID        = PC.ORDER_ID
+    AND    CT.PYM_ACNT_ID      = CUA.PYM_ACNT_ID
+    AND    CT.ACT_DTTM         &gt;= #{startDate}  /* 위구문과의 차이점 */ 
+    AND    CT.SO_ID            = #{soId}
+    ORDER  BY CTE.PROC_RATE, SVC.PROD_CD, CT.SO_ID, CT.CTRT_ID, SVC.PROD_CMPS_ID, CT.INACT_DTTM
+	</select>
+<!-- 	
+        AND  ((A.ACT_DTTM   &gt;= #{startDate} AND A.ACT_DTTM   &lt; #{endDate}) OR 
+              (A.INACT_DTTM &gt;= #{startDate} AND A.INACT_DTTM &lt; #{endDate}))
+ -->	
+<!-- 
+        AND   (A.ACT_DTTM   &gt;= #{startDate} OR A.INACT_DTTM &gt;= #{startDate})
+ -->	
+<!-- SELECT DISTINCT A.SO_ID, A.CTRT_ID, A.PROD_CMPS_ID, B.SVC_CMPS_ID, B.INACT_DTTM, B.ACT_DTTM, A.CTRT_STAT, A.CUST_ID, B.OPEN_DD, B.PROD_CD, A.PROD_GRP, 
+           CASE WHEN A.ORG_ID IS NULL THEN ' ' ELSE A.ORG_ID END AS ORG_ID, 
+           CASE WHEN A.USR_ID IS NULL THEN ' ' ELSE A.USR_ID END AS USR_ID,
+           A.PYM_ACNT_ID, A.RATE_STRT_DT, B.SVC_CD, B.SVC_GRP, B.SVC_STS_CD, A.SVC_TEL_NO, A.TERM_DT, B.ORDER_ID, B.MONTHLY_NEGO_RATE, B.PROD_CNT,
+           #{billYymm} AS BILL_YYMM
+ FROM (SELECT SVC.SO_ID, SVC.CTRT_ID, SVC.PROD_CMPS_ID, SVC.SVC_CMPS_ID, SVC.INACT_DTTM, SVC.ACT_DTTM, SVC.OPEN_DD, SVC.PROD_CD,
+              SVC.SVC_CD, SVC.SVC_GRP, SVC.SVC_STS_CD, SVC.ORDER_ID, 
+              (CASE WHEN EXT.MONTHLY_NEGO_RATE IS NULL THEN '0' ELSE EXT.MONTHLY_NEGO_RATE END) AS MONTHLY_NEGO_RATE,
+              (CASE WHEN EXT.PROD_CNT IS NULL THEN '0' ELSE EXT.PROD_CNT END) AS PROD_CNT
+         FROM TCMCT_SVC_CMPS_INFO SVC
+             LEFT OUTER JOIN TCMCT_SVC_CMPS_INFO_EXT EXT
+             ON SVC.EXT_ID = EXT.EXT_ID) B
+         , TCMCT_PROD_CMPS_INFO C
+         , TCMCT_CTRT_INFO A
+WHERE A.SO_ID = B.SO_ID
+   AND B.SO_ID = C.SO_ID
+   AND A.CTRT_ID = B.CTRT_ID
+   AND A.CTRT_ID = C.CTRT_ID
+   AND B.PROD_CMPS_ID = C.PROD_CMPS_ID
+   AND A.INACT_DTTM &gt; B.ACT_DTTM
+   AND A.INACT_DTTM &gt;= B.INACT_DTTM
+   AND A.ACT_DTTM &lt;= B.ACT_DTTM
+   AND B.INACT_DTTM = C.INACT_DTTM
+   AND B.ORDER_ID = C.ORDER_ID
+   and ((b.act_dttm   &gt;= #{startDate} and b.act_dttm   &lt; #{endDate}) or 
+        (b.inact_dttm &gt;= #{startDate} and b.inact_dttm &lt; #{endDate}))
+ ORDER BY B.PROD_CD,A.SO_ID, A.CTRT_ID, A.PROD_CMPS_ID, INACT_DTTM -->
+<!-- 	
+   and ((b.act_dttm &gt;= #{startDate} and a.act_dttm &lt; #{endDate}) or 
+        (b.inact_dttm &gt;= #{startDate} and a.inact_dttm &lt; #{endDate})) -->
+<!-- 	
+   AND ( #{billYymm} = SUBSTR(B.ACT_DTTM,1,6) 
+       OR #{billYymm} = SUBSTR(B.INACT_DTTM,1,6) )
+ -->
+    <insert id = "saveNBlchb00m01M"  parameterType="NBlchb00m01">
+    INSERT INTO IFNBRM_CTRT_INFO
+    (
+     SO_ID, CTRT_ID, PROD_CMPS_ID, SVC_CMPS_ID, INACT_DTTM, ACT_DTTM, CTRT_STAT, CUST_ID, OPEN_DD, PROD_CD, PROD_GRP, ORG_ID, USR_ID,
+     PYM_ACNT_ID, RATE_STRT_DT, SVC_CD, SVC_GRP, SVC_STS_CD, SVC_TEL_NO, TERM_DT, ORDER_ID, RENEW_DT,
+     FCTR_CD1, FCTR_VAL1, FCTR_CD2, FCTR_VAL2, FCTR_CD3, FCTR_VAL3, FCTR_CD4, FCTR_VAL4, FCTR_CD5, FCTR_VAL5,
+     FCTR_CD6, FCTR_VAL6, FCTR_CD7, FCTR_VAL7, FCTR_CD8, FCTR_VAL8, FCTR_CD9, FCTR_VAL9,
+     FCTR_CD10, FCTR_VAL10, FCTR_CD11, FCTR_VAL11, FCTR_CD12, FCTR_VAL12, FCTR_CD13, FCTR_VAL13, FCTR_CD14, FCTR_VAL14,
+     FCTR_CD15, FCTR_VAL15, FCTR_CD16, FCTR_VAL16, FCTR_CD17, FCTR_VAL17, FCTR_CD18, FCTR_VAL18,FCTR_CD19, FCTR_VAL19,
+     MONTHLY_NEGO_RATE, PROD_CNT, PROM_CNT, PROC_RATE, CTRT_NM, PYM_ACNT_NM, SVC_CHG_CL
+    )
+    VALUES
+    (
+     #{soId}, #{ctrtId}, #{prodCmpsId}, #{svcCmpsId}, #{inactDttm}, #{actDttm}, #{ctrtStat}, #{custId}, #{openDd}, #{prodCd}, #{prodGrp},  #{orgId}, #{usrId},
+     #{pymAcntId}, #{rateStrtDt}, #{svcCd}, #{svcGrp}, #{svcStsCd}, #{svcTelNo}, #{termDt}, #{orderId}, #{renewDt},
+     ifnull(#{fctrCd1},'*'), ifnull(#{fctrVal1},'*'),ifnull(#{fctrCd2},'*'), ifnull(#{fctrVal2},'*'),ifnull(#{fctrCd3},'*'), ifnull(#{fctrVal3},'*'),ifnull(#{fctrCd4},'*'), ifnull(#{fctrVal4},'*'),ifnull(#{fctrCd5},'*'), ifnull(#{fctrVal5},'*'),
+     ifnull(#{fctrCd6},'*'), ifnull(#{fctrVal6},'*'),ifnull(#{fctrCd7},'*'), ifnull(#{fctrVal7},'*'),ifnull(#{fctrCd8},'*'), ifnull(#{fctrVal8},'*'),ifnull(#{fctrCd9},'*'), ifnull(#{fctrVal9},'*'),
+     ifnull(#{fctrCd10},'*'), ifnull(#{fctrVal10},'*'),ifnull(#{fctrCd11},'*'), ifnull(#{fctrVal11},'*'),ifnull(#{fctrCd12},'*'), ifnull(#{fctrVal12},'*'),ifnull(#{fctrCd13},'*'), ifnull(#{fctrVal13},'*'),ifnull(#{fctrCd14},'*'), ifnull(#{fctrVal14},'*'),
+     ifnull(#{fctrCd15},'*'), ifnull(#{fctrVal15},'*'),ifnull(#{fctrCd16},'*'), ifnull(#{fctrVal16},'*'),ifnull(#{fctrCd17},'*'), ifnull(#{fctrVal17},'*'),ifnull(#{fctrCd18},'*'), ifnull(#{fctrVal18},'*'),ifnull(#{fctrCd19},'*'), ifnull(#{fctrVal19},'*'),
+     #{monthlyNegoRate}, #{prodCnt}, #{promCnt}, #{procRate}, #{ctrtNm}, #{pymAcntNm}, #{svcChgCl}
+    )
+     ON DUPLICATE KEY
+     UPDATE TABLE
+     SET    INACT_DTTM  = #{inactDttm}
+          , RENEW_DT    = #{renewDt}
+     WHERE  SO_ID       = #{soId}
+     AND    CTRT_ID     = #{ctrtId}
+     AND    SVC_CMPS_ID = #{svcCmpsId}
+     AND    ACT_DTTM    = #{actDttm}
+    </insert>
+
+    <insert id = "saveNBlchb00m01"  parameterType="NBlchb00m01">
+    INSERT INTO IFNBRM_CTRT_INFO
+    (
+     SO_ID, CTRT_ID, PROD_CMPS_ID, SVC_CMPS_ID, INACT_DTTM, ACT_DTTM, CTRT_STAT, CUST_ID, OPEN_DD, PROD_CD, PROD_GRP, ORG_ID, USR_ID,
+     PYM_ACNT_ID, RATE_STRT_DT, SVC_CD, SVC_GRP, SVC_STS_CD, SVC_TEL_NO, TERM_DT, ORDER_ID, RENEW_DT,
+     FCTR_CD1, FCTR_VAL1, FCTR_CD2, FCTR_VAL2, FCTR_CD3, FCTR_VAL3, FCTR_CD4, FCTR_VAL4, FCTR_CD5, FCTR_VAL5,
+     FCTR_CD6, FCTR_VAL6, FCTR_CD7, FCTR_VAL7, FCTR_CD8, FCTR_VAL8, FCTR_CD9, FCTR_VAL9,
+     FCTR_CD10, FCTR_VAL10, FCTR_CD11, FCTR_VAL11, FCTR_CD12, FCTR_VAL12, FCTR_CD13, FCTR_VAL13, FCTR_CD14, FCTR_VAL14,
+     FCTR_CD15, FCTR_VAL15, FCTR_CD16, FCTR_VAL16, FCTR_CD17, FCTR_VAL17, FCTR_CD18, FCTR_VAL18,FCTR_CD19, FCTR_VAL19,
+     MONTHLY_NEGO_RATE, PROD_CNT, PROM_CNT, PROC_RATE, CTRT_NM, PYM_ACNT_NM, SVC_CHG_CL
+    )
+    VALUES
+    (
+     #{soId}, #{ctrtId}, #{prodCmpsId}, #{svcCmpsId}, #{inactDttm}, #{actDttm}, #{ctrtStat}, #{custId}, #{openDd}, #{prodCd}, #{prodGrp}, #{orgId}, #{usrId},
+     #{pymAcntId}, #{rateStrtDt}, #{svcCd}, #{svcGrp}, #{svcStsCd}, #{svcTelNo}, #{termDt}, #{orderId}, #{renewDt},
+     ifnull(#{fctrCd1},'*'), ifnull(#{fctrVal1},'*'),ifnull(#{fctrCd2},'*'), ifnull(#{fctrVal2},'*'),ifnull(#{fctrCd3},'*'), ifnull(#{fctrVal3},'*'),ifnull(#{fctrCd4},'*'), ifnull(#{fctrVal4},'*'),ifnull(#{fctrCd5},'*'), ifnull(#{fctrVal5},'*'),
+     ifnull(#{fctrCd6},'*'), ifnull(#{fctrVal6},'*'),ifnull(#{fctrCd7},'*'), ifnull(#{fctrVal7},'*'),ifnull(#{fctrCd8},'*'), ifnull(#{fctrVal8},'*'),ifnull(#{fctrCd9},'*'), ifnull(#{fctrVal9},'*'),
+     ifnull(#{fctrCd10},'*'), ifnull(#{fctrVal10},'*'),ifnull(#{fctrCd11},'*'), ifnull(#{fctrVal11},'*'),ifnull(#{fctrCd12},'*'), ifnull(#{fctrVal12},'*'),ifnull(#{fctrCd13},'*'), ifnull(#{fctrVal13},'*'),ifnull(#{fctrCd14},'*'), ifnull(#{fctrVal14},'*'),
+     ifnull(#{fctrCd15},'*'), ifnull(#{fctrVal15},'*'),ifnull(#{fctrCd16},'*'), ifnull(#{fctrVal16},'*'),ifnull(#{fctrCd17},'*'), ifnull(#{fctrVal17},'*'),ifnull(#{fctrCd18},'*'), ifnull(#{fctrVal18},'*'),ifnull(#{fctrCd19},'*'), ifnull(#{fctrVal19},'*'),
+     #{monthlyNegoRate}, #{prodCnt}, #{promCnt}, #{procRate}, #{ctrtNm}, #{pymAcntNm}, #{svcChgCl}
+    )
+    ON DUPLICATE KEY
+    UPDATE
+     INACT_DTTM = #{inactDttm}
+    ,RENEW_DT = #{renewDt}
+    </insert>    
+    
+    <insert id="saveIfCustInfoAll" parameterType="Multi">
+				INSERT INTO IFNBRM_CUST_INFO (
+				  SO_ID, CUST_ID, PYM_ACNT_ID, CUST_NM, ACNT_NM,
+				  CUST_TP, ZIP_CD, BASE_ADDR, ADDR_DTL, MTEL_NO,
+				  TEL_NO, FAX_NO, EML, BIZ_REG_NO, BUSI_CNDT,
+				  BUSI_TP, TAX_TP, PZIP_CD, PBASE_ADDR, PADDR_DTL,
+				  CITY, STATE, STATE_NM, PMTEL_NO, PTEL_NO,
+				  PFAX_NO, PEML, PYM_MTHD, BILL_MDM_SMS_YN, BILL_MDM_GIRO_YN,
+				  BILL_MDM_EML_YN, BNK_CD, CDTCD_EXP_DT, USE_ACNT_NM_YN, ACNT_OWNER_NM,
+				  ACNT_NO, TBR_FLG, ARRS_NOBILL_YN, PYM_DT
+				)
+				SELECT 
+				  B.SO_ID,
+				  B.CUST_ID,
+				  B.PYM_ACNT_ID,
+				  B.CUST_NM,
+				  B.ACNT_NM,
+				  B.CUST_TP,
+				  B.ZIP_CD,
+				  B.BASE_ADDR,
+				  B.ADDR_DTL,
+				  B.MTEL_NO,
+				  B.TEL_NO,
+				  B.FAX_NO,
+				  B.EML,
+				  B.BIZ_REG_NO,
+				  B.BUSI_CNDT,
+				  B.BUSI_TP,
+				  B.TAX_TP,
+				  B.PZIP_CD,
+				  B.PBASE_ADDR,
+				  B.PADDR_DTL,
+				  B.CITY,
+				  B.STATE,
+				  B.STATE_NM,
+				  B.PMTEL_NO,
+				  B.PTEL_NO,
+				  B.PFAX_NO,
+				  B.PEML,
+				  B.PYM_MTHD,
+				  B.BILL_MDM_SMS_YN,
+				  B.BILL_MDM_GIRO_YN,
+				  B.BILL_MDM_EML_YN,
+				  B.BNK_CD,
+				  B.CDTCD_EXP_DT,
+				  B.USE_ACNT_NM_YN,
+				  B.ACNT_OWNER_NM,
+				  B.ACNT_NO,
+				  B.TBR_FLG,
+				  B.ARRS_NOBILL_YN,
+				  B.PYM_DT
+				FROM 
+				(
+				  SELECT 
+				    A.SO_ID,
+				    A.CUST_ID,
+				    B.PYM_ACNT_ID,
+				    A.CUST_NM,
+				    B.ACNT_NM,
+				    CASE WHEN A.CUST_TP = '' then 'Y' ELSE A.CUST_TP  END CUST_TP,
+				    A.ZIP_CD,
+				    A.BASE_ADDR,
+				    A.ADDR_DTL,
+				    A.MTEL_NO,
+				    A.TEL_NO,
+				    A.FAX_NO,
+				    A.EML,
+				    A.BIZ_REG_NO,
+				    A.BUSI_CNDT,
+				    A.BUSI_TP,
+				    A.TAX_TP,
+				    B.ZIP_CD AS PZIP_CD,
+				    B.BASE_ADDR AS PBASE_ADDR,
+				    B.ADDR_DTL AS PADDR_DTL,
+				    B.CITY,
+				    B.STATE,
+				    NULL AS STATE_NM,
+				    B.MTEL_NO AS PMTEL_NO,
+				    B.TEL_NO AS PTEL_NO,
+				    B.FAX_NO AS PFAX_NO,
+				    B.EML AS PEML,
+				    B.PYM_MTHD,
+				    B.BILL_MDM_SMS_YN,
+				    B.BILL_MDM_GIRO_YN,
+				    B.BILL_MDM_EML_YN,
+				    B.BNK_CD,
+				    B.CDTCD_EXP_DT,
+				    B.USE_ACNT_NM_YN,
+				    B.ACNT_OWNER_NM,
+				    B.ACNT_NO,
+				    B.TBR_FLG,
+				    B.ARRS_NOBILL_YN,
+				    B.PYM_DT
+				  FROM   (
+				    SELECT SO_ID,
+				      CUST_ID,
+				      PYM_ACNT_ID
+				    FROM   TCMCT_CTRT_INFO
+				    GROUP BY SO_ID, CUST_ID, PYM_ACNT_ID ) Z,
+				      TCMCU_CUST_INFO A,
+				      TCMCU_PYM_ACNT_INFO B
+				) B
+                ON DUPLICATE KEY UPDATE PYM_ACNT_ID           = B.PYM_ACNT_ID      
+							 ,CUST_NM              = B.CUST_NM         
+							 ,ACNT_NM              = B.ACNT_NM         
+							 ,CUST_TP              = B.CUST_TP         
+							 ,ZIP_CD               = B.ZIP_CD          
+							 ,BASE_ADDR            = B.BASE_ADDR       
+							 ,ADDR_DTL             = B.ADDR_DTL        
+							 ,MTEL_NO              = B.MTEL_NO         
+							 ,TEL_NO               = B.TEL_NO          
+							 ,FAX_NO               = B.FAX_NO          
+							 ,EML                  = B.EML             
+							 ,BIZ_REG_NO           = B.BIZ_REG_NO      
+							 ,BUSI_CNDT            = B.BUSI_CNDT       
+							 ,BUSI_TP              = B.BUSI_TP         
+							 ,TAX_TP               = B.TAX_TP          
+							 ,PZIP_CD              = B.PZIP_CD         
+							 ,PBASE_ADDR           = B.PBASE_ADDR      
+							 ,PADDR_DTL            = B.PADDR_DTL       
+							 ,CITY                 = B.CITY            
+							 ,STATE                = B.STATE           
+							 ,STATE_NM             = B.STATE_NM        
+							 ,PMTEL_NO             = B.PMTEL_NO        
+							 ,PTEL_NO              = B.PTEL_NO         
+							 ,PFAX_NO              = B.PFAX_NO         
+							 ,PEML                 = B.PEML            
+							 ,PYM_MTHD             = B.PYM_MTHD        
+							 ,BILL_MDM_SMS_YN      = B.BILL_MDM_SMS_YN 
+							 ,BILL_MDM_GIRO_YN     = B.BILL_MDM_GIRO_YN
+							 ,BILL_MDM_EML_YN      = B.BILL_MDM_EML_YN 
+							 ,BNK_CD               = B.BNK_CD          
+							 ,CDTCD_EXP_DT         = B.CDTCD_EXP_DT    
+							 ,USE_ACNT_NM_YN       = B.USE_ACNT_NM_YN  
+							 ,ACNT_OWNER_NM        = B.ACNT_OWNER_NM   
+							 ,ACNT_NO              = B.ACNT_NO         
+							 ,TBR_FLG              = B.TBR_FLG         
+							 ,ARRS_NOBILL_YN       = B.ARRS_NOBILL_YN  
+							 ,PYM_DT               = B.PYM_DT       
+    </insert>
+        
+    <insert id="saveIfCustInfo" parameterType="Multi">
+		       INSERT INTO IFNBRM_CUST_INFO (
+		                SO_ID, CUST_ID, PYM_ACNT_ID, CUST_NM, ACNT_NM,
+		                CUST_TP, ZIP_CD, BASE_ADDR, ADDR_DTL, MTEL_NO,
+		                TEL_NO, FAX_NO, EML, BIZ_REG_NO, BUSI_CNDT,
+		                BUSI_TP, TAX_TP, PZIP_CD, PBASE_ADDR, PADDR_DTL,
+		                CITY, STATE, STATE_NM, PMTEL_NO, PTEL_NO,
+		                PFAX_NO, PEML, PYM_MTHD, BILL_MDM_SMS_YN, BILL_MDM_GIRO_YN,
+		                BILL_MDM_EML_YN, BNK_CD, CDTCD_EXP_DT, USE_ACNT_NM_YN, ACNT_OWNER_NM,
+		                ACNT_NO, TBR_FLG, ARRS_NOBILL_YN, PYM_DT
+		               )
+							SELECT 
+							  B.SO_ID,
+							  B.CUST_ID,
+							  B.PYM_ACNT_ID,
+							  B.CUST_NM,
+							  B.ACNT_NM,
+							  B.CUST_TP,
+							  B.ZIP_CD,
+							  B.BASE_ADDR,
+							  B.ADDR_DTL,
+							  B.MTEL_NO,
+							  B.TEL_NO,
+							  B.FAX_NO,
+							  B.EML,
+							  B.BIZ_REG_NO,
+							  B.BUSI_CNDT,
+							  B.BUSI_TP,
+							  B.TAX_TP,
+							  B.PZIP_CD,
+							  B.PBASE_ADDR,
+							  B.PADDR_DTL,
+							  B.CITY,
+							  B.STATE,
+							  B.STATE_NM,
+							  B.PMTEL_NO,
+							  B.PTEL_NO,
+							  B.PFAX_NO,
+							  B.PEML,
+							  B.PYM_MTHD,
+							  B.BILL_MDM_SMS_YN,
+							  B.BILL_MDM_GIRO_YN,
+							  B.BILL_MDM_EML_YN,
+							  B.BNK_CD,
+							  B.CDTCD_EXP_DT,
+							  B.USE_ACNT_NM_YN,
+							  B.ACNT_OWNER_NM,
+							  B.ACNT_NO,
+							  B.TBR_FLG,
+							  B.ARRS_NOBILL_YN,
+							  B.PYM_DT
+							FROM  ( 
+							  SELECT 
+							    A.SO_ID,
+							    A.CUST_ID,
+							    B.PYM_ACNT_ID,
+							    A.CUST_NM,
+							    B.ACNT_NM,
+							    CASE WHEN A.CUST_TP = '' then 'Y'
+							    ELSE A.CUST_TP
+							    END CUST_TP,
+							    A.ZIP_CD,
+							    A.BASE_ADDR,
+							    A.ADDR_DTL,
+							    A.MTEL_NO,
+							    A.TEL_NO,
+							    A.FAX_NO,
+							    A.EML,
+							    A.BIZ_REG_NO,
+							    A.BUSI_CNDT,
+							    A.BUSI_TP,
+							    A.TAX_TP,
+							    B.ZIP_CD AS PZIP_CD,
+							    B.BASE_ADDR AS PBASE_ADDR,
+							    B.ADDR_DTL AS PADDR_DTL,
+							    B.CITY,
+							    B.STATE,
+							    NULL AS STATE_NM,
+							    B.MTEL_NO AS PMTEL_NO,
+							    B.TEL_NO AS PTEL_NO,
+							    B.FAX_NO AS PFAX_NO,
+							    B.EML AS PEML,
+							    B.PYM_MTHD,
+							    B.BILL_MDM_SMS_YN,
+							    B.BILL_MDM_GIRO_YN,
+							    B.BILL_MDM_EML_YN,
+							    B.BNK_CD,
+							    B.CDTCD_EXP_DT,
+							    B.USE_ACNT_NM_YN,
+							    B.ACNT_OWNER_NM,
+							    B.ACNT_NO,
+							    B.TBR_FLG,
+							    B.ARRS_NOBILL_YN,
+							    B.PYM_DT
+							FROM  (
+							  SELECT 
+							    SO_ID,
+							    CUST_ID,
+							    PYM_ACNT_ID
+							  FROM   TCMCT_CTRT_INFO
+							  WHERE  ACT_DTTM   &gt;= #{startDate}
+							  GROUP BY SO_ID, CUST_ID, PYM_ACNT_ID 
+							  ) Z,
+							  TCMCU_CUST_INFO A,
+							  TCMCU_PYM_ACNT_INFO B
+							  WHERE A.SO_ID = Z.SO_ID
+                              AND   A.CUST_ID = Z.CUST_ID
+                              AND   B.CUST_ID = A.CUST_ID
+							) B
+						  ON DUPLICATE KEY UPDATE PYM_ACNT_ID           = B.PYM_ACNT_ID      
+												 ,CUST_NM              = B.CUST_NM         
+												 ,ACNT_NM              = B.ACNT_NM         
+												 ,CUST_TP              = B.CUST_TP         
+												 ,ZIP_CD               = B.ZIP_CD          
+												 ,BASE_ADDR            = B.BASE_ADDR       
+												 ,ADDR_DTL             = B.ADDR_DTL        
+												 ,MTEL_NO              = B.MTEL_NO         
+												 ,TEL_NO               = B.TEL_NO          
+												 ,FAX_NO               = B.FAX_NO          
+												 ,EML                  = B.EML             
+												 ,BIZ_REG_NO           = B.BIZ_REG_NO      
+												 ,BUSI_CNDT            = B.BUSI_CNDT       
+												 ,BUSI_TP              = B.BUSI_TP         
+												 ,TAX_TP               = B.TAX_TP          
+												 ,PZIP_CD              = B.PZIP_CD         
+												 ,PBASE_ADDR           = B.PBASE_ADDR      
+												 ,PADDR_DTL            = B.PADDR_DTL       
+												 ,CITY                 = B.CITY            
+												 ,STATE                = B.STATE           
+												 ,STATE_NM             = B.STATE_NM        
+												 ,PMTEL_NO             = B.PMTEL_NO        
+												 ,PTEL_NO              = B.PTEL_NO         
+												 ,PFAX_NO              = B.PFAX_NO         
+												 ,PEML                 = B.PEML            
+												 ,PYM_MTHD             = B.PYM_MTHD        
+												 ,BILL_MDM_SMS_YN      = B.BILL_MDM_SMS_YN 
+												 ,BILL_MDM_GIRO_YN     = B.BILL_MDM_GIRO_YN
+												 ,BILL_MDM_EML_YN      = B.BILL_MDM_EML_YN 
+												 ,BNK_CD               = B.BNK_CD          
+												 ,CDTCD_EXP_DT         = B.CDTCD_EXP_DT    
+												 ,USE_ACNT_NM_YN       = B.USE_ACNT_NM_YN  
+												 ,ACNT_OWNER_NM        = B.ACNT_OWNER_NM   
+												 ,ACNT_NO              = B.ACNT_NO         
+												 ,TBR_FLG              = B.TBR_FLG         
+												 ,ARRS_NOBILL_YN       = B.ARRS_NOBILL_YN  
+												 ,PYM_DT               = B.PYM_DT       
+	</insert> 
+ 
+    <select id="getColId"  resultType="Multi"> 
+      SELECT /* NBlchb00m01Mapper.xml getColId */
+             GROUP_CONCAT(DISTINCT A.COL_ID) AS COL_ID
+      FROM  (
+             SELECT CONCAT(CASE WHEN TABLE_ID = 'TCMCT_SVC_CMPS_INFO' THEN 'SVC'
+                                WHEN TABLE_ID = 'TCMCT_PROM_CTRT_INFO' THEN 'CTP'
+                                WHEN TABLE_ID = 'TCMCT_SVC_CMPS_INFO_EXT' THEN 'SVCE'
+                                WHEN TABLE_ID = 'TCMCT_CTRT_INFO' THEN 'CT'
+                                ELSE TABLE_ID
+                           END
+                          ,'.',COLMN_ID) AS COL_ID
+             FROM   TPMBI_FCTR
+             WHERE  FCTR_REF_TYP ='T'
+             UNION  ALL
+             SELECT COMMON_CD AS COL_ID
+             FROM   TSYCO_CODE_DETAIL
+             WHERE  COMMON_GRP LIKE 'PP90012'
+             AND    USE_YN = 'Y'
+            ) A
+	</select>
+
+   	<select id="getFunc"  resultType="Multi">  
+		SELECT $COL_NM AS SET_VAL FROM DUAL
+	</select>	
+	
+</mapper>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.common.dao.mapper.CMultiTaxMapper">
+
+
+	
+  <select id="listInfo" resultType="com.ntels.ccbs.batch.iv.common.entity.CMultiTax"> 
+	SELECT C.SVC_RATE_ITM_TYP_CD,
+	       A.COMMON_CD  AS ATTR_CD,
+           A.REF_CODE   AS SET_ITM_ID,
+           B.SET_VAL    AS VAT_RATE,
+           C.ATTR_VAL   AS VAT_TYP
+   FROM   TSYCO_CODE_DETAIL         A,
+          TBLIV_BILL_STP            B,
+          IFNBRM_SVC_RATE_ITM_ATTR_INFO  C
+   WHERE  A.COMMON_GRP          = 'PP00205'
+   AND    A.USE_YN              = 'Y'
+   AND    B.SO_ID               = #{soId}
+   AND    B.SET_ITM_ID          = A.REF_CODE
+   AND    B.EFT_BGN_YYMM       <= TO_CHAR(SYSDATE,'YYYYMM')
+   AND    B.EFT_END_YYMM       >= TO_CHAR(SYSDATE,'YYYYMM')
+   AND    C.ATTR_CD             = A.COMMON_CD
+   AND    C.EXPIRAT_DT         >= TO_CHAR(SYSDATE,'YYYYMMDD')
+   AND    C.EFFECT_DT          <= TO_CHAR(SYSDATE,'YYYYMMDD')
+   AND    C.ATTR_VAL           <> '0';        
+  </select>
+        
+</mapper>

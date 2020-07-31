@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.standard.dao.mapper.StandardChargeMapper">
+
+<select id="listStandardCharge1" parameterType="SearchParam" resultType="StandardCharge">
+SELECT A.BILL_YYMM BILL_YYMM,
+			A.BILL_CYCL  BILL_CYCL,
+			A.USE_YYMM USE_YYMM,
+			A.SVC_CMPS_ID SVC_CMPS_ID,
+			A.ACT_DT ACT_DT,
+			A.INACT_DT INACT_DT,
+			A.DD DD,
+			A.SO_ID SO_ID,
+			A.PYM_ACNT_ID PYM_ACNT_ID,
+			A.CUST_ID CUST_ID,
+			A.CTRT_ID CTRT_ID,
+			A.PROD_CMPS_ID PROD_CMPS_ID,
+			A.PROD_CD PROD_CD,
+			A.SVC_STS_CD SVC_STS_CD,
+			A.SVC_TEL_NO SVC_TEL_NO,
+			A.FCTR_CD FCTR_CD,
+			A.FCTR_VAL FCTR_VAL,
+      B.RATE_ITM_CD RATE_ITM_CD,
+      B.RATE RATE RATE_ITM,
+      to_number(A.DD) * 29 / 29 * B.RATE,
+      'KRW' CRNCY_CD
+      , TO_CHAR(SYSDATE, 'yyyymmdd') TODAY
+     FROM (SELECT '201603' AS BILL_YYMM,
+               '0' AS BILL_CYCL,
+               '201602' AS USE_YYMM,
+               SVC_CMPS_ID,
+               GREATEST (SUBSTR (ACT_DT, 1, 8), '20160201') AS ACT_DT,
+               LEAST (SUBSTR (INACT_DT, 1, 8), '20160229') AS INACT_DT,
+                 LEAST (SUBSTR (INACT_DT, 1, 8), '20160229')
+               - GREATEST (SUBSTR (ACT_DT, 1, 8), '20160201')
+               + 1
+                  AS DD,
+               SO_ID,
+               PYM_ACNT_ID,
+               CUST_ID,
+               CTRT_ID,
+               PROD_CMPS_ID,
+               PROD_CD,
+               SVC_STS_CD,
+               SVC_TEL_NO,
+               FCTR_CD,
+               FCTR_VAL
+          FROM IFNBRM_CTRT_INFO
+         WHERE INACT_DT > '20160201') A,
+       (  SELECT PROD_CD,
+                 RATE_ITM_CD,
+                 COND_OPER,
+                 COND_VAL,
+                 MAX (CASE WHEN FCTR = '1' THEN TABLE_ID END) AS FCTR1,
+                 MAX (CASE WHEN FCTR = '1' THEN FCTR_VAL1 END) AS VAL1,
+                 MAX (CASE WHEN FCTR = '2' THEN TABLE_ID END) AS FCTR2,
+                 MAX (CASE WHEN FCTR = '2' THEN FCTR_VAL1 END) AS VAL2,
+                 MAX (CASE WHEN FCTR = '3' THEN TABLE_ID END) AS FCTR3,
+                 MAX (CASE WHEN FCTR = '3' THEN FCTR_VAL1 END) AS VAL3,
+                 MAX (CASE WHEN FCTR = '4' THEN TABLE_ID END) AS FCTR4,
+                 MAX (CASE WHEN FCTR = '4' THEN FCTR_VAL1 END) AS VAL4,
+                 MAX (CASE WHEN FCTR = '5' THEN TABLE_ID END) AS FCTR5,
+                 MAX (CASE WHEN FCTR = '5' THEN FCTR_VAL1 END) AS VAL5,
+                 MAX (CASE WHEN FCTR = '6' THEN TABLE_ID END) AS FCTR6,
+                 MAX (CASE WHEN FCTR = '6' THEN FCTR_VAL1 END) AS VAL6,
+                 MAX (CASE WHEN FCTR = '7' THEN TABLE_ID END) AS FCTR7,
+                 MAX (CASE WHEN FCTR = '7' THEN FCTR_VAL1 END) AS VAL7,
+                 MAX (CASE WHEN FCTR = '8' THEN TABLE_ID END) AS FCTR8,
+                 MAX (CASE WHEN FCTR = '8' THEN FCTR_VAL1 END) AS VAL8,
+                 MAX (CASE WHEN FCTR = '9' THEN TABLE_ID END) AS FCTR9,
+                 MAX (CASE WHEN FCTR = '9' THEN FCTR_VAL1 END) AS VAL9,
+                 RATE_VAL AS RATE
+            FROM (SELECT '1' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO IS NULL
+                  UNION ALL
+                  SELECT '1' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO = '1'
+                  UNION ALL
+                  SELECT '2' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO = '2'
+                  UNION ALL
+                  SELECT '3' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO = '3'
+                  UNION ALL
+                  SELECT '4' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO = '4'
+                  UNION ALL
+                  SELECT '5' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO = '5'
+                  UNION ALL
+                  SELECT '6' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO = '6'
+                  UNION ALL
+                  SELECT '7' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO = '7'
+                  UNION ALL
+                  SELECT '8' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO = '8'
+                  UNION ALL
+                  SELECT '9' AS FCTR,
+                         ROWNUM AS NO,
+                         PROD_CD,
+                         RATE_ITM_CD,
+                         TABLE_ID,
+                         COND_OPER,
+                         COND_VAL,
+                         FCTR_VAL1,
+                         RATE_VAL
+                    FROM IFNBRM_RATE_INFO
+                   WHERE FCTR_NO = '9')
+        GROUP BY PROD_CD,
+                 RATE_ITM_CD,
+                 NO,
+                 RATE_VAL,
+                 COND_OPER,
+                 COND_VAL
+        ORDER BY PROD_CD, RATE_ITM_CD) B
+ WHERE A.PROD_CD = B.PROD_CD AND A.FCTR_VAL = B.VAL1
+     </select>
+		<select id="listStandardCharge"  resultType="StandardCharge"> 
+		 SELECT #{clcWrkNo} AS CLC_WRK_NO,
+		           'RI1' AS RATE_ITM_CD,
+		           'Grp' AS GRP_ID,
+          		 #{billYymm} AS BILL_YYMM,
+               '0' AS BILL_CYCL,
+               '201602' AS USE_YYMM,
+               SVC_CMPS_ID,
+							SUBSTR(ACT_DT, 1, 8) AS ACT_DT,
+							SUBSTR(INACT_DT, 1, 8) AS INACT_DT,
+							SUBSTR(INACT_DT, 1, 8) - SUBSTR(ACT_DT, 1, 8) +1 AS DD,
+							0 AS USE_AMT,
+							' ' AS USE_QTY_UT,
+							0 AS USE_QTY,
+							0 AS USE_CNT,
+							'KRW' AS CRNCY_CD,
+							'' AS REG_DATE,
+               SO_ID,
+               PYM_ACNT_ID,
+               CUST_ID,
+               CTRT_ID,
+               PROD_CMPS_ID,
+               PROD_CD,
+               SVC_STS_CD,
+               SVC_TEL_NO,
+               FCTR_CD,
+               FCTR_VAL
+      FROM IFNBRM_CTRT_INFO
+     WHERE INACT_DT > '20160201'
+    </select>
+    <insert id = "saveStandardCharge"  parameterType="StandardCharge">
+    INSERT INTO TBLCH_CHRG (CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID, RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID, CTRT_ID, PROD_CMPS_ID, USE_AMT, USE_QTY_UT, USE_QTY, USE_CNT, CRNCY_CD, REG_DATE)
+    VALUES (#{clcWrkNo}, #{billYymm}, #{billCycl}, #{useYymm}, #{svcCmpsId}, #{rateItmCd}, #{soId}, #{grpId}, #{pymAcntId}, #{custId}, #{ctrtId}, #{prodCmpsId}, #{useAmt}, #{useQtyUt}, #{useQty}, #{useCnt}, #{crncyCd}, #{regDate})
+    </insert>         
+</mapper>

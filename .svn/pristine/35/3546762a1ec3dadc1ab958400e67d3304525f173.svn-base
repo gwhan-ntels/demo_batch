@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.dao.mapper.NBlchb07m01Mapper">
+
+<!--     <select id = "listCharge"  resultType="NBlchb07m01">
+        SELECT DISTINCT
+               CLC_WRK_NO,
+               SO_ID,
+               CTRT_ID,
+               BILL_YYMM,
+               USE_YYMM
+        FROM   TBLCH_SVC_CMPS_MT_RV
+        WHERE  SO_ID = #{soId}
+        AND    CLC_WRK_NO = #{clcWrkNo}
+        AND    P_SEQ = #{pSeq}
+    </select> -->
+    
+    <select id = "listCharge"  resultType="NBlchb07m01">
+        SELECT A.CLC_WRK_NO
+              ,A.BILL_YYMM
+              ,A.BILL_CYCL
+              ,B.BILL_CYCL
+              ,A.USE_YYMM
+              ,A.SVC_CMPS_ID
+              ,A.RATE_ITM_CD
+              ,A.SO_ID
+              ,A.GRP_ID
+              ,A.PYM_ACNT_ID
+              ,A.CUST_ID
+              ,A.CTRT_ID
+              ,A.PROD_CMPS_ID
+              ,A.USE_AMT    - CASE WHEN B.USE_AMT    IS NULL THEN 0 ELSE B.USE_AMT    END AS USE_AMT
+              ,A.USE_QTY_UT + CASE WHEN B.USE_QTY_UT IS NULL THEN 0 ELSE B.USE_QTY_UT END AS USE_QTY_UT
+              ,A.USE_QTY    + CASE WHEN B.USE_QTY    IS NULL THEN 0 ELSE B.USE_QTY    END AS USE_QTY
+              ,A.USE_CNT    - CASE WHEN B.USE_CNT    IS NULL THEN 0 ELSE B.USE_CNT    END AS USE_CNT
+              ,A.CRNCY_CD
+       from   (
+               SELECT CLC_WRK_NO,
+                      BILL_YYMM,
+                      BILL_CYCL,
+                      USE_YYMM,
+                      SVC_CMPS_ID,
+                      RATE_ITM_CD,
+                      SO_ID,
+                      GRP_ID,
+                      PYM_ACNT_ID,
+                      CUST_ID,
+                      CTRT_ID,
+                      PROD_CMPS_ID ,
+                      SUM(USE_AMT)    AS USE_AMT,
+                      SUM(USE_QTY_UT) AS USE_QTY_UT,
+                      SUM(USE_QTY)    AS USE_QTY,
+                      SUM(USE_CNT)    AS USE_CNT,
+                      CRNCY_CD,
+                      SUM(VAT) AS VAT
+               FROM   TBLCH_CHRG_TEMP_RV
+               WHERE  1=1
+               AND    SO_ID       = #{soId}
+               AND    P_SEQ       = #{pSeq}
+               AND    CLC_WRK_NO  = #{clcWrkNo}
+               AND    USE_YYMM    = DATE_FORMAT(DATE_ADD(str_to_date(#{billYymm},'%Y%m'), INTERVAL 1 MONTH), '%Y%m')
+               GROUP BY CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID, RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID, CTRT_ID, PROD_CMPS_ID, CRNCY_CD
+              ) A
+              LEFT OUTER JOIN
+              (
+               SELECT CLC_WRK_NO,
+                      BILL_YYMM,
+                      BILL_CYCL,
+                      USE_YYMM,
+                      SVC_CMPS_ID,
+                      RATE_ITM_CD,
+                      SO_ID,
+                      GRP_ID,
+                      PYM_ACNT_ID,
+                      CUST_ID,
+                      CTRT_ID,
+                      PROD_CMPS_ID ,
+                      SUM(USE_AMT)    AS USE_AMT,
+                      SUM(USE_QTY_UT) AS USE_QTY_UT,
+                      SUM(USE_QTY)    AS USE_QTY,
+                      SUM(USE_CNT)    AS USE_CNT,
+                      CRNCY_CD,
+                      SUM(VAT) AS VAT
+               FROM   TBLCH_CHRG
+               WHERE  1=1
+               AND    SO_ID       = #{soId}
+               AND    BILL_YYMM   = DATE_FORMAT(DATE_ADD(str_to_date(#{billYymm},'%Y%m'), INTERVAL 1 MONTH), '%Y%m')
+               AND    USE_YYMM    = DATE_FORMAT(DATE_ADD(str_to_date(#{billYymm},'%Y%m'), INTERVAL 1 MONTH), '%Y%m')
+               GROUP BY CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID, RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID, CTRT_ID, PROD_CMPS_ID, CRNCY_CD
+              ) B
+              ON  A.CTRT_ID     = B.CTRT_ID
+              AND A.USE_YYMM    = B.USE_YYMM
+              AND A.SVC_CMPS_ID = B.SVC_CMPS_ID
+              AND A.RATE_ITM_CD = B.RATE_ITM_CD
+              AND A.PYM_ACNT_ID = B.PYM_ACNT_ID
+    </select>
+    
+    
+<!--     
+    <select id = "listCharge"  resultType="NBlchb07m01">
+        SELECT CLC_WRK_NO,
+               BILL_YYMM,
+               BILL_CYCL,
+               USE_YYMM,
+               SVC_CMPS_ID,
+               RATE_ITM_CD,
+               SO_ID,
+               GRP_ID,
+               PYM_ACNT_ID,
+               CUST_ID,
+               CTRT_ID,
+               PROD_CMPS_ID ,
+               SUM(USE_AMT) AS USE_AMT,
+               SUM(USE_QTY_UT) AS USE_QTY_UT,
+               SUM(USE_QTY) AS USE_QTY,
+               SUM(USE_CNT) AS USE_CNT,
+               CRNCY_CD,
+               SUM(VAT) AS VAT
+        FROM   TBLCH_CHRG_TEMP_RV
+        WHERE  SO_ID = #{soId}
+        AND    CLC_WRK_NO = #{clcWrkNo}
+        AND    P_SEQ = #{pSeq}
+        GROUP BY CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID, RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID, CTRT_ID, PROD_CMPS_ID, CRNCY_CD
+    </select>
+  -->  
+    
+    <insert id = "saveCharge"  parameterType="NBlchb07m01">
+        INSERT INTO TBLCH_CHRG
+            (CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID
+            ,RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID
+            ,CTRT_ID, PROD_CMPS_ID, USE_AMT, USE_QTY_UT, USE_QTY
+            ,USE_CNT, CRNCY_CD, REG_DATE, VAT)
+        VALUES
+            (#{clcWrkNo}, #{billYymm}, #{billCycl}, #{useYymm}, #{svcCmpsId}
+            ,#{rateItmCd}, #{soId}, #{grpId}, #{pymAcntId}, #{custId}
+            ,#{ctrtId}, #{prodCmpsId}, #{useAmt}, #{useQtyUt}, #{useQty}
+            ,#{useCnt}, #{crncyCd}, #{regDate}, #{vat})
+    </insert>
+  
+   
+<!--     
+    <insert id = "saveCharge"  parameterType="Multi">   
+        INSERT INTO TBLCH_CHRG
+              (CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID, RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID, CTRT_ID, PROD_CMPS_ID, USE_AMT, USE_QTY_UT, USE_QTY, USE_CNT, CRNCY_CD, REG_DATE, VAT)
+        SELECT A.CLC_WRK_NO
+              ,A.BILL_YYMM
+              ,A.BILL_CYCL
+              ,A.USE_YYMM
+              ,A.SVC_CMPS_ID
+              ,A.RATE_ITM_CD
+              ,A.SO_ID
+              ,A.GRP_ID
+              ,A.PYM_ACNT_ID
+              ,A.CUST_ID
+              ,A.CTRT_ID
+              ,A.PROD_CMPS_ID
+              ,A.USE_AMT    - DECODE(B.USE_AMT,    '', 0, B.USE_AMT)    AS USE_AMT
+              ,A.USE_QTY_UT + DECODE(B.USE_QTY_UT, '', 0, B.USE_QTY_UT) AS USE_QTY_UT
+              ,A.USE_QTY    + DECODE(B.USE_QTY,    '', 0, B.USE_QTY)    AS USE_QTY
+              ,A.USE_CNT    - DECODE(B.USE_CNT,    '', 0, B.USE_CNT)    AS USE_CNT
+              ,A.CRNCY_CD
+              ,#{regDate}
+              ,A.VAT        - DECODE(B.VAT,        '', 0, B.VAT)        AS VAT
+        FROM  (
+               SELECT CLC_WRK_NO,
+                      BILL_YYMM,
+                      BILL_CYCL,
+                      USE_YYMM,
+                      SVC_CMPS_ID,
+                      RATE_ITM_CD,
+                      SO_ID,
+                      GRP_ID,
+                      PYM_ACNT_ID,
+                      CUST_ID,
+                      CTRT_ID,
+                      PROD_CMPS_ID ,
+                      SUM(USE_AMT)    AS USE_AMT,
+                      SUM(USE_QTY_UT) AS USE_QTY_UT,
+                      SUM(USE_QTY)    AS USE_QTY,
+                      SUM(USE_CNT)    AS USE_CNT,
+                      CRNCY_CD,
+                      SUM(VAT) AS VAT
+               FROM   TBLCH_CHRG_TEMP_RV
+               WHERE  1=1
+               AND    SO_ID      = #{soId}
+               AND    CLC_WRK_NO = #{clcWrkNo}
+               AND    USE_YYMM   = #{useYymm}
+               AND    CTRT_ID    = #{ctrtId}
+               GROUP BY CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID, RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID, CTRT_ID, PROD_CMPS_ID, CRNCY_CD
+              ) A 
+               LEFT OUTER JOIN TBLCH_CHRG B 
+               ON A.USE_YYMM = B.USE_YYMM
+        AND    A.SO_ID = B.SO_ID
+        AND    A.USE_YYMM = B.USE_YYMM 
+        AND    A.CTRT_ID = B.CTRT_ID
+    </insert>
+ -->  
+  
+</mapper>

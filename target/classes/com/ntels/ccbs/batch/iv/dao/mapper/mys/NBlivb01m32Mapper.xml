@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m32Mapper">
+
+    
+	<select id="listInfo" parameterType="Common" resultType="CBillComm"> 
+		   SELECT
+    		    A.BILL_SEQ_NO
+               ,A.USE_YYMM
+               ,A.PROD_CMPS_ID
+               ,A.SVC_CMPS_ID
+               ,A.CHRG_ITM_CD
+               ,A.BILL_YYMM
+               ,A.BILL_CYCL
+               ,A.BILL_DT
+               ,A.SO_ID
+               ,A.GRP_ID
+               ,A.PYM_ACNT_ID
+               ,A.CUST_ID
+               ,A.CTRT_ID
+               ,A.PROD_CD
+               ,A.SVC_CD
+               ,A.BIZ_CL
+               ,A.PROD_GRP
+               ,A.SVC_GRP
+               ,A.BILL_MM_TP
+               ,A.SALE_TP
+               ,A.USG_CNT
+               ,A.USG_AMT
+               ,A.ADJ_PRV_BILL_AMT
+               ,A.ADJ_AMT
+               ,A.BILL_AMT
+               ,A.PAY_DUE_DT
+               ,A.RCPT_AMT
+               ,A.FULL_PAY_YN
+               ,A.ATRT_CORP_ID
+               ,A.ATRT_EMP_ID
+               ,A.WON_BILL_AMT
+               ,A.CRNCY_CD
+               ,A.EXRATE
+               ,A.EXRATE_APLY_DT
+               ,A.SALE_ITM_CD
+               ,A.PREPAY_OCC_SEQ_NO
+               ,A.PREPD_CTRT_ID
+               ,A.REG_DATE
+               ,A.CHG_DATE
+               ,A.DEBT_PROC_YN
+         FROM  TBLIV_BILL_WRK    A,
+               TBLCH_MULTI_SEQ   Z
+         WHERE   A.SO_ID = #{soId}
+            AND  A.BILL_YYMM = #{billYymm}
+            AND  Z.SO_ID                      = #{soId}    
+            AND  Z.GUBUN                  = '2'
+		    AND  Z.P_SEQ                      = #{pSeq}
+		    AND  A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+		   	AND  A.PYM_ACNT_ID  &lt;= Z.END_NO 		 
+               
+	</select>
+    
+
+	<select id="listHotBillInfo"  resultType="CBillComm"> 
+		   SELECT
+    	     CLC_WRK_NO        
+			,BILL_SEQ_NO      
+			,USE_YYMM         
+			,PROD_CMPS_ID     
+			,SVC_CMPS_ID      
+			,CHRG_ITM_CD      
+			,BILL_YYMM        
+			,BILL_CYCL        
+			,BILL_DT          
+			,SO_ID            
+			,GRP_ID           
+			,PYM_ACNT_ID      
+			,CUST_ID          
+			,CTRT_ID          
+			,PROD_CD          
+			,SVC_CD           
+			,BIZ_CL           
+			,PROD_GRP         
+			,SVC_GRP          
+			,BILL_MM_TP       
+			,SALE_TP          
+			,USG_CNT          
+			,USG_AMT          
+			,ADJ_PRV_BILL_AMT 
+			,ADJ_AMT          
+			,BILL_AMT         
+			,PAY_DUE_DT       
+			,PAY_TP           
+			,FULL_PAY_YN      
+			,SML_AMT_YN       
+			,ATRT_CORP_ID     
+			,ATRT_EMP_ID      
+			,WON_BILL_AMT     
+			,CRNCY_CD         
+			,EXRATE           
+			,EXRATE_APLY_DT   
+			,SALE_ITM_CD      
+			,PREPAY_OCC_SEQ_NO
+			,PREPD_CTRT_ID    
+			,REG_DATE         
+			,CHG_DATE
+		 FROM  TBLIV_SIMULATION_BILL    A
+         WHERE 1=1
+         AND   A.SO_ID    = #{soId}
+		 AND   A.BILL_YYMM = #{billYymm}
+	     AND   A.CLC_WRK_NO = #{clcWrkNo} 
+	           
+	</select>
+    
+    
+    
+    
+    	
+    <insert id = "saveInfo"  parameterType="CBillComm">
+      INSERT INTO TBLIV_BILL  
+              (
+                BILL_SEQ_NO
+               ,USE_YYMM
+               ,PROD_CMPS_ID
+               ,SVC_CMPS_ID
+               ,CHRG_ITM_CD
+               ,BILL_YYMM
+               ,BILL_CYCL
+               ,BILL_DT
+               ,SO_ID
+               ,GRP_ID
+               ,PYM_ACNT_ID
+               ,CUST_ID
+               ,CTRT_ID
+               ,PROD_CD
+               ,SVC_CD
+               ,BIZ_CL
+               ,PROD_GRP
+               ,SVC_GRP
+               ,BILL_MM_TP
+               ,SALE_TP
+               ,USG_CNT
+               ,USG_AMT
+               ,ADJ_PRV_BILL_AMT
+               ,ADJ_AMT
+               ,BILL_AMT
+               ,PAY_DUE_DT
+               ,RCPT_AMT
+               ,FULL_PAY_YN
+               ,ATRT_CORP_ID
+               ,ATRT_EMP_ID
+               ,WON_BILL_AMT
+               ,CRNCY_CD
+               ,EXRATE
+               ,EXRATE_APLY_DT
+               ,SALE_ITM_CD
+               ,PREPAY_OCC_SEQ_NO
+               ,PREPD_CTRT_ID
+               ,REG_DATE
+               ,CHG_DATE
+               ,DEBT_PROC_YN
+              )
+         VALUES(
+            #{billSeqNo}
+			,#{useYymm}
+			,#{prodCmpsId}
+			,#{svcCmpsId}
+			,#{chrgItmCd}
+			,#{billYymm}
+			,#{billCycl}
+			,#{billDt}
+			,#{soId}
+			,#{grpId}
+			,#{pymAcntId}
+			,#{custId}
+			,#{ctrtId}
+			,#{prodCd}
+			,#{svcCd}
+			,#{bizCl}
+			,#{prodGrp}
+			,#{svcGrp}
+			,#{billMmTp}
+			,#{saleTp}
+			,#{usgCnt}
+			,#{usgAmt}
+			,#{adjPrvBillAmt}
+			,#{adjAmt}
+			,#{billAmt}
+			,#{payDueDt}
+			,#{rcptAmt}
+			,#{fullPayYn}
+			,#{atrtCorpId}
+			,#{atrtEmpId}
+			,#{wonBillAmt}
+			,#{crncyCd}
+			,#{exrate}
+			,#{exrateAplyDt}
+			,#{saleItmCd}
+			,#{prepayOccSeqNo}
+			,#{prepdCtrtId}
+			,#{regDate}
+			,#{chgDate}
+			,#{debtProcYn})
+    </insert> 
+ 
+    <insert id = "saveHotBillInfo"  parameterType="CBillComm">
+      INSERT INTO TBLIV_HOT_BILL  
+      (
+         HOTBILL_SEQ_NO    
+		,USE_YYMM         
+		,PROD_CMPS_ID     
+		,SVC_CMPS_ID      
+		,CHRG_ITM_CD      
+		,BILL_YYMM        
+		,BILL_CYCL        
+		,BILL_DT          
+		,SO_ID            
+		,GRP_ID           
+		,PYM_ACNT_ID      
+		,CUST_ID          	
+		,CTRT_ID          
+		,PROD_CD          
+		,SVC_CD           
+		,BIZ_CL           
+		,PROD_GRP         
+		,SVC_GRP          
+		,BILL_MM_TP       
+		,SALE_TP          
+		,USG_CNT          
+		,USG_AMT          
+		,BILL_AMT         
+		,PAY_DUE_DT       
+		,BILL_SEQ_NO      
+		,ATRT_CORP_ID     
+		,ATRT_EMP_ID      
+		,WON_BILL_AMT     
+		,CRNCY_CD         
+		,EXRATE           
+		,EXRATE_APLY_DT   
+		,REG_DATE         
+		,CLC_WRK_NO       
+      )
+      VALUES(
+         #{hotbillSeqNo}     
+		,#{useYymm}          
+		,#{prodCmpsId}       
+		,#{svcCmpsId}        
+		,#{chrgItmCd}        
+		,#{billYymm}         
+		,#{billCycl}         
+		,#{billDt}           
+		,#{soId}             
+		,#{grpId}            
+		,#{pymAcntId}        
+		,#{custId}          	
+		,#{ctrtId}           
+		,#{prodCd}           
+		,#{svcCd}            
+		,#{bizCl}            
+		,#{prodGrp}          
+		,#{svcGrp}           
+		,#{billMmTp}         
+		,#{saleTp}           
+		,#{usgCnt}           
+		,#{usgAmt}           
+		,#{billAmt}          
+		,#{payDueDt}         
+		,#{billSeqNo}        
+		,#{atrtCorpId}       
+		,#{atrtEmpId}        
+		,#{wonBillAmt}       
+		,#{crncyCd}          
+		,#{exrate}           
+		,#{exrateAplyDt}     
+		,#{regDate}          
+		,#{clcWrkNo}     )    
+    </insert>    
+    
+    
+    
+	<select id="listMastInfo" parameterType="Common" resultType="CBillComm"> 
+		SELECT 
+			A.SO_ID
+			,A.BILL_SEQ_NO
+			,A.CRNCY_CD
+			,A.EXRATE_APLY_DT
+			,A.BILL_YYMM
+			,A.BILL_CYCL
+			,A.BILL_DT
+			,A.PYM_ACNT_ID
+			,SUM(A.BILL_AMT) AS BILL_AMT
+			,SUM(A.RCPT_AMT) AS RCPT_AMT
+			,SUM(A.BILL_AMT)-SUM(RCPT_AMT) AS UNPAY_AMT
+			,'N'            AS FULL_PAY_YN
+			,SUM(A.WON_BILL_AMT) AS WON_BILL_AMT
+			,A.EXRATE
+		FROM TBLIV_BILL A, 
+			 TBLCH_MULTI_SEQ   Z
+		WHERE A.SO_ID = #{soId}
+		AND  A.BILL_YYMM = #{billYymm}
+	    AND  Z.SO_ID                      = #{soId}    
+        AND  Z.GUBUN                  = '2'
+        AND  Z.P_SEQ                      = #{pSeq}
+	    AND  A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+	   	AND  A.PYM_ACNT_ID  &lt;= Z.END_NO 	
+	    GROUP BY	A.SO_ID
+			,A.BILL_SEQ_NO
+			,A.CRNCY_CD
+			,A.EXRATE_APLY_DT
+			,A.BILL_YYMM
+			,A.BILL_CYCL
+			,A.BILL_DT
+			,A.PYM_ACNT_ID
+			,A.EXRATE
+                
+	</select>
+
+	<select id="listHotBillMastInfo" parameterType="Common" resultType="CBillComm"> 
+		SELECT 
+			A.SO_ID
+			,A.BILL_SEQ_NO
+			,A.CRNCY_CD
+			,A.EXRATE_APLY_DT
+			,A.BILL_YYMM
+			,A.BILL_CYCL
+			,A.BILL_DT
+			,A.PYM_ACNT_ID
+			,SUM(A.BILL_AMT) AS BILL_AMT
+			,SUM(A.RCPT_AMT) AS RCPT_AMT
+			,SUM(A.BILL_AMT)-SUM(RCPT_AMT) AS UNPAY_AMT
+			,'N'            AS FULL_PAY_YN
+			,SUM(A.WON_BILL_AMT) AS WON_BILL_AMT
+			,A.EXRATE
+		FROM TBLIV_BILL A		
+		WHERE A.SO_ID    = #{soId}
+		AND  A.BILL_YYMM = #{billYymm}
+	    AND  A.BILL_SEQ_NO IN ( SELECT DISTINCT BILL_SEQ_NO 
+	                           FROM TBLIV_SIMULATION_BILL
+	                           WHERE 1=1
+         						 AND   SO_ID     = #{soId}
+		 						 AND   BILL_YYMM = #{billYymm}
+	                             AND   CLC_WRK_NO = #{clcWrkNo}
+	                              )
+		GROUP BY 
+			A.SO_ID
+			,A.BILL_SEQ_NO
+			,A.CRNCY_CD
+			,A.EXRATE_APLY_DT
+			,A.BILL_YYMM
+			,A.BILL_CYCL
+			,A.BILL_DT
+			,A.PYM_ACNT_ID
+			,A.EXRATE
+                
+	</select>
+    
+   
+    <insert id = "saveMastInfo"  parameterType="CBillComm">
+      INSERT INTO TBLIV_BILL_MAST
+              (
+                SO_ID
+				,BILL_SEQ_NO
+				,CRNCY_CD
+				,EXRATE_APLY_DT
+				,BILL_YYMM
+				,BILL_CYCL
+				,BILL_DT
+				,PYM_ACNT_ID
+				,BILL_AMT
+				,RCPT_AMT
+				,UNPAY_AMT
+				,FULL_PAY_YN
+				,WON_BILL_AMT
+				,EXRATE
+				,REGR_ID
+				,REG_DATE
+				,CHGR_ID
+				,CHG_DATE
+             )
+         VALUES(
+            #{soId}
+			,#{billSeqNo}
+			,#{crncyCd}
+			,#{exrateAplyDt}
+			,#{billYymm}
+			,#{billCycl}
+			,#{billDt}
+			,#{pymAcntId}
+			,#{billAmt}
+			,#{rcptAmt}
+			,#{unpayAmt}
+			,#{fullPayYn}
+			,#{wonBillAmt}
+			,#{exrate}
+			,#{regrId}
+			,#{regDate}
+			,#{regrId}
+			,#{regDate}
+		)
+    </insert>         
+</mapper>

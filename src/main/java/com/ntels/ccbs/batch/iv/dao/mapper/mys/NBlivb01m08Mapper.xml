@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m08Mapper">
+    
+	<select id="listAdjInfo"  resultType="CBillComm"> 
+ SELECT /* INDEX(A IX_TBLIV_CHRG_ADJ_APLY_06) */
+                A.ADJ_NO,
+                NULL   AS BILL_SEQ_NO,
+                DECODE(J.USE_MM_TYP,'0',#{billYymm}, #{useYymm} ) AS USE_YYMM, 
+                B.PROD_CMPS_ID,                                
+                B.SVC_CMPS_ID,                                 
+                B.CHRG_ITM_CD,                                 
+                #{billYymm}   AS BILL_YYMM,                      
+                #{billCycl}   AS BILL_CYCL,                    
+                #{billDt}     AS BILL_DT ,                        
+                B.SO_ID,                                       
+                B.GRP_ID,                                      
+                A.PYM_ACNT_ID,                                 
+                C.CUST_ID,                                     
+                B.CTRT_ID,                                     
+                C.PROD_CD,                                     
+                J.SVC_CD,                                      
+                NULL     BIZ_CL,                                      
+                J.PROD_GRP,                                    
+                J.SVC_GRP,                                     
+                J.USE_MM_TYP                    BILL_MM_TP,    
+                '01'                            SALE_TP,
+                #{payDueDt}  AS PAY_DUE_DT,                    
+                'N'  FULL_PAY_YN,                              
+                NVL(MAX(C.ORG_ID),'CCBS')  ATRT_CORP_ID,
+                NVL(MAX(C.USR_ID),' ')     ATRT_EMP_ID,
+                B.CRNCY_CD,                                    
+                MAX(B.EXRATE) AS EXRATE,                       
+                MAX(B.EXRATE_APLY_DT) AS EXRATE_APLY_DT,       
+                'N'  DEBT_PROC_YN,                             
+                SUM(B.ADJ_APPL_AMT)  AS ADJ_APPL_AMT,          
+                'NBliv01m08'          CHGR_ID                  
+           FROM TBLIV_CHRG_ADJ_APLY       A,  
+                TBLIV_CHRG_ADJ_APLY_DTL   B,  
+                IFNBRM_CTRT_INFO          C,
+                IFNBRM_PROD_INFO          J,
+                TSYCO_CODE_DETAIL         Z,
+                TBLCH_MULTI_SEQ           Z1
+          WHERE A.HOPE_APLY_YYMM &lt;= #{billYymm} 
+            AND A.DCSN_PROC_STAT IN ('03','12') 
+            AND B.ADJ_NO          = A.ADJ_NO      
+            AND B.ADJ_APPL_AMT    != 0
+            AND A.ADJ_PT          = '1'
+            AND B.SO_ID           = #{soId}
+            AND C.CTRT_ID         = B.CTRT_ID
+            AND C.SO_ID           = B.SO_ID
+            AND C.INACT_DTTM   LIKE '9999123123595%'
+            AND C.PROD_CMPS_ID    = B.PROD_CMPS_ID
+            AND C.SVC_CMPS_ID     = B.SVC_CMPS_ID   
+            AND J.SO_ID           = C.SO_ID
+            AND J.PROD_CD         = C.PROD_CD
+            AND J.ACT_DT        &lt;= DECODE(A.ADJ_PT,'2',B.USE_YYMM,#{billYymm})||'01'
+            AND J.INACT_DT      &gt;= DECODE(A.ADJ_PT,'2',B.USE_YYMM,#{billYymm})||'01' 
+            AND Z.COMMON_GRP =  'BL00024'
+            AND Z.USE_YN = 'Y'
+            AND A.ADJ_RESN_CD = Z.COMMON_CD
+            AND Z1.SO_ID                      = #{soId}    
+            AND Z1.GUBUN                  = '2'
+		    AND Z1.P_SEQ                      = #{pSeq}
+		    AND A.PYM_ACNT_ID  &gt;= Z1.STRT_NO
+		   	AND A.PYM_ACNT_ID  &lt;= Z1.END_NO 
+             GROUP BY A.ADJ_NO,
+                   A.ADJ_PT,
+                   B.USE_YYMM,
+                   B.PROD_CMPS_ID,
+                   B.SVC_CMPS_ID,
+                   B.CHRG_ITM_CD,
+                   B.SO_ID,
+                   B.GRP_ID,
+                   A.PYM_ACNT_ID,
+                   C.CUST_ID,
+                   B.CTRT_ID,
+                   C.PROD_CD,
+                   J.SVC_CD,
+                   J.PROD_GRP,
+                   J.SVC_GRP,
+                   J.USE_MM_TYP,
+                   B.CRNCY_CD                         
+	</select>
+    
+	<select id="listOplInfo"  resultType="CBillComm"> 
+		       SELECT /* INDEX(A IX_TBLIV_CHRG_ADJ_APLY_06) */
+                A.ADJ_NO,
+                K.BILL_SEQ_NO,
+                DECODE(J.USE_MM_TYP,'0',#{billYymm},
+                       #{useYymm})     AS USE_YYMM,            
+                B.PROD_CMPS_ID,                                
+                B.SVC_CMPS_ID,                                 
+                B.CHRG_ITM_CD,                                 
+                #{billYymm} AS BILL_YYMM,                      
+                #{billCycl} AS BILL_CYCL,                      
+                #{billDt}   AS BILL_DT,                        
+                B.SO_ID,                                       
+                B.GRP_ID,                                      
+                A.PYM_ACNT_ID,                                 
+                C.CUST_ID,                                     
+                B.CTRT_ID,                                     
+                J.PROD_CD,                                     
+                J.SVC_CD,                                      
+                NULL BIZ_CL,                                      
+                J.PROD_GRP,                                    
+                J.SVC_GRP,                                     
+                J.USE_MM_TYP                    BILL_MM_TP,    
+                '01'                            SALE_TP,
+                #{payDueDt} PAY_DUE_DT,                       
+                'N'  FULL_PAY_YN,                              
+                NVL(MAX(C.ORG_ID),'CCBS')  ATRT_CORP_ID,
+                NVL(MAX(C.USR_ID),' ')     ATRT_EMP_ID,
+                B.CRNCY_CD,                                    
+                MAX(B.EXRATE) AS EXRATE,                       
+                MAX(B.EXRATE_APLY_DT) AS EXRATE_APLY_DT,       
+                'N'  DEBT_PROC_YN,                             
+                SUM(B.ADJ_APPL_AMT) AS ADJ_APPL_AMT,           
+                'NBliv01m08'                                   
+           FROM TBLIV_CHRG_ADJ_APLY      A,  
+                TBLIV_CHRG_ADJ_APLY_DTL  B,  
+                IFNBRM_CTRT_INFO         C,
+                IFNBRM_PROD_INFO         J,
+                TSYCO_CODE_DETAIL        Z,
+                TBLIV_BILL_WRK           K,
+                TBLCH_MULTI_SEQ          Z1
+          WHERE A.HOPE_APLY_YYMM  = #{billYymm} 
+            AND A.DCSN_PROC_STAT IN ('03')       
+            AND Z.COMMON_GRP =  'BL00043'
+            AND Z.USE_YN = 'Y'
+            AND A.ADJ_RESN_CD = Z.COMMON_CD
+            AND B.ADJ_NO          = A.ADJ_NO      -- 조정번호
+            AND B.SO_ID           = #{soId}
+            AND B.ADJ_APPL_AMT   != 0
+            AND C.CTRT_ID         = B.CTRT_ID
+            AND C.SO_ID           = B.SO_ID
+            AND C.INACT_DTTM   LIKE '9999123123595%'
+            AND C.PROD_CMPS_ID    = B.PROD_CMPS_ID
+            AND C.SVC_CMPS_ID     = B.SVC_CMPS_ID   
+            AND J.SO_ID           = C.SO_ID
+            AND J.PROD_CD         = C.PROD_CD
+            AND J.ACT_DT        &lt;= DECODE(A.ADJ_PT,'2',B.USE_YYMM,#{billYymm})||'01'
+            AND J.INACT_DT      &gt;= DECODE(A.ADJ_PT,'2',B.USE_YYMM,#{billYymm})||'01' 
+            AND K.BILL_SEQ_NO  LIKE SUBSTR(#{billYymm},3,2)||'%'  /* 청구년월, 사용월은 현재월 기준으로 처리한다 */
+            AND K.USE_YYMM        = #{useYymm}
+            AND K.PROD_CMPS_ID    = B.PROD_CMPS_ID
+            AND K.SVC_CMPS_ID     = B.SVC_CMPS_ID
+            AND K.CHRG_ITM_CD     = B.CHRG_ITM_CD
+            AND K.SO_ID           = B.SO_ID    
+            AND Z1.SO_ID                      = #{soId}    
+            AND Z1.GUBUN                  = '2'
+		    AND Z1.P_SEQ                      = #{pSeq}
+		    AND A.PYM_ACNT_ID  &gt;= Z1.STRT_NO
+		   	AND A.PYM_ACNT_ID  &lt;= Z1.END_NO 		 
+          GROUP BY A.ADJ_NO,
+                   K.BILL_SEQ_NO,
+                   A.ADJ_PT,
+                   B.USE_YYMM,
+                   B.PROD_CMPS_ID,
+                   B.SVC_CMPS_ID,
+                   B.CHRG_ITM_CD,
+                   B.SO_ID,
+                   B.GRP_ID,
+                   A.PYM_ACNT_ID,
+                   C.CUST_ID,
+                   B.CTRT_ID,
+                   J.PROD_CD,
+                   J.SVC_CD,
+                   J.PROD_GRP,
+                   J.SVC_GRP,
+                   J.USE_MM_TYP,
+                   B.CRNCY_CD 
+	</select>
+    
+    
+     <update id = "saveInfo"  parameterType="CBillComm">
+        UPDATE TBLIV_CHRG_ADJ_APLY  
+            SET DCSN_PROC_STAT = '05',
+                BILL_APLY_DT   = TO_CHAR(SYSDATE,'YYYYMMDD'),
+                BILL_YYMM      = DECODE(ADJ_PT,'1',TO_CHAR(SYSDATE,'YYYYMM'),BILL_YYMM),
+                BILL_CYCL      = DECODE(ADJ_PT,'1','01',BILL_CYCL),
+                BILL_DT        = DECODE(ADJ_PT,'1',#{billDt},BILL_DT),
+                BILL_SEQ_NO    = DECODE(ADJ_PT,'1',#{billSeqNo},BILL_SEQ_NO),
+                CHGR_ID        = #{chgrId},
+                CHG_DATE       = #{chgDate}
+          WHERE ADJ_NO = #{adjNo}
+    </update>
+    
+    
+             
+</mapper>

@@ -1,0 +1,31 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:batch="http://www.springframework.org/schema/batch" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/batch
+		http://www.springframework.org/schema/batch/spring-batch-2.2.xsd
+		http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+"	>
+
+	<!-- Spring-Batch 설정 -->
+	<import resource="common/spring-base.xml" />
+
+	<!-- JDBC -->
+	<import resource="common/jdbc-config.xml" />
+
+	<!-- Batch 설정 -->
+	<import resource="common/batch-config.xml" />
+
+
+	<!-- Batch 설정 -->
+	<!-- Job 선언 jobid = batch-sample-2-tasklet -->
+	<batch:job id="batch-standardCharge-tasklet" >
+		<batch:step id="step1">
+			<!-- Tasklet 처리 타입 -->
+			<batch:tasklet ref="standardChargeTasklet"  />
+<!-- 			<batch:tasklet ref="sampleTasklet"  /> -->
+		</batch:step>
+	</batch:job>
+</beans>

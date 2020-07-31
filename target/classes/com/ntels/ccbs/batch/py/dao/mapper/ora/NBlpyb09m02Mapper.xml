@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.py.dao.mapper.NBlpyb09m02Mapper">
+	
+	<update id="updateBillMastRcptAmt">
+		UPDATE TBLIV_BILL_MAST SET
+			RCPT_AMT = RCPT_AMT + #{rcptAmt}
+			, UNPAY_AMT = UNPAY_AMT - #{rcptAmt}
+			, FULL_PAY_YN = CASE WHEN UNPAY_AMT - #{rcptAmt} = 0 THEN 'Y' ELSE 'N' END
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+	</update>
+	
+	<update id="updateFullPayBill">
+		UPDATE TBLIV_BILL SET
+			RCPT_AMT = BILL_AMT
+			, FULL_PAY_YN = 'Y'
+			, CHG_DATE = #{chgDate}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+	</update>
+	
+
+	
+	<update id="updateBillRcptAmt">
+		UPDATE TBLIV_BILL SET
+			RCPT_AMT = RCPT_AMT + #{rcptAmt}
+			, FULL_PAY_YN = CASE WHEN RCPT_AMT + #{rcptAmt} = BILL_AMT THEN 'Y' ELSE 'N' END
+			, CHG_DATE = #{chgDate}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND CHRG_ITM_CD = #{chrgItmCd}
+		AND PROD_CMPS_ID = #{prodCmpsId}
+		AND SVC_CMPS_ID = #{svcCmpsId}
+	</update>
+
+</mapper>

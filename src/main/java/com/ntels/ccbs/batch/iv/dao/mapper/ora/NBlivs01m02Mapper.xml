@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivs01m02Mapper">
+	
+	<delete id="deleteBillSum">
+		DELETE FROM TBLIV_BILL_SUM
+		WHERE BILL_YYMM = #{billYymm}
+		AND SO_ID = #{soId}
+	</delete>
+	
+	<select id="getBillSum" resultType="NBlivs01m02">
+		SELECT
+			A.BILL_YYMM                                          -- 청구년월(YYYYMM)
+			, B.BILL_DT                                            -- 청구일자(YYYYMMDD)
+			, B.SO_ID                                              -- 지점ID or RO_ID
+			, A.PAY_MTHD                                           -- 납부방법
+			, B.PROD_GRP                                           -- 상품군
+			, B.PROD_CD                                            -- 상품코드
+			, B.BIZ_CL                                             -- 사업구분
+			, B.SVC_CD                                             -- 서비스코드
+			, B.CHRG_ITM_CD                                        -- 요금항목코드
+			, COUNT(DISTINCT B.PYM_ACNT_ID)   AS PYM_ACNT_CNT      -- 납부계정수
+			, COUNT(DISTINCT B.CUST_ID)       AS CUST_CNT          -- 고객수
+			, COUNT(DISTINCT B.CTRT_ID)       AS CTRT_CNT          -- 계약건수
+			, COUNT(DISTINCT B.PROD_CMPS_ID)  AS PROD_CMPS_CNT     -- 계약상품건수
+			, COUNT(DISTINCT B.SVC_CMPS_ID )  AS SVC_CMPS_CNT      -- 계약서비스건수
+			, COUNT(*)                        AS CNT               -- 건수
+			, SUM(B.ADJ_PRV_BILL_AMT)         AS ADJ_PRV_BILL_AMT  -- 조정전청구금액
+			, SUM(B.ADJ_AMT)                  AS ADJ_AMT           -- 조정금액
+			, SUM(B.BILL_AMT)                 AS BILL_AMT          -- 청구금액
+		FROM TBLIV_BILL_TGT_CUST  A  -- 청구대상자
+			, TBLIV_BILL           B  -- 청구내역
+		WHERE A.BILL_SEQ_NO  = B.BILL_SEQ_NO
+		AND A.SO_ID        = B.SO_ID
+		AND B.BILL_YYMM    = #{billYymm}
+		AND B.BILL_CYCL    = '01'
+		AND B.SO_ID        = #{soId}
+		GROUP BY A.BILL_YYMM
+			, B.BILL_DT
+			, B.SO_ID
+			, A.PAY_MTHD
+			, B.PROD_GRP
+			, B.PROD_CD
+			, B.BIZ_CL
+			, B.SVC_CD
+			, B.CHRG_ITM_CD
+	</select>
+	
+	<insert id="insertBillSum">
+		INSERT INTO TBLIV_BILL_SUM
+		(
+			BILL_YYMM
+			, BILL_DT
+			, SO_ID
+			, AREA_DEPT_CD
+			, PAY_MTHD
+			, PROD_GRP
+			, PROD_CD
+			, BIZ_CL
+			, SVC_CD
+			, CHRG_ITM_CD
+			, PYM_ACNT_CNT
+			, CUST_CNT
+			, CTRT_CNT
+			, PROD_CMPS_CNT
+			, SVC_CMPS_CNT
+			, CNT
+			, ADJ_PRV_BILL_AMT
+			, ADJ_AMT
+			, BILL_AMT
+			, PROC_DT
+		)
+		VALUES
+		(
+			#{billYymm}
+			, #{billDt}
+			, #{soId}
+			, #{areaDeptCd}
+			, #{payMthd}
+			, #{prodGrp}
+			, #{prodCd}
+			, #{bizCl}
+			, #{svcCd}
+			, #{chrgItmCd}
+			, #{pymAcntCnt}
+			, #{custCnt}
+			, #{ctrtCnt}
+			, #{prodCmpsCnt}
+			, #{svcCmpsCnt}
+			, #{cnt}
+			, #{adjPrvBillAmt}
+			, #{adjAmt}
+			, #{billAmt}
+			, #{procDt}
+		)
+	</insert>
+	
+</mapper>

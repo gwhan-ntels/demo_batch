@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m03Mapper">
+
+    
+	<select id="listInfo" resultType="CBillComm"> 
+	SELECT HOTBILL_SEQ_NO
+               ,USE_YYMM
+               ,CTRT_ID
+               ,#{billYymm} AS BILL_YYMM
+               ,#{billCycl} AS BILL_CYCL
+               ,#{billDt}   AS BILL_DT
+               ,BILL_MM_TP 
+               ,SO_ID
+               ,PYM_ACNT_ID
+           FROM (SELECT DISTINCT
+                        A.HOTBILL_SEQ_NO
+                       ,A.USE_YYMM
+                       ,A.CTRT_ID
+                       ,A.BILL_MM_TP
+                       ,A.SO_ID
+                       ,A.PYM_ACNT_ID
+                   FROM TBLIV_HOT_BILL  A,      
+                   		TBLCH_MULTI_SEQ Z        
+                  WHERE A.USE_YYMM   = #{useYymm}  
+                    AND A.BILL_MM_TP = '1'          
+                    AND A.SO_ID      = #{soId}
+                    AND Z.SO_ID           = #{soId}    
+			        AND Z.GUBUN           = '2'
+			        AND Z.P_SEQ           = #{pSeq}
+			        AND A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+			     	AND A.PYM_ACNT_ID  &lt;= Z.END_NO 			
+                )
+          GROUP BY HOTBILL_SEQ_NO
+                  ,USE_YYMM
+                  ,CTRT_ID
+                  ,BILL_MM_TP
+                  ,SO_ID
+                  ,PYM_ACNT_ID
+    </select>
+	
+	
+    <insert id = "saveInfo"  parameterType="CBillComm">
+  
+        INSERT INTO TBLIV_HOT_BILL_EXCP
+              (
+                BILL_SEQ_NO
+               ,USE_YYMM
+               ,PROD_CMPS_ID
+               ,SVC_CMPS_ID
+               ,CHRG_ITM_CD
+               ,BILL_YYMM
+               ,BILL_CYCL
+               ,BILL_DT
+               ,SO_ID
+               ,GRP_ID
+               ,PYM_ACNT_ID
+               ,CUST_ID
+               ,CTRT_ID
+               ,PROD_CD
+               ,SVC_CD
+               ,BIZ_CL
+               ,PROD_GRP
+               ,SVC_GRP
+               ,BILL_MM_TP
+               ,SALE_TP
+               ,USG_CNT
+               ,USG_AMT
+               ,ADJ_PRV_BILL_AMT
+               ,ADJ_AMT
+               ,BILL_AMT
+               ,PAY_DUE_DT
+               ,ATRT_CORP_ID
+               ,ATRT_EMP_ID
+               ,WON_BILL_AMT
+               ,CRNCY_CD
+               ,EXRATE
+               ,EXRATE_APLY_DT
+               ,HOTBILL_SEQ_NO
+               ,REG_DATE
+              )
+              (
+                SELECT /* INDEX(A LSR_IDX1) */
+                       A.BILL_SEQ_NO
+                      ,A.USE_YYMM
+                      ,A.PROD_CMPS_ID
+                      ,A.SVC_CMPS_ID
+                      ,A.CHRG_ITM_CD
+                      ,A.BILL_YYMM
+                      ,A.BILL_CYCL
+                      ,A.BILL_DT
+                      ,A.SO_ID
+                      ,A.GRP_ID
+                      ,A.PYM_ACNT_ID
+                      ,A.CUST_ID
+                      ,A.CTRT_ID
+                      ,A.PROD_CD
+                      ,A.SVC_CD
+                      ,A.BIZ_CL
+                      ,A.PROD_GRP
+                      ,A.SVC_GRP
+                      ,A.BILL_MM_TP
+                      ,A.SALE_TP
+                      ,A.USG_CNT
+                      ,A.USG_AMT
+                      ,A.ADJ_PRV_BILL_AMT
+                      ,A.ADJ_AMT
+                      ,A.BILL_AMT
+                      ,A.PAY_DUE_DT
+                      ,A.ATRT_CORP_ID
+                      ,A.ATRT_EMP_ID
+                      ,A.WON_BILL_AMT
+                      ,A.CRNCY_CD
+                      ,A.EXRATE
+                      ,A.EXRATE_APLY_DT
+                      ,#{hotbillSeqNo}
+                      ,#{regDate}
+                  FROM TBLIV_BILL_WRK  A,  
+                 	   TBLCH_MULTI_SEQ Z 
+                 WHERE A.BILL_SEQ_NO = #{billSeqNo}
+                   AND A.USE_YYMM    = #{useYymm}
+                   AND A.BILL_YYMM   = #{billYymm}
+                   AND A.CTRT_ID     = #{ctrtId}
+                   AND A.SO_ID       = #{soId}
+                   AND Z.SO_ID           = #{soId}    
+			       AND Z.GUBUN       = '2'
+			       AND Z.P_SEQ           = #{pSeq}
+			       AND A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+			       AND A.PYM_ACNT_ID  &lt;= Z.END_NO 		
+             )
+   
+  
+  </insert>
+   
+   <select id="listHotBillInfo" resultType="CBillComm"> 
+	
+	  SELECT NVL(b.HOTBILL_SEQ_NO,a.HOTBILL_SEQ_NO)     AS HOTBILL_SEQ_NO
+      ,NVL(b.USE_YYMM,a.USE_YYMM)                       AS USE_YYMM
+      ,NVL(b.PROD_CMPS_ID,a.PROD_CMPS_ID)               AS PROD_CMPS_ID
+      ,NVL(b.SVC_CMPS_ID,a.SVC_CMPS_ID)                 AS SVC_CMPS_ID 
+      ,NVL(b.CHRG_ITM_CD,a.CHRG_ITM_CD)                 AS CHRG_ITM_CD
+      ,NVL(b.BILL_YYMM,#{billYymm})                     AS BILL_YYMM
+      ,NVL(b.BILL_CYCL,#{billCycl})                     AS BILL_CYCL
+      ,NVL(b.BILL_DT,#{billDt})                         AS BILL_DT
+      ,NVL(b.SO_ID,a.SO_ID)                             AS SO_ID
+      ,NVL(b.GRP_ID,a.GRP_ID)                           AS GRP_ID
+      ,NVL(b.PYM_ACNT_ID,a.PYM_ACNT_ID)                 AS PYM_ACNT_ID
+      ,NVL(b.CUST_ID,a.CUST_ID)                         AS CUST_ID    
+      ,NVL(b.CTRT_ID,a.CTRT_ID)                         AS CTRT_ID    
+      ,NVL(b.PROD_CD,a.PROD_CD)                         AS PROD_CD
+      ,NVL(b.SVC_CD,a.SVC_CD)                           AS SVC_CD
+      ,NVL(b.BIZ_CL,a.BIZ_CL)                           AS BIZ_CL
+      ,NVL(b.PROD_GRP,a.PROD_GRP)                       AS PROD_GRP
+      ,NVL(b.SVC_GRP,a.SVC_GRP)                         AS SVC_GRP
+      ,NVL(b.BILL_MM_TP,a.BILL_MM_TP)                   AS BILL_MM_TP
+      ,NVL(b.SALE_TP,a.SALE_TP)                         AS SALE_TP
+      ,NVL(b.USG_CNT,a.USG_CNT)                         AS USG_CNT
+      ,NVL(b.USG_AMT,a.USG_AMT)                         AS USG_AMT
+      ,NVL(b.BILL_AMT,0) - NVL(a.BILL_AMT,0)            AS BILL_AMT
+      ,NVL(b.PAY_DUE_DT,#{payDueDt})                    AS PAY_DUE_DT
+      ,NVL(b.BILL_SEQ_NO,a.BILL_SEQ_NO)                 AS BILL_SEQ_NO
+      ,NVL(b.ATRT_CORP_ID,a.ATRT_CORP_ID)               AS ATRT_CORP_ID 
+      ,NVL(b.ATRT_EMP_ID,a.ATRT_EMP_ID)                 AS ATRT_EMP_ID
+      ,NVL(b.WON_BILL_AMT,0) - NVL(a.WON_BILL_AMT,0)    AS WON_BILL_AMT
+      ,NVL(b.CRNCY_CD,a.CRNCY_CD)                       AS CRNCY_CD
+      ,NVL(b.EXRATE,a.EXRATE)                           AS EXRATE
+      ,NVL(b.EXRATE_APLY_DT,a.EXRATE_APLY_DT)           AS EXRATE_APLY_DT
+  FROM (SELECT A.* FROM TBLIV_HOT_BILL  A,  TBLCH_MULTI_SEQ       Z   
+         WHERE A.CHRG_ITM_CD NOT IN (SELECT SVC_RATE_ITM_TYP_CD 
+                                     FROM IFNBRM_SVC_RATE_ITM_INFO 
+                                    WHERE CHRG_CTGRY IN ('N','Z')
+                                    AND   SO_ID    = #{soId} )
+           AND A.BILL_DT         &lt;= (SELECT #{billYymm}||TRIM(SET_VAL) 
+                                     FROM TBLIV_BILL_CYCL_STP 
+                                    WHERE SO_ID      = #{soId} 
+                                      AND BILL_YYMM  = #{billYymm} 
+                                      AND BILL_CYCL  = '01' 
+                                      AND SET_ITM_ID = '00055' 
+                                      AND ROWNUM     = 1) 
+           AND A.USE_YYMM        = #{useYymm} 
+           AND A.SO_ID           = #{soId} 
+           AND Z.SO_ID           = #{soId}    
+	 	   AND Z.GUBUN       = '2'
+		   AND Z.P_SEQ           = #{pSeq}
+		   AND A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+		   AND A.PYM_ACNT_ID  &lt;= Z.END_NO 		
+        )  a 
+        FULL OUTER JOIN 
+       (SELECT A.* FROM TBLIV_HOT_BILL_EXCP A,   TBLCH_MULTI_SEQ       Z   
+         WHERE A.BILL_YYMM = #{billYymm} 
+           AND A.SO_ID     = #{soId} 
+           AND Z.SO_ID     = #{soId}    
+	 	   AND Z.GUBUN = '2'
+		   AND Z.P_SEQ     = #{pSeq}
+		   AND A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+		   AND A.PYM_ACNT_ID  &lt;= Z.END_NO 		
+       )  b  ON 
+       a.USE_YYMM    &gt;= #{useYymm} 
+   AND b.BILL_YYMM    = #{billYymm} 
+   AND a.PYM_ACNT_ID  = b.PYM_ACNT_ID 
+   AND a.USE_YYMM     = b.USE_YYMM 
+   AND a.SO_ID        = b.SO_ID 
+   AND a.PROD_CMPS_ID = b.PROD_CMPS_ID 
+   AND a.SVC_CMPS_ID  = b.SVC_CMPS_ID 
+   AND a.CHRG_ITM_CD  = b.CHRG_ITM_CD 
+ WHERE NVL(b.BILL_AMT,0) - NVL(a.BILL_AMT,0) != 0 
+     </select>
+	
+	   
+ <insert id = "saveCheckInfo"  parameterType="CBillComm">
+         INSERT INTO CHECK_HOTBILL_DATE
+         SELECT #{billYymm}               
+               ,#{checkDt}                 
+               ,CTRT_ID                    
+               ,SUM(BILL_AMT)              
+           FROM TBLIV_HOT_BILL A,  TBLCH_MULTI_SEQ       Z   
+          WHERE A.USE_YYMM         = #{useYymm}
+            AND A.CHRG_ITM_CD NOT IN (
+                SELECT SVC_RATE_ITM_TYP_CD 
+                FROM   IFNBRM_SVC_RATE_ITM_INFO
+                WHERE  CHRG_CTGRY = 'Z' AND SO_ID = #{soId} )
+            AND SO_ID            = #{soId}
+            AND Z.SO_ID          = #{soId}    
+	 	    AND Z.GUBUN      = '2'
+		    AND Z.P_SEQ          = #{pSeq}
+		    AND A.PYM_ACNT_ID  &gt;= Z.STRT_NO
+		    AND A.PYM_ACNT_ID  &lt;= Z.END_NO 		
+          GROUP BY A.CTRT_ID
+    </insert>         
+  
+</mapper>

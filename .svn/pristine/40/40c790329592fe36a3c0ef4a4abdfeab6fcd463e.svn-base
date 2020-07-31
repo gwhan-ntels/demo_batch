@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivs02m02Mapper">
+	
+	<delete id="deleteSaleSum">
+		DELETE FROM TBLIV_SALE_SUM
+		WHERE USE_YYMM = #{useYymm}
+		AND SO_ID = #{soId}
+	</delete>
+	
+	<select id="getSaleSum" resultType="NBlivs02m02">
+		SELECT
+			A.USE_YYMM                                        -- 사용년월(매출년월)
+			, A.SO_ID                                           -- 지점ID or RO_ID
+			, B.CUST_TP AS CUST_TP                              -- MVNO수정 (
+			, A.PROD_GRP                                        -- 상품군 (K:스마트폰상품군, B:법인상품군, O:USIM상품군, R:일반폰상품군)
+			, A.PROD_CD                                         -- 상품코드
+			, A.BIZ_CL                                          -- 사업구분 (E:기본,부가,장비,USIM,단말서비스)
+			, A.SVC_CD                                          -- 서비스코드
+			, A.SALE_ITM_CD                                     -- 매출항목코드
+			, COUNT(DISTINCT A.PYM_ACNT_ID)   AS PYM_ACNT_CNT   -- 납부계정수
+			, COUNT(DISTINCT A.CUST_ID)       AS CUST_CNT       -- 고객수
+			, COUNT(DISTINCT A.CTRT_ID)       AS CTRT_CNT       -- 계약건수
+			, COUNT(DISTINCT A.PROD_CMPS_ID)  AS PROD_CMPS_CNT  -- 계약상품건수
+			, COUNT(DISTINCT A.SVC_CMPS_ID )  AS SVC_CMPS_CNT   -- 계약서비스건수
+			, COUNT(*)                        AS CNT            -- 건수
+			, SUM(A.SALE_AMT)                 AS SALE_AMT       -- 청구금액
+			, TO_CHAR(SYSDATE,'YYYYMMDD')     AS PROC_DT        -- 처리일자
+		FROM TBLIV_SALE           A  -- 매출내역
+			, IFNBRM_CUST_INFO B
+		WHERE A.PYM_ACNT_ID  = B.PYM_ACNT_ID
+		AND A.CUST_ID = B.CUST_ID
+		AND A.SO_ID        = B.SO_ID
+		AND A.USE_YYMM     = #{useYymm}
+		AND A.SO_ID        = #{soId}
+		GROUP BY A.USE_YYMM
+			, A.SO_ID
+			, B.CUST_TP
+			, A.PROD_GRP
+			, A.PROD_CD
+			, A.BIZ_CL
+			, A.SVC_CD
+			, A.SALE_ITM_CD
+	</select>
+	
+	<insert id="insertSaleSum">
+		INSERT INTO TBLIV_SALE_SUM
+		(
+			USE_YYMM
+			, SO_ID
+			, AREA_DEPT_CD
+			, PROD_GRP
+			, PROD_CD
+			, BIZ_CL
+			, SVC_CD
+			, SALE_ITM_CD
+			, PYM_ACNT_CNT
+			, CUST_CNT
+			, CTRT_CNT
+			, PROD_CMPS_CNT
+			, SVC_CMPS_CNT
+			, CNT
+			, SALE_AMT
+			, PROC_DT
+		)
+		VALUES
+		(
+			#{useYymm}
+			, #{soId}
+			, #{areaDeptCd}
+			, #{prodGrp}
+			, #{prodCd}
+			, #{bizCl}
+			, #{svcCd}
+			, #{saleItmCd}
+			, #{pymAcntCnt}
+			, #{custCnt}
+			, #{ctrtCnt}
+			, #{prodCmpsCnt}
+			, #{svcCmpsCnt}
+			, #{cnt}
+			, #{saleAmt}
+			, #{procDt}
+		)
+	</insert>
+	
+</mapper>

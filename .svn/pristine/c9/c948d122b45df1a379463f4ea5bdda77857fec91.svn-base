@@ -1,0 +1,399 @@
+package com.ntels.ccbs.batch.iv.service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import com.ntels.ccbs.batch.common.CUtil;
+import com.ntels.ccbs.batch.common.LazyLoader;
+import com.ntels.ccbs.batch.common.entity.Common;
+import com.ntels.ccbs.batch.common.service.BaseService;
+import com.ntels.ccbs.batch.iv.common.entity.BillCyclStp;
+import com.ntels.ccbs.batch.iv.common.entity.CBillComm;
+import com.ntels.ccbs.batch.iv.common.entity.TaxBill;
+import com.ntels.ccbs.batch.iv.common.entity.TaxTarget;
+import com.ntels.ccbs.batch.iv.common.service.CBLService;
+import com.ntels.ccbs.batch.iv.common.service.CBillWrkService;
+import com.ntels.ccbs.batch.iv.dao.NBlivb01m09Dao;
+
+@Service
+public class NBlivb01m09ServiceImpl extends BaseService implements NBlivb01m09Service {
+	
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+	@Autowired
+	private NBlivb01m09Dao nBlivb01m09Dao;
+	
+	@Autowired
+	private CBillWrkService cbillWrkService;
+	
+	@Autowired
+	private CBLService cblService;
+	
+	private enum TaxRound {
+		
+		DOWN(1), HALF_UP(2), UP(3);
+		
+		private int mod;
+		
+		TaxRound(int mod) {
+			this.mod = mod;
+		}
+		
+		int getMod() {
+			return mod;
+		}
+		
+	}
+	
+	private TaxRound roundMod = TaxRound.HALF_UP;
+	
+	@Override
+	public double getVat(double billAmt, double vatRate, String vatTp) {
+		
+		double vatAmt = 0;
+		
+		if ("1".equals(vatTp) == true) {
+			// 부가세 미포함 금액이므로 부가세 계산
+			vatAmt = billAmt * vatRate;
+		} else if ("2".equals(vatTp) == true) {
+			// 부가세가 포함된 금액이므로 부가세와 청구금액 분리
+			double billAmtMinusVat = billAmt / (1.0 + vatRate);
+			double vatFromBillAmt = billAmt - billAmtMinusVat;
+
+			vatAmt = vatFromBillAmt;
+		} else {
+			vatAmt = 0.0;
+		}
+		
+		vatAmt = CUtil.Round(vatAmt, -2, roundMod.getMod());
+		
+		return vatAmt;
+	}
+	
+	@Override
+	public double getSct(double billAmt, double vatAmt, double sctRate, String sctTp) {
+
+		double sctAmt = 0;
+
+		// 특별 소비세 계산
+		if ("1".equals(sctTp) == true) {
+			sctAmt = billAmt * sctRate;
+		} else if ("2".equals(sctTp) == true) {
+			sctAmt = (billAmt + vatAmt) * sctRate;
+		} else if ("3".equals(sctTp) == true) {
+			sctAmt = vatAmt * sctRate;
+		} else {
+			sctAmt = 0.0;
+		}
+
+		sctAmt = CUtil.Round(sctAmt, 0, roundMod.getMod());
+
+		return sctAmt;
+	}
+	
+	@Override
+	public LazyLoader<TaxTarget> getTaxTargetList(CBillComm bill) {
+		return nBlivb01m09Dao.getTaxTargetList(bill);
+		
+	}
+	
+	/**
+	 * <pre>
+	 * 세금계산 대상 리스트 조회
+	 * 필수 파라미터 : billSeqNo, billYymm, soId
+	 * </pre>
+	 * @param bill
+	 * @return
+	 */
+	@Override
+	public LazyLoader<TaxTarget> getTaxTargetListByBillSeqNo(CBillComm bill) {
+
+//		List<TaxTarget> taxTargetList = nBlivb01m09Dao.getTaxTargetListByBillSeqNo(bill);
+//		List<TaxTarget> resultList = new ArrayList<>();
+//		
+//		double billAmt = 0;
+//		double vat = 0;
+//		double sct = 0;
+//
+//		TaxTarget prev = null;
+//		
+//		Collections.sort(taxTargetList, new TaxTargetCompare());
+//		
+//		for (int i = 0; i < taxTargetList.size(); i++) {
+//			TaxTarget taxTarget = taxTargetList.get(i);
+//			// 세금 계산하기
+//			// 세금 부과 대상인가?
+//			if ("Y".equals(taxTarget.getTaxTp()) == true) {
+//				
+//				// 부가세 계산
+//				double vatRate = taxTarget.getVatRate() == null ? 0 : taxTarget.getVatRate() / 100;
+//				double tempVat = 0;
+//				
+//				if ("1".equals(taxTarget.getVatTp()) == true) {
+//					// 부가세 미포함 금액이므로 부가세 계산
+//					tempVat = taxTarget.getBillAmt() * vatRate;
+//				} else if ("2".equals(taxTarget.getVatTp()) == true) {
+//					// 부가세가 포함된 금액이므로 부가세와 청구금액 분리
+//					double billAmtMinusVat = taxTarget.getBillAmt() / (1.0 + vatRate);
+//					double vatFromBillAmt = taxTarget.getBillAmt() - billAmt;
+//					
+//					taxTarget.setBillAmt(billAmtMinusVat);
+//					tempVat = vatFromBillAmt;
+//				} else {
+//					tempVat = 0.0;
+//				}
+//				
+//				tempVat = CUtil.Round(tempVat, 0, roundMod.getMod());
+//				taxTarget.setVat(tempVat);
+//				
+//				double sctRate = taxTarget.getSctRate() == null ? 0 : taxTarget.getSctRate() / 100;
+//				double tempSct = 0;
+//
+//				// 특별 소비세 계산
+//				if ("1".equals(taxTarget.getSctTp()) == true) {
+//					tempSct = taxTarget.getBillAmt() * sctRate;
+//				} else if ("2".equals(taxTarget.getSctTp()) == true) {
+//					tempSct = (taxTarget.getBillAmt() + taxTarget.getVat()) * sctRate;
+//				} else if ("3".equals(taxTarget.getSctTp()) == true) {
+//					tempSct = taxTarget.getVat() * sctRate;
+//				} else {
+//					tempSct = 0.0;
+//				}
+//				
+//				clogService.writeLog("BILL_SEQ_NO : " + taxTarget.getBillSeqNo());
+//				clogService.writeLog("BEFORE SCT ROUND : " + tempSct);
+//				tempSct = CUtil.Round(tempSct, 0, roundMod.getMod());
+//				clogService.writeLog("AFTER SCT ROUND : " + tempSct);
+//				taxTarget.setSct(tempSct);
+//				
+//			}
+//			
+//			// 기존쿼리에서 GROUP BY를 사용하지 못해 코드에서 처리한다.
+//			if (prev != null &&
+//					(prev.getBillSeqNo().equals(taxTarget.getBillSeqNo()) == false || prev.getBillMmTp().equals(taxTarget.getBillMmTp()) == false
+//					|| prev.getSoId().equals(taxTarget.getSoId()) == false || prev.getProdCmpsId().equals(taxTarget.getProdCmpsId()) == false
+//					|| prev.getSvcCmpsId().equals(taxTarget.getSvcCmpsId()) == false || prev.getBillYymm().equals(taxTarget.getBillYymm()) == false
+//					|| prev.getBizCl().equals(taxTarget.getBizCl()) == false || prev.getBillCycl().equals(taxTarget.getBillCycl()) == false
+//					|| prev.getBillDt().equals(taxTarget.getBillDt()) == false || prev.getPymAcntId().equals(taxTarget.getPymAcntId()) == false
+//					|| prev.getCustTp().equals(taxTarget.getCustTp()) == false || prev.getBizRegNo().equals(taxTarget.getBizRegNo()) == false
+//					|| prev.getCustNm().equals(taxTarget.getCustNm()) == false || prev.getBusiTp().equals(taxTarget.getBusiTp()) == false
+//					|| prev.getBusiCndt().equals(taxTarget.getBusiCndt()) == false || prev.getTaxTp().equals(taxTarget.getTaxTp()) == false
+//					|| prev.getAddr().equals(taxTarget.getAddr()) == false || prev.getZipCd().equals(taxTarget.getZipCd()) == false)) {
+//				
+//				prev.setBillAmt(billAmt);
+//				prev.setVat(vat);
+//				prev.setSct(sct);
+//
+//				clogService.writeLog("ADD TAX TARGET BILL_SEQ_NO : " + prev.getBillSeqNo() + ", VAT : " + prev.getVat() + ", SCT : " + prev.getSct());
+//				
+//				resultList.add(prev);
+//
+//				prev = taxTarget;
+//				billAmt = 0;
+//				vat = 0;
+//				sct = 0;
+//			} else if (prev != null) {
+//				if (prev.getVchrgItmCd() == null && taxTarget.getVchrgItmCd() != null) {
+//					prev.setVchrgItmCd(taxTarget.getVchrgItmCd());
+//				}
+//				
+//				if (prev.getSchrgItmCd() == null && taxTarget.getSchrgItmCd() != null) {
+//					prev.setSchrgItmCd(taxTarget.getSchrgItmCd());
+//				}
+//			} else {
+//				if (prev == null) {
+//					prev = taxTarget;
+//				}
+//			}
+//			
+//			billAmt += taxTarget.getBillAmt();
+//			vat += taxTarget.getVat();
+//			sct += taxTarget.getSct();
+//			
+//			logger.debug(String.format("billAmt : %f, vat : %f, sct : %f, vatTp : %s, vatRate : %f, sctTp : %s, sctRate : %s"
+//					, taxTarget.getBillAmt(), taxTarget.getVat(), taxTarget.getSct(), taxTarget.getVatTp()
+//					, taxTarget.getVatRate(), taxTarget.getSctTp(), taxTarget.getSctRate()));
+//			
+//			if (i == taxTargetList.size() - 1) {
+//				prev.setBillAmt(billAmt);
+//				prev.setVat(vat);
+//				prev.setSct(sct);
+//
+//				resultList.add(prev);
+//			}
+//		}
+		
+		return null;
+	}
+	
+	@Override
+	public int insertBillWrk(List<CBillComm> billList) {
+		return nBlivb01m09Dao.insertBillWrk(billList);
+	}
+	
+	@Override
+	public int insertTaxBill(List<TaxBill> taxBillList) {
+		return nBlivb01m09Dao.insertTaxBill(taxBillList);
+	}
+	
+	@Override
+	public int insertSimulationBillTax(Common bill) {
+		
+		List<TaxTarget> list = nBlivb01m09Dao.getBillForTaxCalcFromSimulationBillByBillSeqNo(bill);
+		logger.debug("SIMULATION BILL LIST SIZE : " + list.size());
+		
+		String vChargItmCd = null;
+		String sChargItmCd = null;
+		
+		TaxTarget prevItem = null;
+		
+		// 전체 부가세, 특소세의 합
+		double sumVatAmt = 0;
+		double sumSctAmt = 0;
+		
+		List<Object> simulationBillTaxtList = new ArrayList<>();
+		
+		for (int i = 0; i < list.size(); i++) {
+			TaxTarget taxTarget = list.get(i);
+			
+			if (vChargItmCd == null && StringUtils.isEmpty(taxTarget.getVchrgItmCd()) == false) {
+				vChargItmCd = taxTarget.getVchrgItmCd();
+			}
+			
+			if (sChargItmCd == null && StringUtils.isEmpty(taxTarget.getSchrgItmCd()) == false) {
+				sChargItmCd = taxTarget.getSchrgItmCd();
+			}
+
+			double vatRate = taxTarget.getVatRate() == null ? 0 : taxTarget.getVatRate() / 100;
+			double vat = getVat(taxTarget.getBillAmt(), vatRate, taxTarget.getVatTp());
+
+			if ("2".equals(taxTarget.getVatTp()) == true) {
+				taxTarget.setBillAmt(taxTarget.getBillAmt() - vat);
+			}
+			
+			taxTarget.setVat(vat);
+			
+			double sctRate = taxTarget.getSctRate() == null ? 0 : taxTarget.getSctRate() / 100;
+			double sct = getSct(taxTarget.getBillAmt(), vat, sctRate, taxTarget.getSctTp());
+			taxTarget.setSct(sct);
+
+			sumVatAmt += taxTarget.getVat();
+			sumSctAmt += taxTarget.getSct();
+			
+			if (prevItem != null
+					&& (prevItem.getBillMmTp().equals(taxTarget.getBillMmTp()) == false
+					|| prevItem.getSoId().equals(taxTarget.getSoId()) == false
+					|| prevItem.getProdCmpsId().equals(taxTarget.getProdCmpsId()) == false
+					|| prevItem.getSvcCmpsId().equals(taxTarget.getSvcCmpsId()) == false)) {
+				if (sumVatAmt > 0 || sumSctAmt > 0) {
+					if (sumVatAmt > 0) {
+						CBillComm insertBill = getBillFromTaxTgt(taxTarget, sumVatAmt);
+						insertBill.setChrgItmCd(vChargItmCd);
+						simulationBillTaxtList.add(insertBill);
+					}
+					
+					if (sumSctAmt > 0) {
+						CBillComm insertBill = getBillFromTaxTgt(taxTarget, sumSctAmt);
+						insertBill.setChrgItmCd(sChargItmCd);
+						simulationBillTaxtList.add(insertBill);
+					}
+				}
+
+				sumVatAmt = 0;
+				sumSctAmt = 0;
+			}
+
+			prevItem = taxTarget;
+			
+			if (i == list.size() - 1) {
+				if (sumVatAmt > 0 || sumSctAmt > 0) {
+					if (sumVatAmt > 0) {
+						CBillComm insertBill = getBillFromTaxTgt(taxTarget, sumVatAmt);
+						insertBill.setChrgItmCd(vChargItmCd);
+						simulationBillTaxtList.add(insertBill);
+					}
+					
+					if (sumSctAmt > 0) {
+						CBillComm insertBill = getBillFromTaxTgt(taxTarget, sumSctAmt);
+						insertBill.setChrgItmCd(sChargItmCd);
+						simulationBillTaxtList.add(insertBill);
+					}
+				}
+			}
+		}
+		
+//		for (CBillComm insertBill : simulationBillTaxtList) {
+//			logger.info(ToStringBuilder.reflectionToString(insertBill, ToStringStyle.MULTI_LINE_STYLE));
+//		}
+		
+		return cbillWrkService.saveSimulationJdbcDirect(simulationBillTaxtList);
+	}
+	
+	private CBillComm getBillFromTaxTgt(TaxTarget taxTarget, double billAmt) {
+		CBillComm bill = new CBillComm();
+		CUtil.copyObjectValue(taxTarget, bill);
+		
+		bill.setBillAmt(billAmt);
+		bill.setAdjPrvBillAmt(billAmt);
+		bill.setWonBillAmt(billAmt);
+		bill.setAdjAmt(0.0);
+		bill.setFullPayYn("N");
+		bill.setRcptAmt(0.0);
+		bill.setRegDate(now());
+		bill.setChgDate(now());
+		
+		return bill;
+	}
+	
+	@Override
+	public int insertAdjBillTax(CBillComm bill, String remark) {
+		List<TaxBill> taxBillList = nBlivb01m09Dao.getNewTaxBill(bill);
+		
+		BillCyclStp billCyclStp = new BillCyclStp();
+		billCyclStp.setSoId(bill.getSoId());
+		billCyclStp.setBillYymm(bill.getBillYymm());
+		billCyclStp.setBillCycl(bill.getBillCycl());
+		
+		String splyBizNo = cblService.getSupplyBizNo(billCyclStp);
+		
+		for (TaxBill taxBill : taxBillList) {
+			if ("0".equals(taxBill.getBillMmTp()) == true) {
+				taxBill.setSaleDt(taxBill.getBillDt());
+				taxBill.setTaxBillIssDt(taxBill.getBillDt());
+				taxBill.setTaxBillWrDt(taxBill.getBillDt());
+			} else if ("1".equals(taxBill.getBillMmTp()) == true) {
+				String dt = "";
+				
+				try {
+					String beforeYM = CUtil.addMonths(taxBill.getBillYymm(), -1);
+					dt = beforeYM + CUtil.getLastDayOfMonth(beforeYM);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				
+				taxBill.setSaleDt(dt);
+				taxBill.setTaxBillIssDt(dt);
+				taxBill.setTaxBillWrDt(dt);
+			}
+			
+			taxBill.setSplyBizNo(splyBizNo);
+			taxBill.setRmrk(remark);
+			taxBill.setTbiFlg("1");
+			
+		}
+		
+		return insertTaxBill(taxBillList);
+	}
+	
+	@Override
+	public String getRoundingAdjSvcRateItmTypCd(String soId) {
+		return nBlivb01m09Dao.getRoundingAdjSvcRateItmTypCd(soId);
+	}
+	
+}

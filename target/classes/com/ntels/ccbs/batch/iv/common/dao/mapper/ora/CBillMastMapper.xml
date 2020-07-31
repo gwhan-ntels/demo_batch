@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.common.dao.mapper.CBillMastMapper">
+
+    <insert id = "saveInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+   INSERT INTO TBLIV_BILL_MAST(
+     BILL_DT,
+     PYM_ACNT_ID,
+     BILL_AMT,
+     RCPT_AMT,
+     UNPAY_AMT,
+     FULL_PAY_YN,
+     WON_BILL_AMT,
+     EXRATE,
+     REGR_ID,
+     REG_DATE,
+     CHGR_ID,
+     CHG_DATE,
+     SO_ID,
+     BILL_SEQ_NO,
+     CRNCY_CD,
+     EXRATE_APLY_DT,
+     BILL_YYMM,
+     BILL_CYCL) VALUES (
+     #{billDt},
+     #{pymAcntId},
+     #{billAmt},
+     #{rcptAmt},
+     #{unpayAmt},
+     #{fullPayYn},
+     #{wonBillAmt},
+     #{exrate},
+     #{regrId},
+     #{regDate},
+     #{chgrId},
+     #{chgDate},
+     #{soId},
+     #{billSeqNo},
+     #{crncyCd},
+     #{exrateAplyDt},
+     #{billYymm},
+     #{billCycl} )    
+
+    </insert>
+    <update id = "updateInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+    </update>      
+    
+    <delete id = "deleteInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+    </delete>      
+    
+       
+</mapper>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report1" language="groovy" pageWidth="555" pageHeight="842" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="ea56bbb3-b260-46c8-a252-14bebf180338">
+	<property name="ireport.zoom" value="3.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="ChargeColumnHead" fontSize="11" isBold="true"/>
+	<style name="ChargeColumnBody" fontSize="10" isBold="false"/>
+	<parameter name="CRNCY_CD" class="java.lang.String"/>
+	<field name="chargeName" class="java.lang.String">
+		<fieldDescription><![CDATA[chargeName]]></fieldDescription>
+	</field>
+	<field name="subscriptionPeriod" class="java.lang.String">
+		<fieldDescription><![CDATA[subscriptionPeriod]]></fieldDescription>
+	</field>
+	<field name="currency" class="java.lang.String">
+		<fieldDescription><![CDATA[currency]]></fieldDescription>
+	</field>
+	<field name="unitPrice" class="java.lang.String">
+		<fieldDescription><![CDATA[unitPrice]]></fieldDescription>
+	</field>
+	<field name="quantity" class="java.lang.String">
+		<fieldDescription><![CDATA[quantity]]></fieldDescription>
+	</field>
+	<field name="total" class="java.lang.String">
+		<fieldDescription><![CDATA[total]]></fieldDescription>
+	</field>
+	<group name="ChargeItemDetailGroup"/>
+	<columnHeader>
+		<band height="18">
+			<line>
+				<reportElement x="10" y="0" width="1" height="18" forecolor="#B3B3B3" backcolor="#F1F7F8"/>
+			</line>
+			<line>
+				<reportElement x="10" y="0" width="534" height="1" forecolor="#B3B3B3" backcolor="#F1F7F8"/>
+			</line>
+			<line>
+				<reportElement x="10" y="17" width="534" height="1" forecolor="#B3B3B3" backcolor="#F1F7F8"/>
+			</line>
+			<line>
+				<reportElement x="160" y="0" width="1" height="18" forecolor="#B3B3B3" backcolor="#F1F7F8"/>
+			</line>
+			<staticText>
+				<reportElement style="ChargeColumnHead" x="20" y="0" width="150" height="18" forecolor="#00008A" uuid="4516263d-db9a-441a-8e5c-48e68b1c413c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Charges]]></text>
+			</staticText>
+			<staticText>
+				<reportElement style="ChargeColumnHead" x="170" y="0" width="150" height="18" forecolor="#00008A" uuid="76dbc855-7c82-4115-bbf6-20cbfe6c7657"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Subscription Period]]></text>
+			</staticText>
+			<line>
+				<reportElement x="310" y="0" width="1" height="18" forecolor="#B3B3B3" backcolor="#F1F7F8"/>
+			</line>
+			<staticText>
+				<reportElement style="ChargeColumnHead" x="320" y="0" width="78" height="18" forecolor="#00008A" uuid="b1aede39-5715-490d-aa47-f16ab536d3e8"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Unit Price]]></text>
+			</staticText>
+			<line>
+				<reportElement x="388" y="0" width="1" height="18" forecolor="#B3B3B3" backcolor="#F1F7F8"/>
+			</line>
+			<staticText>
+				<reportElement style="ChargeColumnHead" x="398" y="0" width="78" height="18" forecolor="#00008A" uuid="07947edf-7a67-483e-855c-6f292c2de0fa"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Quantity]]></text>
+			</staticText>
+			<line>
+				<reportElement x="466" y="0" width="1" height="18" forecolor="#B3B3B3" backcolor="#F1F7F8"/>
+			</line>
+<!-- 			<staticText>
+				<reportElement style="ChargeColumnHead" x="466" y="0" width="68" height="18" forecolor="#00008A" uuid="ea385f08-38f8-492a-9b31-03c71fa800bb"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<text><![CDATA[Total (RM)]]></text>
+			</staticText> -->
+			<textField>
+				<reportElement style="ChargeColumnHead" x="466" y="0" width="68" height="18" forecolor="#00008A" uuid="ea385f08-38f8-492a-9b31-03c71fa800bb"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Total (" + $P{CRNCY_CD} + ")"]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="544" y="0" width="1" height="18" forecolor="#B3B3B3" backcolor="#F1F7F8"/>
+			</line>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="18">
+			<line>
+				<reportElement x="10" y="0" width="1" height="18" forecolor="#B3B3B3"/>
+			</line>
+			<line>
+				<reportElement x="160" y="0" width="1" height="18" forecolor="#B3B3B3"/>
+			</line>
+			<line>
+				<reportElement x="310" y="0" width="1" height="18" forecolor="#B3B3B3"/>
+			</line>
+			<line>
+				<reportElement x="388" y="0" width="1" height="18" forecolor="#B3B3B3"/>
+			</line>
+			<line>
+				<reportElement x="466" y="0" width="1" height="18" forecolor="#B3B3B3"/>
+			</line>
+			<line>
+				<reportElement x="544" y="0" width="1" height="18" forecolor="#B3B3B3"/>
+			</line>
+			<textField>
+				<reportElement style="ChargeColumnBody" x="20" y="0" width="150" height="18" uuid="924ea770-b895-4377-9de8-38c1af813588"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{chargeName}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ChargeColumnBody" x="170" y="0" width="150" height="18" uuid="bfef0cbe-6ff3-4dd9-97a9-774a9237950d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{subscriptionPeriod}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ChargeColumnBody" x="320" y="0" width="78" height="18" uuid="dae8abc1-9d72-44bb-9f9e-f678f9dc9e76"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{currency}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ChargeColumnBody" x="310" y="0" width="68" height="18"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{unitPrice}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ChargeColumnBody" x="388" y="0" width="68" height="18" uuid="c64b087e-8262-439f-81d0-ffb61632a8d8"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{quantity}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="ChargeColumnBody" x="466" y="0" width="68" height="18" uuid="9d012fb4-d17d-4992-9e14-a17a7b2dbdaa"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{total}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="1">
+			<line>
+				<reportElement x="10" y="0" width="534" height="1" forecolor="#B3B3B3" backcolor="#F1F7F8"/>
+			</line>
+		</band>
+	</columnFooter>
+</jasperReport>

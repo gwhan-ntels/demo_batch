@@ -1,0 +1,32 @@
+package com.ntels.ccbs.batch.ch.launcher;
+
+import com.ntels.ccbs.batch.common.CUtil;
+import com.ntels.ccbs.batch.common.entity.JobParameter;
+import com.ntels.ccbs.batch.common.launcher.CommonJobExecuter;
+
+/**
+ * <PRE>
+ * 1. ClassName: NBlchb00m01JobLauncher
+ * 2. FileName : NBlchb00m01JobLauncher.java
+ * 3. Package  : com.ntels.ccbs.batch.ch.launcher
+ * 4. Comment  :
+ * 5. 작성자   : lsm
+ * 6. 작성일   : 2016. 5. 26. 오후 3:11:21
+ * 7. 변경이력
+ *		이름	:	일자	: 변경내용
+ *     ———————————————————————————————————
+ *		lsm :	2016. 5. 26.	: 신규 개발.
+ * </PRE>
+ */
+public class NBlchb00m01JobLauncher {
+	public static void main(String[] args) throws Exception {
+		//                               pgm_id pgm_seq grp_id pgm_exe_seq_no user
+		// 0 1 2 0000000003 00 201702 60 NBlchb00m01 1 00000 0000000005 han
+		CommonJobExecuter jobLauncher = new CommonJobExecuter("spring/batch-nBlchb00m01-reader.xml");
+
+		JobParameter jobParameter = new JobParameter(args);
+		jobParameter.setBillYymm(CUtil.addMonths(args[JobParameter.IX_BILL_YYMM], -0));
+
+		jobLauncher.executeJob(jobParameter);
+	}
+}

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.dao.mapper.NBlchb03m01Mapper">
+	<select id="listNBlchb03m01"  resultType="NBlchb03m01">
+        SELECT A.CLC_WRK_NO,
+               A.SO_ID,
+               A.P_SEQ,
+               A.BILL_YYMM,
+               A.BILL_CYCL,
+               A.USE_YYMM,
+               A.CTRT_ID,
+               A.CUST_ID,
+               A.PYM_ACNT_ID,
+               A.ACT_DT,
+               A.INACT_DT,
+               A.RATE_STRT_DT,
+               A.TERM_DT,
+               A.CTRT_STAT,
+               A.PROD_CD,
+               A.PROD_CMPS_ID,
+               A.SVC_CMPS_ID,
+               A.SVC_STS_CD,
+               A.SVC_TEL_NO,
+               B.CHRG_CTGRY,
+               B.RATE_ITM_CD,
+               B.SVC_RATE_ITM_TYP_CD,
+               B.RACT_DT,
+               B.RINACT_DT,
+               A.USE_AMT,
+               A.USE_QTY,
+               A.USE_CNT,
+               B.CRNCY_CD,
+               A.REG_DATE,
+               A.VAT,
+               A.GRP_ID,
+               A.USE_QTY_UT,
+               C.TOT AS TOT_RCHRG,
+               A.FCTR_CD1,
+               A.FCTR_VAL1,
+               A.FCTR_CD2,
+               A.FCTR_VAL2,
+               A.FCTR_CD3,
+               A.FCTR_VAL3,
+               A.FCTR_CD4,
+               A.FCTR_VAL4,
+               A.FCTR_CD5,
+               A.FCTR_VAL5,
+               A.FCTR_CD6,
+               A.FCTR_VAL6,
+               A.FCTR_CD7,
+               A.FCTR_VAL7,
+               A.FCTR_CD8,
+               A.FCTR_VAL8,
+               A.FCTR_CD9,
+               A.FCTR_VAL9,       
+               A.SVC_RATE_ITM_TYP_CD AS RSVC_RATE_ITM_TYP_CD,
+               A.PROC_RATE
+        FROM   TBLCH_CHRG_TEMP A,
+              (SELECT DISTINCT 
+                      B.PROD_CD, B.CHRG_CTGRY, B.SVC_RATE_ITM_TYP_CD, A.RATE_ITM_CD
+                     ,A.CRNCY_CD, A.ACT_DT AS RACT_DT, A.INACT_DT AS RINACT_DT, B.RATE_PRI_NO
+               FROM   IFNBRM_RATE_INFO A,
+                      IFNBRM_RATE_ITM_INFO B
+               WHERE  A.SO_ID = #{soId}
+               AND    A.SO_ID = B.SO_ID
+               AND    A.RATE_ITM_CD = B.RATE_ITM_CD
+               AND    B.CHRG_CTGRY ='D'
+               AND    B.RATE_LOCAT = 'B'
+               AND    A.ACT_DT &lt;= #{endDate}
+               AND    A.INACT_DT &gt;= #{startDate}
+               AND    B.ACT_DT &lt;= #{endDate}
+               AND    B.INACT_DT &gt;= #{startDate}) B,
+              (SELECT CTRT_ID, SVC_CMPS_ID, ACT_DT, INACT_DT, SUM(USE_AMT) AS TOT
+               FROM   TBLCH_CHRG_TEMP
+               WHERE  SO_ID = #{soId}
+               AND    CLC_WRK_NO = #{clcWrkNo}
+               AND    P_SEQ = #{pSeq}
+               AND    CHRG_CTGRY = 'R'
+               GROUP BY SO_ID, CTRT_ID, SVC_CMPS_ID, ACT_DT, INACT_DT) C
+        WHERE  A.SO_ID = #{soId}
+        AND    A.CLC_WRK_NO = #{clcWrkNo}
+        AND    A.P_SEQ = #{pSeq}
+        AND    A.CHRG_CTGRY = 'R'
+        AND    A.ACT_DT &lt;= B.RINACT_DT
+        AND    A.INACT_DT &gt;= B.RACT_DT
+        AND    A.PROD_CD = B.PROD_CD
+        AND    C.CTRT_ID = A.CTRT_ID
+        AND    C.SVC_CMPS_ID = A.SVC_CMPS_ID
+        AND    C.ACT_DT = A.ACT_DT
+        AND    C.INACT_DT = A.INACT_DT
+        ORDER BY A.SO_ID, A.CTRT_ID, A.SVC_CMPS_ID, A.ACT_DT, A.PROD_CD, B.RATE_PRI_NO
+    </select>
+<!--     INSERT INTO TBLCH_CHRG2 
+    (CLC_WRK_NO, SO_ID, BILL_YYMM, BILL_CYCL, USE_YYMM, CTRT_ID, CUST_ID, PYM_ACNT_ID, ACT_DT, INACT_DT, RATE_STRT_DT, TERM_DT, CTRT_STAT
+, PROD_CD, PROD_CMPS_ID, SVC_CMPS_ID, SVC_STS_CD, SVC_TEL_NO, FCTR_CD, FCTR_VAL, CHRG_CTGRY, RATE_ITM_CD, SVC_RATE_ITM_TYP_CD
+, RACT_DT, RINACT_DT, GRP_ID, USE_QTY_UT, USE_AMT, USE_QTY, USE_CNT, CRNCY_CD, VAT, REG_DATE)
+    VALUES (#{clcWrkNo}, #{soId}, #{billYymm}, #{billCycl}, #{useYymm}, #{ctrtId}, #{custId}, #{pymAcntId}, #{actDt}, #{inactDt}, #{rateStrtDt}, #{termDt}, #{ctrtStat}
+, #{prodCd}, #{prodCmpsId}, #{svcCmpsId}, #{svcStsCd}, #{svcTelNo}, #{fctrCd}, #{fctrVal}, #{chrgCtgry}, #{rateItmCd}, #{svcRateItmTypCd}
+, #{ractDt}, #{rinactDt}, #{grpId}, #{useQtyUt}, #{useAmt}, #{useQty}, #{useCnt}, #{crncyCd}, #{vat}, #{regDate})
+ -->
+    <insert id = "saveNBlchb03m01"  parameterType="NBlchb03m01">
+        INSERT INTO TBLCH_CHRG_TEMP
+            (CLC_WRK_NO, SO_ID, P_SEQ, BILL_YYMM, BILL_CYCL, USE_YYMM, CTRT_ID, CUST_ID, PYM_ACNT_ID, PROD_CMPS_ID, SVC_CMPS_ID, ACT_DT, INACT_DT
+            ,PROD_CD, CHRG_CTGRY, RATE_ITM_CD, SVC_RATE_ITM_TYP_CD, GRP_ID, USE_QTY_UT, USE_AMT, USE_QTY, USE_CNT, CRNCY_CD, VAT, REG_DATE
+            ,RATE_STRT_DT, TERM_DT, CTRT_STAT, SVC_TEL_NO, FCTR_CD1, FCTR_VAL1, FCTR_CD2, FCTR_VAL2, FCTR_CD3, FCTR_VAL3, FCTR_CD4, FCTR_VAL4
+            ,FCTR_CD5,  FCTR_VAL5, FCTR_CD6, FCTR_VAL6, FCTR_CD7, FCTR_VAL7, FCTR_CD8, FCTR_VAL8, FCTR_CD9, FCTR_VAL9, SVC_STS_CD, PROC_RATE )
+        VALUES 
+            (#{clcWrkNo}, #{soId}, #{pSeq}, #{billYymm}, #{billCycl}, #{useYymm}, #{ctrtId}, #{custId}, #{pymAcntId}, #{prodCmpsId}, #{svcCmpsId}, #{actDt}, #{inactDt}
+            ,#{prodCd}, #{chrgCtgry}, #{rateItmCd}, #{svcRateItmTypCd}, #{grpId}, #{useQtyUt}, #{useAmt}, #{useQty}, #{useCnt}, #{crncyCd}, #{vat}, #{regDate}
+            ,#{rateStrtDt}, #{termDt}, #{ctrtStat}, #{svcTelNo}, #{fctrCd1}, #{fctrVal1}, #{fctrCd2}, #{fctrVal2}, #{fctrCd3}, #{fctrVal3}, #{fctrCd4}, #{fctrVal4}
+            ,#{fctrCd5}, #{fctrVal5}, #{fctrCd6}, #{fctrVal6}, #{fctrCd7}, #{fctrVal7}, #{fctrCd8}, #{fctrVal8}, #{fctrCd9}, #{fctrVal9}, #{svcStsCd}, #{procRate}
+    		)				  
+    
+    </insert>         
+</mapper>

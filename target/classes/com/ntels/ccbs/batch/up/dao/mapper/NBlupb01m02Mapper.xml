@@ -1,0 +1,1980 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.up.dao.mapper.NBlupb01m02Mapper">
+
+	<select id="checkClaimEnd" resultType="int">
+		SELECT COUNT(*) AS COUNT
+		FROM TBLIV_CLS_INFO
+		WHERE CLS_TSK_CL = '11'
+		AND BILL_YYMM  = #{inDate}
+		AND BILL_CYCL  = '01'
+		AND CLS_YN     = 'Y'
+		AND SO_ID      = #{soId}
+	</select>     
+
+	<select id="getTargetAmt" resultType="UpymBigBsAmt">
+		SELECT UPYM_AMT_FROM, UPYM_AMT_TO
+		FROM TBLUP_UPYM_COPE_TP_BS
+		WHERE UPYM_MNG_TP = '00'
+		AND #{inDate} BETWEEN EFT_BGN_YYMM AND EFT_END_YYMM  
+		AND SO_ID = #{soId}
+	</select>
+	
+	<select id="getUpymMngTp" resultType="String">
+		SELECT  A.UPYM_MNG_TP   
+		FROM  TBLUP_UPYM_COPE_TP_BS A 
+		WHERE  A.SO_ID = #{soId}  
+		AND  #{inDate} BETWEEN A.EFT_BGN_YYMM AND A.EFT_END_YYMM
+		AND  UPYM_MNG_TP NOT IN ('00', '10', '20', '21','30')
+	</select>
+	
+	<insert id="insertUpymJobMst">
+		INSERT INTO TBLUP_UPYM_JOB_MST
+		(SO_ID, UPYM_BS_YYMM, PROC_SEQ_NO, PROC_STAT, UPYM_AMT_LOW, UPYM_AMT_HIGH, REG_ID, REG_DATE, CHGR_ID, CHG_DATE)
+        VALUES
+        (#{soId}, #{inDate}, #{procSeqNo}, '001', #{upymAmtFrom}, #{upymAmtTo}, #{regrId}, #{regDate}, #{chgrId}, #{chgDate})
+	</insert>
+	
+	<select id="getUpymJobDtlCount" resultType="int">
+		SELECT COUNT(*) AS COUNT
+		FROM TBLUP_UPYM_JOB_DTL
+		WHERE SO_ID = #{nBlupb01m02.soId}
+		AND UPYM_BS_YYMM = #{nBlupb01m02.inDate}
+		AND PROC_SEQ_NO = #{nBlupb01m02.procSeqNo}
+		AND PROC_STAT = #{nBlupb01m02.procStat}
+		AND ERROR_CODE = '00000'
+	</select>
+	
+	<insert id="insertUpymJobDtl">
+		INSERT INTO TBLUP_UPYM_JOB_DTL
+			(SO_ID, UPYM_BS_YYMM, PROC_SEQ_NO, PROC_STAT, START_TIME, END_TIME,
+		PROC_CNT, ERROR_CODE, ERROR_MSG, REG_ID, REG_DATE, CHGR_ID, CHG_DATE)
+        VALUES
+			( #{soId}, #{inDate}, #{procSeqNo}, #{procStat}, #{startTime}, #{endTime}, 
+		0, '', '', #{regrId}, #{regDate}, #{chgrId}, #{chgDate})
+	</insert>
+	
+	<select id="getUpymDtlList" resultType="UpymDetail">
+		SELECT 
+			#{inDate} AS UPYM_BS_YYMM,
+			T1.BILL_SEQ_NO AS BILL_SEQ_NO,
+			T1.USE_YYMM  AS USE_YYMM,
+			T1.PROD_CMPS_ID AS PROD_CMPS_ID,
+			T1.SVC_CMPS_ID AS SVC_CMPS_ID,
+			T1.CHRG_ITM_CD AS CHRG_ITM_CD,
+			T1.BILL_YYMM AS BILL_YYMM,
+			T1.BILL_CYCL AS BILL_CYCL,
+			T1.BILL_DT AS BILL_DT,
+			T1.SO_ID AS SO_ID,
+			T1.CUST_ID AS CUST_ID,
+			T3.CUST_ID AS PYM_CUST_ID,
+			T1.PYM_ACNT_ID AS PYM_ACNT_ID,
+			T1.CTRT_ID AS CTRT_ID,
+			T1.BIZ_CL AS BIZ_CL,
+			T1.PAY_DUE_DT AS PAY_DUE_DT,
+			T1.BILL_AMT AS BILL_AMT,
+			T1.RCPT_AMT AS RCPT_AMT,
+			T1.BILL_AMT - T1.RCPT_AMT AS UPYM_AMT,
+			CASE WHEN #{upymAmtFrom} - (T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'N' ELSE CASE WHEN #{upymAmtTo} - (T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'Y' ELSE 'N' END END AS UPYM_BIG_AMT_YN,
+			T1.ATRT_CORP_ID AS ATRT_CORP_ID,
+			CASE WHEN TRIM(T1.ATRT_EMP_ID) IS NULL THEN 'SYSTEM' ELSE TRIM(T1.ATRT_EMP_ID) END AS ATRT_EMP_ID,
+			T1.CRNCY_CD AS CRNCY_CD,
+			T1.EXRATE AS EXRATE,
+			T1.EXRATE_APLY_DT AS EXRATE_APLY_DT,
+			#{regrId} AS REGR_ID
+		FROM TBLIV_BILL_TGT_CUST T2,
+			TBLIV_BILL T1,
+			IFNBRM_CUST_INFO T3
+		WHERE T1.BILL_SEQ_NO  = T2.BILL_SEQ_NO
+		AND T1.BILL_YYMM = T2.BILL_YYMM
+		AND T1.BILL_YYMM &lt;= #{inDate}
+		AND T1.CUST_ID = T3.CUST_ID
+		AND T1.PYM_ACNT_ID = T3.PYM_ACNT_ID
+		AND T2.BILL_EXPT_YN = 'N'
+		AND T2.SO_ID = #{soId}
+		AND CASE T1.DEBT_PROC_YN WHEN NULL THEN 'N' ELSE T1.DEBT_PROC_YN END = 'N'
+	</select>
+	
+	<insert id="insertUpymDtl">
+	     INSERT INTO TBLUP_UPYM_DTL
+	          ( UPYM_BS_YYMM   ,  
+	          BILL_SEQ_NO    ,    
+	          USE_YYMM       ,    
+	          PROD_CMPS_ID   ,    
+	          SVC_CMPS_ID    ,    
+	          CHRG_ITM_CD    ,    
+	          BILL_YYMM      ,    
+	          BILL_CYCL      ,    
+	          BILL_DT        ,    
+	          SO_ID          ,    
+	          CUST_ID        ,    
+	          PYM_CUST_ID    ,    
+	          PYM_ACNT_ID    ,    
+	          CTRT_ID        ,    
+	          BIZ_CL         ,    
+	          PAY_DUE_DT     ,    
+	          BILL_AMT       ,    
+	          RCPT_AMT       ,    
+	          UPYM_AMT       ,    
+	          UPYM_BIG_AMT_YN,    
+	          ARRS_MTH_CNT   ,    
+	          ATRT_CORP_ID   ,    
+	          ATRT_EMP_ID    ,    
+	          CRNCY_CD       ,    
+	          EXRATE         ,    
+	          EXRATE_APLY_DT ,    
+	          REG_DATE       ,    
+	          REGR_ID     )       
+	     VALUES
+	     (
+	          #{upymBsYymm}
+	          , #{billSeqNo}
+	          , #{useYymm}
+	          , #{prodCmpsId}
+	          , #{svcCmpsId}
+	          , #{chrgItmCd}
+	          , #{billYymm}
+	          , #{billCycl}
+	          , #{billDt}
+	          , #{soId}
+	          , #{custId}
+	          , #{pymCustId}
+	          , #{pymAcntId}
+	          , #{ctrtId}
+	          , #{bizCl}
+	          , #{payDueDt}
+	          , #{billAmt}
+	          , #{rcptAmt}
+	          , #{upymAmt}
+	          , #{upymBigAmtYn}
+	          , #{arrsMthCnt}
+	          , #{atrtCorpId}
+	          , #{atrtEmpId}
+	          , #{crncyCd}
+	          , #{exrate}
+	          , #{exrateAplyDt}
+	          , #{regDate}
+	          , #{regrId}
+	     )
+	</insert>
+	
+	<select id="getUpymList" resultType="UpymDetail">
+		SELECT
+			T1.UPYM_BS_YYMM AS UPYM_BS_YYMM,
+			T1.PYM_ACNT_ID AS PYM_ACNT_ID,
+			MIN(T1.PYM_CUST_ID) AS PYM_CUST_ID,
+			MIN(T1.SO_ID) AS SO_ID ,
+			T1.UPYM_BS_YYMM AS UPYM_BS_YYMM,
+			MIN(T1.BILL_YYMM) AS BILL_YYMM,
+            CASE WHEN COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) &lt;= 0 THEN 0
+            ELSE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END)
+                  - CASE WHEN MAX(T1.BILL_YYMM) = #{inDate} THEN 1 ELSE 0 END
+            END AS UPYM_MTH_CNT,
+			SUM(T1.BILL_AMT) AS BILL_AMT,
+			SUM(T1.RCPT_AMT) AS RCPT_AMT,
+			CASE WHEN #{upymAmtFrom} - SUM(T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'N' ELSE CASE WHEN #{upymAmtTo} - SUM(T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'Y' ELSE 'N' END END AS UPYM_BIG_AMT_YN,
+			SUM(T1.BILL_AMT) - SUM(T1.RCPT_AMT) AS UPYM_AMT,
+			' ' AS UPYM_DUE_DT
+		FROM TBLUP_UPYM_DTL T1
+		WHERE T1.UPYM_BS_YYMM = #{inDate}
+		AND T1.SO_ID = #{soId}
+		GROUP BY T1.UPYM_BS_YYMM, T1.PYM_ACNT_ID
+	</select>
+	
+	<insert id="insertUpym">
+		INSERT INTO TBLUP_UPYM
+		(
+			UPYM_BS_YYMM
+			, PYM_ACNT_ID
+			, PYM_CUST_ID
+			, SO_ID
+			, UPYM_PRGR_MTH_CNT
+			, UPYM_MTH_CNT
+			, BILL_AMT
+			, RCPT_AMT
+			, UPYM_BIG_AMT_YN
+			, UPYM_AMT
+			, UPYM_DUE_DT
+			, REG_DATE
+			, REGR_ID
+		)
+		VALUES
+		(
+			#{upymBsYymm}
+			, #{pymAcntId}
+			, #{pymCustId}
+			, #{soId}
+			, #{upymPrgrMthCnt}
+			, #{upymMthCnt}
+			, #{billAmt}
+			, #{rcptAmt}
+			, #{upymBigAmtYn}
+			, #{upymAmt}
+			, #{upymDueDt}
+			, #{regDate}
+			, #{regrId}
+		)
+	</insert>
+	
+	<select id="getUpymCtrtDetail" resultType="CtrtDetail">
+		SELECT
+			AA.UPYM_BS_YYMM
+			, AA.PYM_ACNT_ID
+			, AA.CTRT_ID
+			, AA.CUST_ID
+			, AA.PYM_CUST_ID
+			, AA.SVC_TEL_NO
+			, AA.SO_ID
+			, AA.UPYM_PRGR_MTH_CNT
+			, AA.UPYM_MTH_CNT
+			, AA.BILL_AMT
+			, AA.RCPT_AMT
+			, AA.UPYM_BIG_AMT_YN
+			, AA.UPYM_AMT
+			, BB.UPYM_CORP_CD
+			, AA.UPYM_DIV_TP
+			, BB.CORP_ID
+			, AA.CTRT_STAT
+			, AA.TERM_MTH_CNT
+			, AA.RATE_STRT_DT
+			, AA.TERM_DD
+			--, CC.SOCIAL_FG
+			, CC.CUST_TP
+		FROM
+		(
+			SELECT
+				A.UPYM_BS_YYMM
+				, A.PYM_ACNT_ID
+				, A.CTRT_ID
+				, A.CUST_ID
+				, A.PYM_CUST_ID
+				, A.SVC_TEL_NO
+				, A.SO_ID
+				, A.UPYM_PRGR_MTH_CNT
+				, A.UPYM_MTH_CNT
+				, A.BILL_AMT
+				, A.RCPT_AMT
+				, A.UPYM_BIG_AMT_YN
+				, A.UPYM_AMT
+				, A.UPYM_DIV_TP
+				, A.TERM_MTH_CNT
+				, A.RATE_STRT_DT
+				, A.TERM_DD
+				, A.CTRT_STAT
+			FROM
+			( 
+				SELECT
+					A.UPYM_BS_YYMM
+					, A.PYM_ACNT_ID
+					, A.CTRT_ID
+					, A.CUST_ID
+					, A.PYM_CUST_ID
+					, A.SVC_TEL_NO
+					, A.SO_ID
+					, A.UPYM_PRGR_MTH_CNT
+					, A.UPYM_MTH_CNT
+					, A.BILL_AMT
+					, A.RCPT_AMT
+					, A.UPYM_BIG_AMT_YN
+					, A.UPYM_AMT
+					, A.CTRT_STAT
+					, A.TERM_MTH_CNT
+					, A.RATE_STRT_DT
+					, A.TERM_DD
+					, '2' AS UPYM_DIV_TP
+				FROM
+				(
+					SELECT
+						A.UPYM_BS_YYMM
+						, A.PYM_ACNT_ID
+						, A.CTRT_ID
+						, A.CUST_ID
+						, A.PYM_CUST_ID
+						, A.SVC_TEL_NO
+						, A.SO_ID
+						, A.UPYM_PRGR_MTH_CNT
+						, A.UPYM_MTH_CNT
+						, A.BILL_AMT
+						, A.RCPT_AMT
+						, A.UPYM_BIG_AMT_YN
+						, A.UPYM_AMT
+						, A.CTRT_STAT
+						, A.TERM_MTH_CNT
+						, A.RATE_STRT_DT
+						, A.TERM_DD
+					FROM
+					(
+						SELECT
+							T1.UPYM_BS_YYMM AS UPYM_BS_YYMM
+							, T1.PYM_ACNT_ID AS PYM_ACNT_ID
+							, T1.CTRT_ID AS CTRT_ID
+							, MIN(T1.CUST_ID) AS CUST_ID
+							, MIN(T1.PYM_CUST_ID) AS PYM_CUST_ID
+							, MIN(CASE T3.SVC_TEL_NO WHEN NULL THEN '00000000000' ELSE T3.SVC_TEL_NO END) AS SVC_TEL_NO
+							, MIN(T1.SO_ID) AS SO_ID
+							, CASE WHEN MIN(T1.BILL_AMT - T1.RCPT_AMT) &lt;= 0 THEN 0 WHEN MIN(T1.BILL_YYMM) IS NULL THEN 0 WHEN T1.UPYM_BS_YYMM IS NULL THEN 0 ELSE ABS(((SUBSTR(T1.UPYM_BS_YYMM, 1, 4) - SUBSTR(MIN(T1.BILL_YYMM), 1, 4)) * 12) + (SUBSTR(T1.UPYM_BS_YYMM, 5, 2) - SUBSTR(MIN(T1.BILL_YYMM), 5, 2))) END AS UPYM_PRGR_MTH_CNT
+							, CASE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT &gt; 0 THEN T1.BILL_YYMM ELSE '' END) WHEN 0 THEN 0
+								ELSE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT &gt; 0 THEN T1.BILL_YYMM ELSE '' END) - (CASE MAX(T1.BILL_YYMM) WHEN #{inDate} THEN 1 ELSE 0 END) END AS UPYM_MTH_CNT
+							, SUM(T1.BILL_AMT) AS BILL_AMT
+							, SUM(T1.RCPT_AMT) AS RCPT_AMT
+							, CASE WHEN MIN(T2.UPYM_AMT_FROM) - SUM(T1.BILL_AMT-T1.RCPT_AMT) &gt; 0 THEN 'N' ELSE CASE WHEN MIN(T2.UPYM_AMT_TO) - SUM(T1.BILL_AMT-T1.RCPT_AMT) &gt; 0 THEN 'Y' ELSE 'N' END END AS UPYM_BIG_AMT_YN
+							, SUM(T1.BILL_AMT) - SUM(T1.RCPT_AMT) AS UPYM_AMT
+							, MIN(T3.CTRT_STAT) AS CTRT_STAT
+							, MAX(CASE WHEN T3.TERM_DT = '99991231' THEN 0 WHEN T1.UPYM_BS_YYMM IS NULL THEN 0 WHEN T3.TERM_DT IS NULL THEN 0 ELSE ABS(((SUBSTR(T1.UPYM_BS_YYMM, 1, 4) - SUBSTR(T3.TERM_DT, 1, 4)) * 12) + (SUBSTR(T1.UPYM_BS_YYMM, 5, 2) - SUBSTR(T3.TERM_DT, 5, 2))) END) AS TERM_MTH_CNT
+							, MAX(CASE T3.RATE_STRT_DT WHEN NULL THEN ' ' ELSE T3.RATE_STRT_DT END) AS RATE_STRT_DT
+							, MAX(CASE T3.TERM_DT WHEN NULL THEN ' ' ELSE T3.TERM_DT END) AS TERM_DD
+						FROM TBLUP_UPYM_DTL T1
+							, TBLUP_UPYM T0
+							, TBLUP_UPYM_COPE_TP_BS T2
+							, IFNBRM_CTRT_INFO T3
+							, TBLCH_MULTI_SEQ C
+						WHERE 1 = 1
+					 	AND C.SO_ID = #{soId}
+					 	AND C.GUBUN = '2'
+					 	AND C.P_SEQ = #{pSeq}
+						AND T1.PYM_ACNT_ID = T0.PYM_ACNT_ID
+						AND T1.UPYM_BS_YYMM = T0.UPYM_BS_YYMM
+						AND T1.UPYM_BS_YYMM = #{inDate}
+						AND T1.SO_ID = #{soId}
+						AND T1.UPYM_BS_YYMM BETWEEN T2.EFT_BGN_YYMM AND T2.EFT_END_YYMM
+						AND T1.CTRT_ID = T3.CTRT_ID
+						AND T3.SO_ID = #{soId}
+						AND T2.SO_ID = #{soId}
+						AND T2.UPYM_MNG_TP = '00'
+						AND T3.INACT_DTTM = '99991231235959'
+						AND T1.PYM_ACNT_ID &gt;= C.STRT_NO
+						AND T1.PYM_ACNT_ID &lt;= C.END_NO
+						GROUP BY T1.UPYM_BS_YYMM
+							, T1.PYM_ACNT_ID
+							, T1.CTRT_ID
+					) A 
+				) A, TBLUP_UPYM_COPE_TP_BS B
+				WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM  
+			    AND A.UPYM_MTH_CNT BETWEEN  CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_FROM ELSE A.UPYM_MTH_CNT END
+			    AND CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_TO ELSE A.UPYM_MTH_CNT END
+				AND A.TERM_MTH_CNT BETWEEN CASE WHEN B.UPYM_MNG_BS_TP = '7' THEN B.UPYM_MONTHS_FROM ELSE A.TERM_MTH_CNT END
+				AND CASE WHEN B.UPYM_MNG_BS_TP = '7' THEN B.UPYM_MONTHS_TO ELSE A.TERM_MTH_CNT END
+			    AND A.UPYM_AMT BETWEEN CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_FROM ELSE A.UPYM_AMT END
+			    AND CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_TO ELSE A.UPYM_AMT END
+			    AND CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END BETWEEN CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_FROM ELSE CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END END
+			    AND CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_TO ELSE CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END END
+				AND A.CTRT_STAT IN ('90','50')
+				AND B.SO_ID = #{soId}
+				AND B.UPYM_MNG_TP = '11'
+				UNION ALL
+				SELECT
+					A.UPYM_BS_YYMM
+					, A.PYM_ACNT_ID
+					, A.CTRT_ID
+					, A.CUST_ID
+					, A.PYM_CUST_ID
+					, A.SVC_TEL_NO
+					, A.SO_ID
+					, A.UPYM_PRGR_MTH_CNT
+					, A.UPYM_MTH_CNT
+					, A.BILL_AMT
+					, A.RCPT_AMT
+					, A.UPYM_BIG_AMT_YN
+					, A.UPYM_AMT
+					, A.CTRT_STAT
+					, A.TERM_MTH_CNT
+					, A.RATE_STRT_DT
+					, A.TERM_DD
+					, '1' AS UPYM_DIV_TP
+				FROM
+				(
+					SELECT
+						A.UPYM_BS_YYMM
+						, A.PYM_ACNT_ID
+						, A.CTRT_ID
+						, A.CUST_ID
+						, A.PYM_CUST_ID
+						, A.SVC_TEL_NO
+						, A.SO_ID
+						, A.UPYM_PRGR_MTH_CNT
+						, A.UPYM_MTH_CNT
+						, A.BILL_AMT
+						, A.RCPT_AMT
+						, A.UPYM_BIG_AMT_YN
+						, A.UPYM_AMT
+						, A.CTRT_STAT
+						, A.TERM_MTH_CNT
+						, A.RATE_STRT_DT
+						, A.TERM_DD
+					FROM
+					(
+						SELECT
+							A.UPYM_BS_YYMM
+							, A.PYM_ACNT_ID
+							, A.CTRT_ID
+							, A.CUST_ID
+							, A.PYM_CUST_ID
+							, A.SVC_TEL_NO
+							, A.SO_ID
+							, A.UPYM_PRGR_MTH_CNT
+							, A.UPYM_MTH_CNT
+							, A.BILL_AMT
+							, A.RCPT_AMT
+							, A.UPYM_BIG_AMT_YN
+							, A.UPYM_AMT
+							, A.CTRT_STAT
+							, A.TERM_MTH_CNT
+							, A.RATE_STRT_DT
+							, A.TERM_DD             
+						FROM
+						(
+							SELECT
+								T1.UPYM_BS_YYMM AS UPYM_BS_YYMM
+								, T1.PYM_ACNT_ID AS PYM_ACNT_ID
+								, T1.CTRT_ID AS CTRT_ID
+								, MIN(T1.CUST_ID) AS CUST_ID
+								, MIN(T1.PYM_CUST_ID) AS PYM_CUST_ID
+								, MIN(CASE T3.SVC_TEL_NO WHEN NULL THEN '00000000000' ELSE T3.SVC_TEL_NO END) AS SVC_TEL_NO
+								, MIN(T1.SO_ID) AS SO_ID
+								, CASE WHEN MIN(T1.BILL_AMT - T1.RCPT_AMT) &lt;= 0 THEN 0 WHEN MIN(T1.BILL_YYMM) IS NULL THEN 0 WHEN T1.UPYM_BS_YYMM IS NULL THEN 0 ELSE ABS(((SUBSTR(T1.UPYM_BS_YYMM, 1, 4) - SUBSTR(MIN(T1.BILL_YYMM), 1, 4)) * 12) + (SUBSTR(T1.UPYM_BS_YYMM, 5, 2) - SUBSTR(MIN(T1.BILL_YYMM), 5, 2))) END AS UPYM_PRGR_MTH_CNT
+								, CASE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT &gt; 0 THEN T1.BILL_YYMM ELSE '' END) WHEN 0 THEN 0
+									ELSE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT &gt; 0 THEN T1.BILL_YYMM ELSE '' END) - (CASE MAX(T1.BILL_YYMM) WHEN #{inDate} THEN 1 ELSE 0 END) END AS UPYM_MTH_CNT
+								, SUM(T1.BILL_AMT) AS BILL_AMT
+								, SUM(T1.RCPT_AMT) AS RCPT_AMT
+								, CASE WHEN MIN(T2.UPYM_AMT_FROM) - SUM(T1.BILL_AMT-T1.RCPT_AMT) &gt; 0 THEN 'N' ELSE CASE WHEN MIN(T2.UPYM_AMT_TO) - SUM(T1.BILL_AMT-T1.RCPT_AMT) &gt; 0 THEN 'Y' ELSE 'N' END END AS UPYM_BIG_AMT_YN
+								, SUM(T1.BILL_AMT) - SUM(T1.RCPT_AMT) AS UPYM_AMT
+								, MIN(T3.CTRT_STAT) AS CTRT_STAT
+								, MAX(CASE WHEN T3.TERM_DT = '99991231' THEN 0 WHEN T1.UPYM_BS_YYMM IS NULL THEN 0 WHEN T3.TERM_DT IS NULL THEN 0 ELSE ABS(((SUBSTR(T1.UPYM_BS_YYMM, 1, 4) - SUBSTR(T3.TERM_DT, 1, 4)) * 12) + (SUBSTR(T1.UPYM_BS_YYMM, 5, 2) - SUBSTR(T3.TERM_DT, 5, 2))) END) AS TERM_MTH_CNT
+								, MAX(CASE T3.RATE_STRT_DT WHEN NULL THEN ' ' ELSE T3.RATE_STRT_DT END) AS RATE_STRT_DT
+								, MAX(CASE T3.TERM_DT WHEN NULL THEN ' ' ELSE T3.TERM_DT END) AS TERM_DD
+							FROM TBLUP_UPYM_DTL T1
+								, TBLUP_UPYM T0
+								, TBLUP_UPYM_COPE_TP_BS T2
+								, IFNBRM_CTRT_INFO T3
+								, TBLCH_MULTI_SEQ C
+							WHERE 1 = 1
+						 	AND C.SO_ID = #{soId}
+						 	AND C.GUBUN = '2'
+						 	AND C.P_SEQ = #{pSeq}
+							AND T1.PYM_ACNT_ID = T0.PYM_ACNT_ID
+							AND T1.UPYM_BS_YYMM = T0.UPYM_BS_YYMM
+							AND T1.UPYM_BS_YYMM = #{inDate}
+							AND T1.SO_ID = #{soId}
+							AND T1.UPYM_BS_YYMM BETWEEN T2.EFT_BGN_YYMM AND T2.EFT_END_YYMM
+							AND T1.CTRT_ID = T3.CTRT_ID
+							AND T3.SO_ID = #{soId}
+							AND T2.SO_ID = #{soId}
+							AND T2.UPYM_MNG_TP = '00'
+							AND T3.INACT_DTTM = '99991231235959'
+							AND T1.PYM_ACNT_ID &gt;= C.STRT_NO
+							AND T1.PYM_ACNT_ID &lt;= C.END_NO
+							GROUP BY T1.UPYM_BS_YYMM
+								, T1.PYM_ACNT_ID
+								, T1.CTRT_ID
+						) A
+					) A LEFT OUTER JOIN (
+					SELECT
+						A.UPYM_BS_YYMM
+						, A.PYM_ACNT_ID
+						, A.CTRT_ID
+						, A.CUST_ID
+						, A.PYM_CUST_ID
+						, A.SVC_TEL_NO
+						, A.SO_ID
+						, A.UPYM_PRGR_MTH_CNT
+						, A.UPYM_MTH_CNT
+						, A.BILL_AMT
+						, A.RCPT_AMT
+						, A.UPYM_BIG_AMT_YN
+						, A.UPYM_AMT
+						, A.CTRT_STAT
+						, A.TERM_MTH_CNT
+						, A.RATE_STRT_DT
+						, A.TERM_DD
+					FROM
+					(
+						SELECT
+							A.UPYM_BS_YYMM
+							, A.PYM_ACNT_ID
+							, A.CTRT_ID
+							, A.CUST_ID
+							, A.PYM_CUST_ID
+							, A.SVC_TEL_NO
+							, A.SO_ID
+							, A.UPYM_PRGR_MTH_CNT
+							, A.UPYM_MTH_CNT
+							, A.BILL_AMT
+							, A.RCPT_AMT
+							, A.UPYM_BIG_AMT_YN
+							, A.UPYM_AMT
+							, A.CTRT_STAT
+							, A.TERM_MTH_CNT
+							, A.RATE_STRT_DT
+							, A.TERM_DD
+						FROM
+						(
+							SELECT
+								T1.UPYM_BS_YYMM AS UPYM_BS_YYMM
+								, T1.PYM_ACNT_ID AS PYM_ACNT_ID
+								, T1.CTRT_ID AS CTRT_ID
+								, MIN(T1.CUST_ID) AS CUST_ID
+								, MIN(T1.PYM_CUST_ID) AS PYM_CUST_ID
+								, MIN(CASE T3.SVC_TEL_NO WHEN NULL THEN '00000000000' ELSE T3.SVC_TEL_NO END) AS SVC_TEL_NO
+								, MIN(T1.SO_ID) AS SO_ID
+								, CASE WHEN MIN(T1.BILL_AMT - T1.RCPT_AMT) &lt;= 0 THEN 0 WHEN MIN(T1.BILL_YYMM) IS NULL THEN 0 WHEN T1.UPYM_BS_YYMM IS NULL THEN 0 ELSE ABS(((SUBSTR(T1.UPYM_BS_YYMM, 1, 4) - SUBSTR(MIN(T1.BILL_YYMM), 1, 4)) * 12) + (SUBSTR(T1.UPYM_BS_YYMM, 5, 2) - SUBSTR(MIN(T1.BILL_YYMM), 5, 2))) END AS UPYM_PRGR_MTH_CNT
+								, CASE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT &gt; 0 THEN T1.BILL_YYMM ELSE '' END) WHEN 0 THEN 0
+									ELSE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT &gt; 0 THEN T1.BILL_YYMM ELSE '' END) - (CASE MAX(T1.BILL_YYMM) WHEN #{inDate} THEN 1 ELSE 0 END) END AS UPYM_MTH_CNT
+								, SUM(T1.BILL_AMT) AS BILL_AMT
+								, SUM(T1.RCPT_AMT) AS RCPT_AMT
+								, CASE WHEN MIN(T2.UPYM_AMT_FROM) - SUM(T1.BILL_AMT-T1.RCPT_AMT) &gt; 0 THEN 'N' ELSE CASE WHEN MIN(T2.UPYM_AMT_TO) - SUM(T1.BILL_AMT-T1.RCPT_AMT) &gt; 0 THEN 'Y' ELSE 'N' END END AS UPYM_BIG_AMT_YN
+								, SUM(T1.BILL_AMT) - SUM(T1.RCPT_AMT) AS UPYM_AMT
+								, MIN(T3.CTRT_STAT) AS CTRT_STAT
+								, MAX(CASE WHEN T3.TERM_DT = '99991231' THEN 0 WHEN T1.UPYM_BS_YYMM IS NULL THEN 0 WHEN T3.TERM_DT IS NULL THEN 0 ELSE ABS(((SUBSTR(T1.UPYM_BS_YYMM, 1, 4) - SUBSTR(T3.TERM_DT, 1, 4)) * 12) + (SUBSTR(T1.UPYM_BS_YYMM, 5, 2) - SUBSTR(T3.TERM_DT, 5, 2))) END) AS TERM_MTH_CNT
+								, MAX(CASE T3.RATE_STRT_DT WHEN NULL THEN ' ' ELSE T3.RATE_STRT_DT END) AS RATE_STRT_DT
+								, MAX(CASE T3.TERM_DT WHEN NULL THEN ' ' ELSE T3.TERM_DT END) AS TERM_DD
+							FROM TBLUP_UPYM_DTL T1
+								, TBLUP_UPYM T0
+								, TBLUP_UPYM_COPE_TP_BS T2
+								, IFNBRM_CTRT_INFO T3
+								, TBLCH_MULTI_SEQ C
+							WHERE 1 = 1
+						 	AND C.SO_ID = #{soId}
+						 	AND C.GUBUN = '2'
+						 	AND C.P_SEQ = #{pSeq}
+							AND T1.PYM_ACNT_ID = T0.PYM_ACNT_ID
+							AND T1.UPYM_BS_YYMM = T0.UPYM_BS_YYMM
+							AND T1.UPYM_BS_YYMM = #{inDate}
+							AND T1.SO_ID = #{soId}
+							AND T1.UPYM_BS_YYMM BETWEEN T2.EFT_BGN_YYMM AND T2.EFT_END_YYMM
+							AND T1.CTRT_ID = T3.CTRT_ID
+							AND T3.SO_ID = #{soId}
+							AND T2.SO_ID = #{soId}
+							AND T2.UPYM_MNG_TP = '00'
+							AND T3.INACT_DTTM = '99991231235959'
+							AND T1.PYM_ACNT_ID &gt;= C.STRT_NO
+							AND T1.PYM_ACNT_ID &lt;= C.END_NO
+							GROUP BY T1.UPYM_BS_YYMM
+								, T1.PYM_ACNT_ID
+								, T1.CTRT_ID
+						) A
+					) A, TBLUP_UPYM_COPE_TP_BS B
+					WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+				    AND A.UPYM_MTH_CNT BETWEEN  CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_FROM ELSE A.UPYM_MTH_CNT END
+				    AND CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_TO ELSE A.UPYM_MTH_CNT END
+					AND A.TERM_MTH_CNT BETWEEN CASE WHEN B.UPYM_MNG_BS_TP = '7' THEN B.UPYM_MONTHS_FROM ELSE A.TERM_MTH_CNT END
+					AND CASE WHEN B.UPYM_MNG_BS_TP = '7' THEN B.UPYM_MONTHS_TO ELSE A.TERM_MTH_CNT END
+				    AND A.UPYM_AMT BETWEEN CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_FROM ELSE A.UPYM_AMT END
+				    AND CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_TO ELSE A.UPYM_AMT END
+				    AND CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END BETWEEN CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_FROM ELSE CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END END
+				    AND CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_TO ELSE CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END END
+					AND B.UPYM_MNG_TP = '11'
+					AND B.SO_ID = #{soId}
+					) B ON A.UPYM_BS_YYMM = B.UPYM_BS_YYMM AND A.PYM_ACNT_ID = B.PYM_ACNT_ID AND A.CTRT_ID = B.CTRT_ID
+				) A, TBLUP_UPYM_COPE_TP_BS B
+				WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+			    AND A.UPYM_MTH_CNT BETWEEN  CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_FROM ELSE A.UPYM_MTH_CNT END
+			    AND CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_TO ELSE A.UPYM_MTH_CNT END
+				AND A.TERM_MTH_CNT BETWEEN CASE WHEN B.UPYM_MNG_BS_TP = '7' THEN B.UPYM_MONTHS_FROM ELSE A.TERM_MTH_CNT END
+				AND CASE WHEN B.UPYM_MNG_BS_TP = '7' THEN B.UPYM_MONTHS_TO ELSE A.TERM_MTH_CNT END
+			    AND A.UPYM_AMT BETWEEN CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_FROM ELSE A.UPYM_AMT END
+			    AND CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_TO ELSE A.UPYM_AMT END
+			    AND CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END BETWEEN CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_FROM ELSE CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END END
+			    AND CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_TO ELSE CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END END
+				AND B.SO_ID = #{soId}
+				AND B.UPYM_MNG_TP = '10'
+			) A
+		) AA LEFT OUTER JOIN
+		(
+			SELECT
+				UPYM_CORP_CD
+				, UPYM_DIV_TP
+				, EFT_BGN_YYMM
+				, CORP_ID
+				, EFT_END_YYMM
+				, UPYM_DIV_BS_TP
+				, UPYM_DIV_VAL
+			FROM (
+				SELECT
+					UPYM_CORP_CD
+					, UPYM_DIV_TP
+					, EFT_BGN_YYMM
+					, CORP_ID
+					, EFT_END_YYMM
+					, UPYM_DIV_BS_TP
+					, UPYM_DIV_VAL
+				FROM TBLUP_UPYM_DIV_BS
+			)
+		) BB ON AA.UPYM_DIV_TP = BB.UPYM_DIV_TP
+		, IFNBRM_CUST_INFO CC
+		WHERE AA.CUST_ID = CC.CUST_ID
+		AND AA.PYM_ACNT_ID = CC.PYM_ACNT_ID
+	</select>
+	
+	<select id="getCollectionCtrtDetailList" resultType="CtrtDetail">
+		SELECT                      
+		  AA.UPYM_BS_YYMM     ,  
+		  AA.PYM_ACNT_ID      ,  
+		  AA.CTRT_ID          ,  
+		  AA.CUST_ID          ,  
+		  AA.PYM_CUST_ID      ,  
+		  AA.SVC_TEL_NO       ,  
+		  AA.SO_ID            ,
+		  AA.MIN_BILL_YYMM,  
+		  AA.UPYM_MTH_CNT   ,  
+		  AA.BILL_AMT  ,  
+		  AA.RCPT_AMT  ,  
+		  AA.UPYM_BIG_AMT_YN  ,  
+		  AA.UPYM_AMT  ,  
+		  ' ' AS UPYM_DUE_DT,  
+		  BB.UPYM_CORP_CD,  
+		  AA.UPYM_DIV_TP,
+		  BB.CORP_ID,  
+		  AA.CTRT_STAT,  
+		  AA.RATE_STRT_DT, 
+		  AA.TERM_DD,
+	      AA.TERM_DT_MIN,
+	      AA.UPYM_MNG_BS_TP,
+	      AA.UPYM_MONTHS_FROM,
+	      AA.UPYM_MONTHS_TO,
+		  CC.CUST_TP
+		FROM(
+		  SELECT  
+		    A.UPYM_BS_YYMM,
+		    A.PYM_ACNT_ID,
+		    A.CTRT_ID,
+		    A.CUST_ID,
+		    A.PYM_CUST_ID,
+		    A.SVC_TEL_NO,
+		    A.SO_ID,
+		    A.MIN_BILL_YYMM,
+		    A.UPYM_MTH_CNT,  
+		    A.BILL_AMT,
+		    A.RCPT_AMT,
+		    A.UPYM_BIG_AMT_YN,
+		    A.UPYM_AMT,
+		    A.UPYM_DIV_TP,  
+		    A.RATE_STRT_DT, 
+		    A.TERM_DD,
+		    A.TERM_DT_MIN,
+		    A.UPYM_MNG_BS_TP,
+		    A.UPYM_MONTHS_FROM,
+		    A.UPYM_MONTHS_TO,
+		    A.CTRT_STAT
+		  FROM ( 
+		    SELECT
+		      A.UPYM_BS_YYMM ,  
+		      A.PYM_ACNT_ID,
+		      A.CTRT_ID,
+		      A.CUST_ID,
+		      A.PYM_CUST_ID,
+		      A.SVC_TEL_NO,
+		      A.SO_ID,
+		      A.MIN_BILL_YYMM,
+		      A.UPYM_MTH_CNT ,   
+		      A.BILL_AMT  ,  
+		      A.RCPT_AMT  ,  
+		      A.UPYM_BIG_AMT_YN  ,  
+		      A.UPYM_AMT  ,  
+		      A.CTRT_STAT , 
+		      A.RATE_STRT_DT, 
+		      A.TERM_DD,
+			  A.TERM_DT_MIN,
+			  B.UPYM_MNG_BS_TP,
+			  B.UPYM_MONTHS_FROM,
+			  B.UPYM_MONTHS_TO,
+		      '2' AS UPYM_DIV_TP 
+		    FROM (  
+		      SELECT  
+		        A.UPYM_BS_YYMM ,           
+		        A.PYM_ACNT_ID  ,           
+		        A.CTRT_ID     ,            
+		        A.CUST_ID     ,            
+		        A.PYM_CUST_ID ,            
+		        A.SVC_TEL_NO  ,            
+		        A.SO_ID       ,       
+		        A.MIN_BILL_YYMM,     
+		        A.UPYM_MTH_CNT ,
+		        A.BILL_AMT  ,              
+		        A.RCPT_AMT  ,              
+		        A.UPYM_BIG_AMT_YN  ,       
+		        A.UPYM_AMT  ,              
+		        A.CTRT_STAT ,                
+		        A.RATE_STRT_DT,            
+		        A.TERM_DD,
+		        A.TERM_DT_MIN
+		      FROM(                               
+		        SELECT    
+		          T1.UPYM_BS_YYMM AS UPYM_BS_YYMM,  
+		          T1.PYM_ACNT_ID AS PYM_ACNT_ID,  
+		          T1.CTRT_ID AS CTRT_ID,  
+		          MIN(T1.CUST_ID) AS CUST_ID,  
+		          MIN(T1.PYM_CUST_ID) AS PYM_CUST_ID,  
+		          MIN(CASE T3.SVC_TEL_NO WHEN NULL THEN '00000000000' ELSE T3.SVC_TEL_NO END) AS SVC_TEL_NO,
+		          MIN(T1.SO_ID) AS SO_ID,
+		          MIN(CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) AS MIN_BILL_YYMM,
+		          CASE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) WHEN 0 THEN 0
+		          ELSE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) - (CASE MAX(T1.BILL_YYMM) WHEN #{inDate} THEN 1 ELSE 0 END) END AS UPYM_MTH_CNT,
+		          SUM(T1.BILL_AMT) AS BILL_AMT,  
+		          SUM(T1.RCPT_AMT) AS RCPT_AMT,
+		          CASE WHEN MIN(T2.UPYM_AMT_FROM) - SUM(T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'N' ELSE CASE WHEN MIN(T2.UPYM_AMT_TO) - SUM(T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'Y' ELSE 'N' END END AS UPYM_BIG_AMT_YN,
+		          SUM(T1.BILL_AMT) - SUM(T1.RCPT_AMT) AS UPYM_AMT,  
+		          MIN(T3.CTRT_STAT) AS  CTRT_STAT,
+		          MAX(CASE T3.RATE_STRT_DT WHEN NULL THEN ' ' ELSE T3.RATE_STRT_DT END) AS RATE_STRT_DT,
+		          MAX(CASE T3.TERM_DT WHEN NULL THEN ' ' ELSE T3.TERM_DT END) AS TERM_DD,
+		          MIN(CASE T3.TERM_DT WHEN NULL THEN ' ' ELSE T3.TERM_DT END) AS TERM_DT_MIN
+		        FROM  
+		          TBLUP_UPYM_DTL T1,  
+		          TBLUP_UPYM T0,      
+		          TBLUP_UPYM_COPE_TP_BS T2,  
+		          IFNBRM_CTRT_INFO T3  
+		        WHERE T1.PYM_ACNT_ID = T0.PYM_ACNT_ID 
+		        AND T1.UPYM_BS_YYMM = T0.UPYM_BS_YYMM  
+		        AND T2.SO_ID = #{soId}
+		        AND T1.UPYM_BS_YYMM = #{inDate}
+		        AND T1.UPYM_BS_YYMM BETWEEN T2.EFT_BGN_YYMM AND T2.EFT_END_YYMM  
+		        AND T1.CTRT_ID = T3.CTRT_ID  
+		        AND T2.SO_ID = #{soId}
+		        AND T2.UPYM_MNG_TP = '00'
+		        AND T3.INACT_DTTM = '99991231235959'
+		        GROUP BY T1.UPYM_BS_YYMM,  
+		        T1.PYM_ACNT_ID,  
+		        T1.CTRT_ID   
+		      )A   
+		    ) A, TBLUP_UPYM_COPE_TP_BS B
+		    WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM  
+		    AND A.UPYM_MTH_CNT BETWEEN 
+		      CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+		      THEN B.UPYM_MONTHS_FROM
+		      ELSE A.UPYM_MTH_CNT END
+		    AND
+		      CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+		      THEN B.UPYM_MONTHS_TO
+		      ELSE A.UPYM_MTH_CNT END
+		    AND A.UPYM_AMT BETWEEN
+		      CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+		      THEN B.UPYM_AMT_FROM
+		      ELSE A.UPYM_AMT END
+		    AND
+		      CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+		      THEN B.UPYM_AMT_TO
+		      ELSE A.UPYM_AMT END
+		    AND 
+		      CASE A.BILL_AMT WHEN 0
+		      THEN 100
+		      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+		      BETWEEN
+		      CASE WHEN B.UPYM_MNG_BS_TP = '4'
+		      THEN B.UPYM_AMT_FROM
+		      ELSE
+		        CASE A.BILL_AMT WHEN 0
+		        THEN 100
+		        ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+		      END
+		    AND
+		      CASE WHEN B.UPYM_MNG_BS_TP = '4'
+		      THEN B.UPYM_AMT_TO
+		      ELSE
+		        CASE A.BILL_AMT WHEN 0
+		        THEN 100
+		        ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+		      END
+		    AND A.CTRT_STAT IN ('90','50')
+		    AND B.SO_ID = #{soId}
+		    AND B.UPYM_MNG_TP = '11'
+		    UNION ALL
+		    SELECT   
+		      A.UPYM_BS_YYMM     ,  
+		      A.PYM_ACNT_ID      ,  
+		      A.CTRT_ID          ,  
+		      A.CUST_ID          ,  
+		      A.PYM_CUST_ID      ,  
+		      A.SVC_TEL_NO       ,  
+		      A.SO_ID            ,
+		      A.MIN_BILL_YYMM,
+		      A.UPYM_MTH_CNT   ,  
+		      A.BILL_AMT  ,  
+		      A.RCPT_AMT  ,  
+		      A.UPYM_BIG_AMT_YN  ,  
+		      A.UPYM_AMT  ,  
+		      A.CTRT_STAT  , 
+		      A.RATE_STRT_DT, 
+		      A.TERM_DD, 
+	          A.TERM_DT_MIN,
+	          A.UPYM_MNG_BS_TP,
+	          A.UPYM_MONTHS_FROM,
+	          A.UPYM_MONTHS_TO,
+		      '1' AS UPYM_DIV_TP 
+		    FROM (
+		      SELECT  
+		        A3.UPYM_BS_YYMM ,           
+		        A3.PYM_ACNT_ID  ,           
+		        A3.CTRT_ID     ,            
+		        A3.CUST_ID     ,            
+		        A3.PYM_CUST_ID ,            
+		        A3.SVC_TEL_NO  ,            
+		        A3.SO_ID       ,   
+		        A3.MIN_BILL_YYMM,         
+		        A3.UPYM_MTH_CNT ,           
+		        A3.BILL_AMT  ,              
+		        A3.RCPT_AMT  ,              
+		        A3.UPYM_BIG_AMT_YN  ,       
+		        A3.UPYM_AMT  ,              
+		        A3.CTRT_STAT ,              
+		        A3.RATE_STRT_DT,            
+		        A3.TERM_DD,
+		        A3.TERM_DT_MIN,
+		        A4.UPYM_MNG_BS_TP,
+		        A4.UPYM_MONTHS_FROM,
+		        A4.UPYM_MONTHS_TO
+		      FROM(                               
+		        SELECT  
+		          T1.UPYM_BS_YYMM    AS UPYM_BS_YYMM,  
+		          T1.PYM_ACNT_ID       AS PYM_ACNT_ID,  
+		          T1.CTRT_ID               AS CTRT_ID,  
+		          MIN(T1.CUST_ID)       AS CUST_ID,  
+		          MIN(T1.PYM_CUST_ID) AS PYM_CUST_ID,
+		          MIN(CASE WHEN T3.SVC_TEL_NO IS NULL THEN '00000000000' ELSE T3.SVC_TEL_NO END) AS SVC_TEL_NO,
+		          MIN(T1.SO_ID)                         AS SO_ID ,   
+		          MIN(CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) AS MIN_BILL_YYMM,
+		          CASE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) WHEN 0 THEN 0
+		          ELSE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) - (CASE MAX(T1.BILL_YYMM) WHEN #{inDate} THEN 1 ELSE 0 END) END AS UPYM_MTH_CNT,
+		          SUM(T1.BILL_AMT) AS  BILL_AMT ,  
+		          SUM(T1.RCPT_AMT) AS  RCPT_AMT ,  
+		          CASE WHEN MIN(T2.UPYM_AMT_FROM) - SUM(T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'N' ELSE CASE WHEN MIN(T2.UPYM_AMT_TO) - SUM(T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'Y' ELSE 'N' END END AS UPYM_BIG_AMT_YN,
+		          SUM(T1.BILL_AMT) - SUM(T1.RCPT_AMT)    AS UPYM_AMT,  
+		          MIN(T3.CTRT_STAT)                         AS  CTRT_STAT,   
+		          MAX(CASE T3.RATE_STRT_DT WHEN NULL THEN ' ' ELSE T3.RATE_STRT_DT END) AS RATE_STRT_DT,
+		          MAX(CASE T3.TERM_DT WHEN NULL THEN ' ' ELSE T3.TERM_DT END) AS TERM_DD,
+		          MIN(CASE T3.TERM_DT WHEN NULL THEN ' ' ELSE T3.TERM_DT END) AS TERM_DT_MIN
+		        FROM  
+		          TBLUP_UPYM_DTL T1,  
+		          TBLUP_UPYM T0,      
+		          TBLUP_UPYM_COPE_TP_BS T2,  
+		          IFNBRM_CTRT_INFO T3
+		        WHERE T1.PYM_ACNT_ID = T0.PYM_ACNT_ID 
+		        AND T1.UPYM_BS_YYMM = T0.UPYM_BS_YYMM  
+		        AND T1.SO_ID = #{soId}
+		        AND T1.UPYM_BS_YYMM = #{inDate}
+		        AND T1.UPYM_BS_YYMM BETWEEN T2.EFT_BGN_YYMM AND T2.EFT_END_YYMM  
+		        AND T1.CTRT_ID = T3.CTRT_ID  
+		        AND T2.SO_ID = #{soId}
+		        AND T2.UPYM_MNG_TP = '00'
+		        AND T3.INACT_DTTM = '99991231235959'
+		        GROUP BY T1.UPYM_BS_YYMM,  
+		        T1.PYM_ACNT_ID,  
+		        T1.CTRT_ID  
+		      ) A3 LEFT JOIN (SELECT
+		        A2.UPYM_BS_YYMM,  
+		        A2.PYM_ACNT_ID,  
+		        A2.CTRT_ID,  
+		        A2.CUST_ID,  
+		        A2.PYM_CUST_ID,  
+		        A2.SVC_TEL_NO,  
+		        A2.SO_ID,  
+		        A2.MIN_BILL_YYMM,
+		        A2.UPYM_MTH_CNT,  
+		        A2.BILL_AMT,
+		        A2.RCPT_AMT,
+		        A2.UPYM_BIG_AMT_YN,
+		        A2.UPYM_AMT,  
+		        A2.CTRT_STAT, 
+		        A2.RATE_STRT_DT, 
+		        A2.TERM_DD,
+		        A2.TERM_DT_MIN,
+		        A2.UPYM_MNG_BS_TP,
+		        A2.UPYM_MONTHS_FROM,
+		        A2.UPYM_MONTHS_TO
+		      FROM (
+		        SELECT  
+		          A1.UPYM_BS_YYMM,
+		          A1.PYM_ACNT_ID,
+		          A1.CTRT_ID,
+		          A1.CUST_ID,
+		          A1.PYM_CUST_ID,
+		          A1.SVC_TEL_NO,
+		          A1.SO_ID,
+		          A1.MIN_BILL_YYMM,
+		          A1.UPYM_MTH_CNT ,
+		          A1.BILL_AMT,
+		          A1.RCPT_AMT,
+		          A1.UPYM_BIG_AMT_YN,
+		          A1.UPYM_AMT,
+		          A1.CTRT_STAT,
+		          A1.RATE_STRT_DT,
+		          A1.TERM_DD,
+			      A1.TERM_DT_MIN,
+			      B.UPYM_MNG_BS_TP,
+			      B.UPYM_MONTHS_FROM,
+			      B.UPYM_MONTHS_TO
+		        FROM(                               
+		          SELECT  
+		            T1.UPYM_BS_YYMM AS UPYM_BS_YYMM,  
+		            T1.PYM_ACNT_ID AS PYM_ACNT_ID,  
+		            T1.CTRT_ID AS CTRT_ID,
+		            MIN(T1.CUST_ID) AS CUST_ID,
+		            MIN(T1.PYM_CUST_ID) AS PYM_CUST_ID,  
+		            MIN(CASE T3.SVC_TEL_NO WHEN NULL THEN '00000000000' ELSE T3.SVC_TEL_NO END) AS SVC_TEL_NO,
+		            MIN(T1.SO_ID) AS SO_ID,
+		            MIN(CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) AS MIN_BILL_YYMM,
+		            CASE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) WHEN 0 THEN 0
+		            ELSE COUNT(DISTINCT CASE WHEN T1.BILL_AMT - T1.RCPT_AMT > 0 THEN T1.BILL_YYMM ELSE '' END) - (CASE MAX(T1.BILL_YYMM) WHEN #{inDate} THEN 1 ELSE 0 END) END AS UPYM_MTH_CNT,
+		            SUM(T1.BILL_AMT) AS BILL_AMT,
+		            SUM(T1.RCPT_AMT) AS RCPT_AMT,
+		            CASE WHEN MIN(T2.UPYM_AMT_FROM) - SUM(T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'N' ELSE CASE WHEN MIN(T2.UPYM_AMT_TO) - SUM(T1.BILL_AMT-T1.RCPT_AMT) > 0 THEN 'Y' ELSE 'N' END END AS UPYM_BIG_AMT_YN,
+		            SUM(T1.BILL_AMT) - SUM(T1.RCPT_AMT) AS UPYM_AMT,  
+		            MIN(T3.CTRT_STAT) AS  CTRT_STAT,  
+		            MAX(CASE T3.RATE_STRT_DT WHEN NULL THEN ' ' ELSE T3.RATE_STRT_DT END) AS RATE_STRT_DT,
+		            MAX(CASE T3.TERM_DT WHEN NULL THEN ' ' ELSE T3.TERM_DT END) AS TERM_DD,
+		            MIN(CASE T3.TERM_DT WHEN NULL THEN ' ' ELSE T3.TERM_DT END) AS TERM_DT_MIN
+		          FROM
+		            TBLUP_UPYM_DTL T1,  
+		            TBLUP_UPYM T0,      
+		            TBLUP_UPYM_COPE_TP_BS T2,  
+		            IFNBRM_CTRT_INFO T3  
+		          WHERE  T1.PYM_ACNT_ID = T0.PYM_ACNT_ID 
+		          AND T1.UPYM_BS_YYMM = T0.UPYM_BS_YYMM  
+		          AND T1.UPYM_BS_YYMM = #{inDate}  
+		          AND T1.SO_ID = #{soId}
+		          AND T1.UPYM_BS_YYMM BETWEEN T2.EFT_BGN_YYMM AND T2.EFT_END_YYMM  
+		          AND T1.CTRT_ID = T3.CTRT_ID  
+		          AND T2.SO_ID = #{soId}
+		          AND T2.UPYM_MNG_TP = '00'
+		          AND T3.INACT_DTTM = '99991231235959'
+		          GROUP BY T1.UPYM_BS_YYMM,  
+		          T1.PYM_ACNT_ID,  
+		          T1.CTRT_ID  
+		        )A1,  TBLUP_UPYM_COPE_TP_BS B
+		
+		        WHERE A1.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+		        AND A1.UPYM_MTH_CNT BETWEEN 
+		          CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+		          THEN B.UPYM_MONTHS_FROM
+		          ELSE A1.UPYM_MTH_CNT END
+		        AND
+		          CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+		          THEN B.UPYM_MONTHS_TO
+		          ELSE A1.UPYM_MTH_CNT END
+		        AND A1.UPYM_AMT BETWEEN
+		          CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+		          THEN B.UPYM_AMT_FROM
+		          ELSE A1.UPYM_AMT END
+		        AND
+		          CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+		          THEN B.UPYM_AMT_TO
+		          ELSE A1.UPYM_AMT END
+		        AND 
+		          CASE A1.BILL_AMT WHEN 0
+		          THEN 100
+		          ELSE (A1.RCPT_AMT/A1.BILL_AMT) * 100 END
+		          BETWEEN
+		          CASE WHEN B.UPYM_MNG_BS_TP = '4'
+		          THEN B.UPYM_AMT_FROM
+		          ELSE
+		            CASE A1.BILL_AMT WHEN 0
+		            THEN 100
+		            ELSE (A1.RCPT_AMT/A1.BILL_AMT) * 100 END
+		          END
+		        AND
+		          CASE WHEN B.UPYM_MNG_BS_TP = '4'
+		          THEN B.UPYM_AMT_TO
+		          ELSE
+		            CASE A1.BILL_AMT WHEN 0
+		            THEN 100
+		            ELSE (A1.RCPT_AMT/A1.BILL_AMT) * 100 END
+		          END
+		        AND B.UPYM_MNG_TP = '11'
+		        AND B.SO_ID = #{soId}
+		
+		      ) A2) A4 ON A3.CUST_ID = A4.CUST_ID
+		    ) A, TBLUP_UPYM_COPE_TP_BS B
+		
+		    WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+		    AND A.UPYM_MTH_CNT BETWEEN 
+		      CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+		      THEN B.UPYM_MONTHS_FROM
+		      ELSE A.UPYM_MTH_CNT END
+		    AND
+		      CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+		      THEN B.UPYM_MONTHS_TO
+		      ELSE A.UPYM_MTH_CNT END
+		    AND A.UPYM_AMT BETWEEN
+		      CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+		      THEN B.UPYM_AMT_FROM
+		      ELSE A.UPYM_AMT END
+		    AND
+		      CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+		      THEN B.UPYM_AMT_TO
+		      ELSE A.UPYM_AMT END
+		    AND 
+		      CASE A.BILL_AMT WHEN 0
+		      THEN 100
+		      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+		      BETWEEN
+		      CASE WHEN B.UPYM_MNG_BS_TP = '4'
+		      THEN B.UPYM_AMT_FROM
+		      ELSE
+		        CASE A.BILL_AMT WHEN 0
+		        THEN 100
+		        ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+		      END
+		    AND
+		      CASE WHEN B.UPYM_MNG_BS_TP = '4'
+		      THEN B.UPYM_AMT_TO
+		      ELSE
+		        CASE A.BILL_AMT WHEN 0
+		        THEN 100
+		        ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+		      END
+		    AND B.SO_ID = #{soId}
+		    AND B.UPYM_MNG_TP = '10') A
+		) AA
+		LEFT JOIN 
+		(        
+		  SELECT   
+		    UPYM_CORP_CD,  
+		    UPYM_DIV_TP,  
+		    EFT_BGN_YYMM,  
+		    CORP_ID,  
+		    EFT_END_YYMM,  
+		    UPYM_DIV_BS_TP,  
+		    UPYM_DIV_VAL,  
+		    TOT_SUM
+		  FROM (  
+		    SELECT  
+		      UPYM_CORP_CD,  
+		      UPYM_DIV_TP,  
+		      EFT_BGN_YYMM,  
+		      CORP_ID,  
+		      EFT_END_YYMM,  
+		      UPYM_DIV_BS_TP,  
+		      UPYM_DIV_VAL,  
+		      SUM(UPYM_DIV_VAL) OVER (PARTITION BY UPYM_DIV_TP) AS TOT_SUM,  
+		      SUM(UPYM_DIV_VAL) OVER (PARTITION BY UPYM_DIV_TP ORDER BY UPYM_DIV_VAL DESC, UPYM_DIV_TP,UPYM_CORP_CD) AS SUM  
+		    FROM TBLUP_UPYM_DIV_BS )  
+		  ) BB ON AA.UPYM_DIV_TP = BB.UPYM_DIV_TP, IFNBRM_CUST_INFO CC
+		WHERE AA.CUST_ID = CC.CUST_ID
+		AND AA.PYM_ACNT_ID = CC.PYM_ACNT_ID
+	</select>
+	
+	<insert id="insertUpymCtrt">
+		INSERT INTO TBLUP_UPYM_CTRT
+		(
+		     UPYM_BS_YYMM
+		     , PYM_ACNT_ID
+		     , CTRT_ID
+		     , CUST_ID
+		     , PYM_CUST_ID
+		     , SVC_TEL_NO
+		     , SO_ID
+		     , UPYM_PRGR_MTH_CNT
+		     , UPYM_MTH_CNT
+		     , BILL_AMT
+		     , RCPT_AMT
+		     , UPYM_BIG_AMT_YN
+		     , UPYM_AMT
+		     , UPYM_DUE_DT
+		     , UPYM_CORP_CD
+		     , UPYM_DIV_TP
+		     , CORP_ID
+		     , CTRT_STAT
+		     , TERM_MTH_CNT
+		     , SVC_STRT_DD
+		     , TERM_DD
+		     , SOCIAL_FG
+		     , CUST_TP
+		     , REG_DATE
+		     , REGR_ID
+		)
+		VALUES
+		(
+		     #{upymBsYymm}
+		     , #{pymAcntId}
+		     , #{ctrtId}
+		     , #{custId}
+		     , #{pymCustId}
+		     , #{svcTelNo}
+		     , #{soId}
+		     , #{upymPrgrMthCnt}
+		     , #{upymMthCnt}
+		     , #{billAmt}
+		     , #{rcptAmt}
+		     , #{upymBigAmtYn}
+		     , #{upymAmt}
+		     , ' '
+		     , #{upymCorpCd}
+		     , #{upymDivTp}
+		     , #{corpId}
+		     , #{ctrtStat}
+		     , #{termMthCnt}
+		     , #{rateStrtDt}
+		     , #{termDd}
+		     , #{socialFg}
+		     , #{custTp}
+		     , #{regDate}
+		     , #{regrId}
+		)
+	</insert>
+	
+	<select id="getUpymEntrustMastList" resultType="UpymEntrustMast">
+		SELECT 
+		     AAA.UPYM_BS_YYMM AS UPYM_BS_YYMM
+		     ,' ' AS FILE_CRT_SEQ_NO
+		     ,'B' AS ORG_YN
+		     ,AAA.UPYM_CORP_CD AS UPYM_CORP_CD
+		     ,AAA.UPYM_DIV_TP AS UPYM_DIV_TP
+		     ,AAA.CORP_ID AS CORP_ID
+		     ,AAA.CUST_ID AS CUST_ID
+		     ,AAA.PYM_CUST_ID AS PYM_CUST_ID
+		     ,AAA.PYM_ACNT_ID AS PYM_ACNT_ID
+		     ,AAA.CTRT_ID AS CTRT_ID
+		     ,AAA.SVC_TEL_NO AS SVC_TEL_NO
+		     ,AAA.SO_ID AS SO_ID
+		     ,AAA.CUST_NM AS CUST_NM
+		     ,AAA.ACNT_NM AS ACNT_NM
+		     ,AAA.ACNT_OWNER_NM AS ACNT_OWNER_NM
+		     ,AAA.CTRT_STAT AS CTRT_STAT
+		     ,AAA.CORP_REG_NO AS CORP_REG_NO
+		     ,AAA.PYM_CORP_REG_NO AS PYM_CORP_REG_NO
+		     ,AAA.SVC_DIV_NM AS SVC_DIV_NM
+		     ,AAA.BILL_YYMM AS BILL_YYMM
+		     ,AAA.UPYM_MTH_CNT AS UPYM_MTH_CNT
+		     ,AAA.UPYM_PRGR_MTH_CNT AS UPYM_PRGR_MTH_CNT
+		     ,AAA.MIN_BILL_YYMM AS MIN_BILL_YYMM
+		     ,AAA.MAX_BILL_YYMM AS MAX_BILL_YYMM
+		     ,AAA.UPYM_AMT AS UPYM_AMT
+		     ,AAA.PAY_MTHD AS PAY_MTHD
+		     ,AAA.RATE_STRT_DT AS RATE_STRT_DT
+		     ,AAA.TERM_DD AS TERM_DD
+		     ,AAA.ZIP_CD AS ZIP_CD
+		     ,AAA.BASE_ADDR AS BASE_ADDR
+		     ,AAA.ADDR_DTL AS ADDR_DTL
+		     ,AAA.TEL_NO AS TEL_NO
+		     ,AAA.ETC_NO AS ETC_NO
+		     ,AAA.EML AS EML
+		     ,AAA.PYM_ZIP_CD AS PYM_ZIP_CD
+		     ,AAA.PYM_BASE_ADDR AS PYM_BASE_ADDR
+		     ,AAA.PYM_ADDR_DTL AS PYM_ADDR_DTL
+		     ,AAA.PYM_TEL_NO AS PYM_TEL_NO
+		     ,AAA.PYM_ETC_NO AS PYM_ETC_NO
+		     ,AAA.PYM_EML AS PYM_EML
+		     ,AAA.VR_ACNT_NO1 AS VR_ACNT_NO1
+		     ,AAA.BNK_NM1 AS BNK_NM1
+		     ,AAA.VR_ACNT_NO2 AS VR_ACNT_NO2
+		     ,AAA.BNK_NM2 AS BNK_NM2
+		     ,AAA.VR_ACNT_NO3 AS VR_ACNT_NO3
+		     ,AAA.BNK_NM3 AS BNK_NM3
+		     ,AAA.UPYM_EXCP_YN AS UPYM_EXCP_YN
+		     ,AAA.CUST_TP AS CUST_TP
+		     ,AAA.TERM_DT_MAX AS TERM_DT_MAX
+		     ,AAA.TERM_DT_MIN AS TERM_DT_MIN
+		FROM 
+		(
+		     SELECT A.UPYM_BS_YYMM
+		          ,MAX(A.UPYM_CORP_CD) AS UPYM_CORP_CD
+		          ,MAX(A.UPYM_DIV_TP) AS UPYM_DIV_TP
+		          ,MAX(A.CORP_ID) AS CORP_ID
+		          ,MAX(A.CUST_ID) AS CUST_ID
+		          ,MAX(A.PYM_CUST_ID) AS PYM_CUST_ID
+		          ,A.PYM_ACNT_ID
+		          ,A.CTRT_ID
+		          ,MAX(A.SVC_TEL_NO) AS SVC_TEL_NO
+		          ,MAX(A.SO_ID) AS SO_ID
+		          ,MAX(A.CUST_NM) AS CUST_NM
+		          ,MAX(A.ACNT_NM) AS ACNT_NM
+		          ,MAX(A.ACNT_OWNER_NM) AS ACNT_OWNER_NM
+		          ,MAX(A.CTRT_STAT) AS CTRT_STAT
+		          ,MAX(A.CORP_REG_NO) AS CORP_REG_NO
+		          ,MAX(A.PYM_CORP_REG_NO) AS PYM_CORP_REG_NO
+		          ,MAX(A.SVC_DIV_NM) AS SVC_DIV_NM
+		          ,MAX(A.BILL_YYMM) AS BILL_YYMM
+		          ,MAX(A.UPYM_MTH_CNT) AS UPYM_MTH_CNT
+		          ,MAX(A.UPYM_PRGR_MTH_CNT) AS UPYM_PRGR_MTH_CNT
+		          ,MAX(A.MIN_BILL_YYMM) AS MIN_BILL_YYMM
+		          ,MAX(A.MAX_BILL_YYMM) AS MAX_BILL_YYMM
+		          ,MAX(A.UPYM_AMT) AS UPYM_AMT
+		          ,MAX(A.PAY_MTHD) AS PAY_MTHD
+		          ,MAX(A.RATE_STRT_DT) AS RATE_STRT_DT
+		          ,MAX(A.TERM_DD) AS TERM_DD
+		          ,MAX(A.ZIP_CD) AS ZIP_CD
+		          ,MAX(A.BASE_ADDR) AS BASE_ADDR
+		          ,MAX(A.ADDR_DTL) AS ADDR_DTL
+		          ,MAX(A.TEL_NO) AS TEL_NO
+		          ,MAX(A.ETC_NO) AS ETC_NO
+		          ,MAX(A.EML) AS EML
+		          ,MAX(A.PYM_ZIP_CD) AS PYM_ZIP_CD
+		          ,MAX(A.PYM_BASE_ADDR) AS PYM_BASE_ADDR
+		          ,MAX(A.PYM_ADDR_DTL) AS PYM_ADDR_DTL
+		          ,MAX(A.PYM_TEL_NO) AS PYM_TEL_NO
+		          ,MAX(A.PYM_ETC_NO) AS PYM_ETC_NO
+		          ,MAX(A.PYM_EML) AS PYM_EML
+		          ,MAX(CASE WHEN GG.BNK_CD = '004' THEN GG.VR_ACNT_NO ELSE ' ' END) AS VR_ACNT_NO1
+		          ,MAX(CASE WHEN GG.BNK_CD = '004' THEN '국민' ELSE ' ' END) AS BNK_NM1
+		          ,MAX(CASE WHEN GG.BNK_CD = '011' THEN GG.VR_ACNT_NO ELSE ' ' END) AS VR_ACNT_NO2
+		          ,MAX(CASE WHEN GG.BNK_CD = '011' THEN '농협' ELSE ' ' END) AS BNK_NM2
+		          ,MAX(CASE WHEN GG.BNK_CD = '020' THEN GG.VR_ACNT_NO ELSE ' ' END) AS VR_ACNT_NO3
+		          ,MAX(CASE WHEN GG.BNK_CD = '020' THEN '우리' ELSE ' ' END) AS BNK_NM3
+		          ,MAX(A.UPYM_EXCP_YN) AS UPYM_EXCP_YN
+		          ,MAX(A.CUST_TP) AS CUST_TP
+		          ,MAX(A.TERM_DT_MAX) AS TERM_DT_MAX
+		          ,MIN(A.TERM_DT_MIN) AS TERM_DT_MIN
+		     FROM 
+		     (
+		          SELECT
+		               A.UPYM_BS_YYMM  AS UPYM_BS_YYMM
+		               ,MAX(BB.UPYM_CORP_CD) AS UPYM_CORP_CD
+		               ,MAX(BB.UPYM_DIV_TP) AS UPYM_DIV_TP
+		               ,MAX(BB.CORP_ID) AS CORP_ID
+		               ,MAX(BB.CUST_ID) AS CUST_ID
+		               ,MAX(BB.PYM_CUST_ID ) AS PYM_CUST_ID
+		               ,A.PYM_ACNT_ID AS PYM_ACNT_ID
+		               ,A.CTRT_ID AS CTRT_ID
+		               ,MAX(BB.SVC_TEL_NO) AS SVC_TEL_NO
+		               ,MAX(A.SO_ID)  AS SO_ID
+		               ,MAX(CC.CUST_NM) AS CUST_NM
+		               ,MAX(DD.ACNT_NM) AS ACNT_NM
+		               ,MAX(CASE WHEN DD.ACNT_OWNER_NM IS NULL THEN DD.ACNT_NM ELSE DD.ACNT_OWNER_NM END) AS ACNT_OWNER_NM
+		               ,MAX(EE.CTRT_STAT) AS CTRT_STAT
+		               ,MAX(CC.CORP_REG_NO) AS CORP_REG_NO
+		               ,MAX(CC.CORP_REG_NO) AS PYM_CORP_REG_NO
+		               ,'M' AS SVC_DIV_NM
+		               ,MAX(A.BILL_YYMM) AS BILL_YYMM
+		               ,MAX(BB.UPYM_MTH_CNT) AS UPYM_MTH_CNT
+		               ,MAX(BB.UPYM_PRGR_MTH_CNT) AS UPYM_PRGR_MTH_CNT
+		               ,MIN(A.BILL_YYMM) AS  MIN_BILL_YYMM
+		               ,MAX(A.BILL_YYMM) AS MAX_BILL_YYMM
+		               ,SUM(A.UPYM_AMT) AS UPYM_AMT
+		               ,MAX(DD.PYM_MTHD) AS PAY_MTHD
+		               ,MAX(CASE EE.TERM_DT WHEN NULL THEN ' ' ELSE EE.TERM_DT END) AS TERM_DT_MAX
+		               ,MIN(CASE EE.TERM_DT WHEN NULL THEN ' ' ELSE EE.TERM_DT END) AS TERM_DT_MIN
+		               ,MAX(CASE WHEN EE.RATE_STRT_DT IS NULL THEN ' ' ELSE EE.RATE_STRT_DT END) AS RATE_STRT_DT
+		               ,MAX(CASE WHEN EE.TERM_DT IS NULL THEN ' ' ELSE EE.TERM_DT END) AS TERM_DD
+		               ,MAX(CASE WHEN CC.ZIP_CD IS NULL THEN ' ' ELSE CC.ZIP_CD END) AS ZIP_CD
+		               ,MAX(CASE WHEN CC.BASE_ADDR IS NULL THEN ' ' ELSE CC.BASE_ADDR END) AS BASE_ADDR
+		               ,MAX(CASE WHEN CC.ADDR_DTL IS NULL THEN ' ' ELSE CC.ADDR_DTL END) AS ADDR_DTL
+		               ,MAX(CASE WHEN CC.TEL_NO IS NULL THEN ' ' ELSE CC.TEL_NO END) AS TEL_NO
+		               ,MAX(CASE WHEN CC.FAX_NO IS NULL THEN ' ' ELSE CC.FAX_NO END) AS ETC_NO
+		               ,MAX(CASE WHEN CC.EML IS NULL THEN ' ' ELSE CC.EML END) AS EML
+		               ,MAX(CASE WHEN CC.PAY_ZIP_CD IS NULL THEN ' ' ELSE DD.ZIP_CD END) AS PYM_ZIP_CD
+		               ,MAX(CASE WHEN CC.PAY_BASE_ADDR IS NULL THEN ' ' ELSE DD.BASE_ADDR END) AS PYM_BASE_ADDR
+		               ,MAX(CASE WHEN CC.PAY_ADDR_DTL IS NULL THEN ' ' ELSE DD.ADDR_DTL END) AS PYM_ADDR_DTL
+		               ,MAX(CASE WHEN CC.PAY_TEL_NO IS NULL THEN ' ' ELSE DD.TEL_NO END) AS PYM_TEL_NO
+		               ,MAX(CASE WHEN CC.PAY_FAX_NO IS NULL THEN ' ' ELSE DD.FAX_NO END) AS PYM_ETC_NO
+		               ,MAX(CASE WHEN CC.PAY_EML IS NULL THEN ' ' ELSE DD.EML END) AS PYM_EML
+		               ,'N' AS UPYM_EXCP_YN
+		               ,MAX(CC.CUST_TP) AS CUST_TP
+		          FROM 
+		               TBLUP_UPYM A0,
+		               TBLUP_UPYM_DTL A,
+		               TBLUP_UPYM_CTRT BB,
+		               IFNBRM_CUST_INFO CC,
+		               IFNBRM_CTRT_INFO EE
+		               , TBLCH_MULTI_SEQ FF
+		          WHERE 1 = 1
+					   AND FF.SO_ID = #{soId}
+					   AND FF.GUBUN = '2'
+					   AND FF.P_SEQ = #{pSeq}
+		          	   AND A0.PYM_ACNT_ID = A.PYM_ACNT_ID
+		               AND A0.UPYM_BS_YYMM = A.UPYM_BS_YYMM
+		               AND A.UPYM_BS_YYMM = #{inDate}
+		               AND A.UPYM_BS_YYMM = BB.UPYM_BS_YYMM
+		               AND A.PYM_ACNT_ID = BB.PYM_ACNT_ID
+		               AND A.CTRT_ID = BB.CTRT_ID
+		               AND BB.PYM_ACNT_ID = CC.PYM_ACNT_ID
+		               AND BB.CUST_ID = CC.CUST_ID
+		               AND BB.PYM_CUST_ID = CC.CUST_ID
+		               AND BB.CTRT_ID = EE.CTRT_ID
+		               AND EE.INACT_DTTM = '99991231235959'
+		               AND A0.UPYM_MTH_CNT &gt; 0
+					   AND A0.PYM_ACNT_ID &gt;= FF.STRT_NO
+					   AND A0.PYM_ACNT_ID &lt;= FF.END_NO
+		          GROUP BY A.UPYM_BS_YYMM, A.CTRT_ID, A.PYM_ACNT_ID
+		     ) A LEFT JOIN
+		     (
+		          SELECT * 
+		          FROM TCMBL_VIR_ACCT 
+		          WHERE BNK_CD IN ('004','011','020')
+		     ) GG ON A.PYM_ACNT_ID = GG.PYM_ACNT_ID
+		     GROUP BY A.UPYM_BS_YYMM, A.CTRT_ID, A.PYM_ACNT_ID
+		) AAA
+		WHERE AAA.UPYM_AMT > 0
+	</select>
+	
+	<insert id="insertUpymEntrustMast">
+		INSERT INTO TBLUP_UPYM_ENTRUST_MAST
+		(
+			UPYM_BS_YYMM
+			, FILE_CRT_SEQ_NO
+			, ORG_YN
+			, UPYM_NO
+			, UPYM_CORP_CD
+			, UPYM_DIV_TP
+			, CORP_ID
+			, CUST_ID
+			, PYM_CUST_ID
+			, PYM_ACNT_ID
+			, CTRT_ID
+			, SVC_TEL_NO
+			, SO_ID
+			, CUST_NM
+			, PYM_CUST_NM
+			, ACNT_OWNER_NM
+			, CTRT_STAT
+			, CORP_REG_NO
+			, PYM_REG_NO
+			, SVC_DIV_NM
+			, BILL_YYMM
+			, UPYM_MTH_CNT
+			, UPYM_PRGR_MTH_CNT
+			, MIN_BILL_YYMM
+			, MAX_BILL_YYMM
+			, UPYM_AMT
+			, UPYM_AMT_01
+			, UPYM_AMT_02
+			, UPYM_AMT_03
+			, UPYM_AMT_04
+			, UPYM_AMT_05
+			, UPYM_AMT_06
+			, UPYM_AMT_07
+			, UPYM_AMT_08
+			, PAY_MTHD
+			, TERM_MTH_CNT
+			, SVC_STRT_DD
+			, TERM_DD
+			, ZIP_CD
+			, BASE_ADDR
+			, ADDR_DTL
+			, TEL_NO
+			, MPHON_NUM
+			, ETC_NO
+			, EML
+			, PYM_ZIP_CD
+			, PYM_BASE_ADDR
+			, PYM_ADDR_DTL
+			, PYM_TEL_NO
+			, PYM_MPHON_NUM
+			, PYM_ETC_NO
+			, PYM_EML
+			, VR_ACNT_NO1
+			, BNK_NM1
+			, VR_ACNT_NO2
+			, BNK_NM2
+			, VR_ACNT_NO3
+			, BNK_NM3
+			, UPYM_EXCP_YN
+			, SOCIAL_FG
+			, CUST_TP
+			, REG_DATE
+			, REGR_ID
+			, CHG_DATE
+			, CHGR_ID
+		)
+		VALUES
+		(
+			#{upymBsYymm}
+			, #{fileCrtSeqNo}
+			, #{orgYn}
+			, #{upymNo}
+			, #{upymCorpCd}
+			, #{upymDivTp}
+			, #{corpId}
+			, #{custId}
+			, #{pymCustId}
+			, #{pymAcntId}
+			, #{ctrtId}
+			, #{svcTelNo}
+			, #{soId}
+			, #{custNm}
+			, #{pymCustNm}
+			, #{acntOwnerNm}
+			, #{ctrtStat}
+			, #{corpRegNo}
+			, #{pymRegNo}
+			, #{svcDivNm}
+			, #{billYymm}
+			, #{upymMthCnt}
+			, #{upymPrgrMthCnt}
+			, #{minBillYymm}
+			, #{maxBillYymm}
+			, #{upymAmt}
+			, #{upymAmt01}
+			, #{upymAmt02}
+			, #{upymAmt03}
+			, #{upymAmt04}
+			, #{upymAmt05}
+			, #{upymAmt06}
+			, #{upymAmt07}
+			, #{upymAmt08}
+			, #{payMthd}
+			, #{termMthCnt}
+			, #{svcStrtDd}
+			, #{termDd}
+			, #{zipCd}
+			, #{baseAddr}
+			, #{addrDtl}
+			, #{telNo}
+			, #{mphonNum}
+			, #{etcNo}
+			, #{eml}
+			, #{pymZipCd}
+			, #{pymBaseAddr}
+			, #{pymAddrDtl}
+			, #{pymTelNo}
+			, #{pymMphonNum}
+			, #{pymEtcNo}
+			, #{pymEml}
+			, #{vrAcntNo1}
+			, #{bnkNm1}
+			, #{vrAcntNo2}
+			, #{bnkNm2}
+			, #{vrAcntNo3}
+			, #{bnkNm3}
+			, #{upymExcpYn}
+			, #{socialFg}
+			, #{custTp}
+			, #{regDate}
+			, #{regrId}
+			, #{chgDate}
+			, #{chgrId}
+		)
+	</insert>
+	
+	<!-- 제외대상자 처리 쿼리 -->
+	<update id="updateEntrustMast">
+		UPDATE TBLUP_UPYM_ENTRUST_MAST A  SET 
+		  (A.UPYM_EXCP_YN, A.UPYM_EXCP_RSN_CD) = 
+		  (
+		      SELECT 'Y', B.UPYM_EXCP_RSN_CD 
+		      FROM TBLUP_UPYM_EXCP B
+		      WHERE B.UPYM_MNG_TP = #{upymMngTp}
+		        AND #{now} BETWEEN B.EXCP_STRT_YYMMDD AND B.EXCP_END_YYMMDD
+		        AND B.SO_ID = #{soId}
+		        AND A.CTRT_ID = B.CTRT_ID)
+		WHERE EXISTS (
+		    SELECT 1 FROM TBLUP_UPYM_EXCP B
+		    WHERE B.UPYM_MNG_TP = #{upymMngTp}
+		      AND #{now} BETWEEN B.EXCP_STRT_YYMMDD AND B.EXCP_END_YYMMDD
+		        and B.SO_ID = #{soId}
+		      AND A.CTRT_ID = B.CTRT_ID)
+		  AND A.UPYM_BS_YYMM = #{inDate}
+		  AND A.ORG_YN = 'B'
+		  AND A.SO_ID = #{soId}
+		  AND A.UPYM_DIV_TP = '1'
+	</update>
+	
+	<select id="getAuthChgApplList" resultType="AuthChgAppl">
+         SELECT UPYM_BS_YYMM AS UPYM_BS_YYMM
+               ,CTRT_ID AS CTRT_ID
+               ,MAX(REG_YYYYMMDDHHMISS) AS REG_YYYYMMDDHHMISS
+               ,MAX(CUST_ID) AS CUST_ID
+               ,MAX(PYM_ACNT_ID) AS PYM_ACNT_ID
+               ,UPYM_MNG_TP AS UPYM_MNG_TP
+               ,MAX(UPYM_PRGR_MTH_CNT) AS UPYM_PRGR_MTH_CNT
+               ,MAX(UPYM_MTH_CNT) AS UPYM_MTH_CNT
+               ,SUM(UPYM_AMT) AS UPYM_AMT
+               ,SO_ID
+          FROM(
+               SELECT A.UPYM_BS_YYMM
+                     ,A.CTRT_ID
+                     ,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') AS REG_YYYYMMDDHHMISS
+                     ,A.CUST_ID
+                     ,A.PYM_ACNT_ID
+                     ,B.UPYM_MNG_TP
+                     ,A.UPYM_PRGR_MTH_CNT
+                     ,A.UPYM_MTH_CNT
+                     ,A.UPYM_AMT
+                     ,A.SO_ID
+                 FROM TBLUP_UPYM_CTRT A,
+                      TBLUP_UPYM_COPE_TP_BS B
+
+                  WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+
+                  AND A.UPYM_MTH_CNT BETWEEN 
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+                    THEN B.UPYM_MONTHS_FROM
+                    ELSE A.UPYM_MTH_CNT END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+                    THEN B.UPYM_MONTHS_TO
+                    ELSE A.UPYM_MTH_CNT END
+                  AND CAST(A.TERM_MTH_CNT AS INT) BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP = '7'
+                    THEN B.UPYM_MONTHS_FROM
+                    ELSE CAST(A.TERM_MTH_CNT AS INT) END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP = '7'
+                    THEN B.UPYM_MONTHS_TO
+                    ELSE CAST(A.TERM_MTH_CNT AS INT) END
+                  AND A.UPYM_AMT BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+                    THEN B.UPYM_AMT_FROM
+                    ELSE A.UPYM_AMT END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+                    THEN B.UPYM_AMT_TO
+                    ELSE A.UPYM_AMT END
+                  AND 
+                    CASE A.BILL_AMT WHEN 0
+                    THEN 100
+                    ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP = '4'
+                    THEN B.UPYM_AMT_FROM
+                    ELSE
+                      CASE A.BILL_AMT WHEN 0
+                      THEN 100
+                      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP = '4'
+                    THEN B.UPYM_AMT_TO
+                    ELSE
+                      CASE A.BILL_AMT WHEN 0
+                      THEN 100
+                      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    END
+                  AND B.UPYM_MNG_TP  = '20'
+                  AND B.SO_ID = #{soId}
+                  AND A.CTRT_STAT = '20'
+                  AND A.SO_ID = #{soId}
+                  AND A.UPYM_BS_YYMM = #{inDate}
+                  AND A.CUST_TP &lt;&gt; 'C'
+                UNION ALL
+               SELECT A.UPYM_BS_YYMM
+                     ,A.CTRT_ID
+                     ,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') AS REG_YYYYMMDDHHMISS
+                     ,A.CUST_ID
+                     ,A.PYM_ACNT_ID
+                     ,B.UPYM_MNG_TP
+                     ,A.UPYM_PRGR_MTH_CNT
+                     ,A.UPYM_MTH_CNT
+                     ,A.UPYM_AMT
+                     ,A.SO_ID
+                 FROM TBLUP_UPYM_CTRT A,
+                      TBLUP_UPYM_COPE_TP_BS B
+                WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+                  AND A.UPYM_MTH_CNT BETWEEN 
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+                    THEN B.UPYM_MONTHS_FROM
+                    ELSE A.UPYM_MTH_CNT END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+                    THEN B.UPYM_MONTHS_TO
+                    ELSE A.UPYM_MTH_CNT END
+                  AND CAST(A.TERM_MTH_CNT AS INT) BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP = '7'
+                    THEN B.UPYM_MONTHS_FROM
+                    ELSE CAST(A.TERM_MTH_CNT AS INT) END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP = '7'
+                    THEN B.UPYM_MONTHS_TO
+                    ELSE CAST(A.TERM_MTH_CNT AS INT) END
+                  AND A.UPYM_AMT BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+                    THEN B.UPYM_AMT_FROM
+                    ELSE A.UPYM_AMT END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+                    THEN B.UPYM_AMT_TO
+                    ELSE A.UPYM_AMT END
+                  AND 
+                    CASE A.BILL_AMT WHEN 0
+                    THEN 100
+                    ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP = '4'
+                    THEN B.UPYM_AMT_FROM
+                    ELSE
+                      CASE A.BILL_AMT WHEN 0
+                      THEN 100
+                      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP = '4'
+                    THEN B.UPYM_AMT_TO
+                    ELSE
+                      CASE A.BILL_AMT WHEN 0
+                      THEN 100
+                      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    END
+                  AND B.UPYM_MNG_TP = '30'
+                  AND A.CTRT_STAT IN ('40')
+                  AND A.UPYM_BS_YYMM = #{inDate}
+                  AND A.CUST_TP &lt;&gt; 'C'
+                UNION ALL
+               SELECT A.UPYM_BS_YYMM
+                     ,A.CTRT_ID
+                     ,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') AS REG_YYYYMMDDHHMISS
+                     ,A.CUST_ID
+                     ,A.PYM_ACNT_ID
+                     ,B.UPYM_MNG_TP
+                     ,A.UPYM_PRGR_MTH_CNT
+                     ,A.UPYM_MTH_CNT
+                     ,A.UPYM_AMT
+                     ,A.SO_ID
+                 FROM TBLUP_UPYM_CTRT A,
+                      TBLUP_UPYM_COPE_TP_BS B
+                WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+                  AND A.UPYM_MTH_CNT BETWEEN 
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+                    THEN B.UPYM_MONTHS_FROM
+                    ELSE A.UPYM_MTH_CNT END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+                    THEN B.UPYM_MONTHS_TO
+                    ELSE A.UPYM_MTH_CNT END
+                  AND CAST(A.TERM_MTH_CNT AS INT) BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP = '7'
+                    THEN B.UPYM_MONTHS_FROM
+                    ELSE CAST(A.TERM_MTH_CNT AS INT) END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP = '7'
+                    THEN B.UPYM_MONTHS_TO
+                    ELSE CAST(A.TERM_MTH_CNT AS INT) END
+                  AND A.UPYM_AMT BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+                    THEN B.UPYM_AMT_FROM
+                    ELSE A.UPYM_AMT END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+                    THEN B.UPYM_AMT_TO
+                    ELSE A.UPYM_AMT END
+                  AND 
+                    CASE A.BILL_AMT WHEN 0
+                    THEN 100
+                    ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP = '4'
+                    THEN B.UPYM_AMT_FROM
+                    ELSE
+                      CASE A.BILL_AMT WHEN 0
+                      THEN 100
+                      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP = '4'
+                    THEN B.UPYM_AMT_TO
+                    ELSE
+                      CASE A.BILL_AMT WHEN 0
+                      THEN 100
+                      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    END
+                  AND B.SO_ID = #{soId}
+                  AND B.UPYM_MNG_TP  = '70'
+                  AND A.CTRT_STAT = '20'
+                  AND A.SO_ID = #{soId}
+                  AND A.UPYM_BS_YYMM = #{inDate}
+                  AND A.CUST_TP = 'C'
+                UNION ALL
+               SELECT A.UPYM_BS_YYMM
+                     ,A.CTRT_ID
+                     ,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') AS REG_YYYYMMDDHHMISS
+                     ,A.CUST_ID
+                     ,A.PYM_ACNT_ID
+                     ,B.UPYM_MNG_TP
+                     ,A.UPYM_PRGR_MTH_CNT
+                     ,A.UPYM_MTH_CNT
+                     ,A.UPYM_AMT
+                     ,A.SO_ID
+                 FROM TBLUP_UPYM_CTRT A,
+                      TBLUP_UPYM_COPE_TP_BS B
+                WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+                  AND A.UPYM_MTH_CNT BETWEEN 
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+                    THEN B.UPYM_MONTHS_FROM
+                    ELSE A.UPYM_MTH_CNT END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6')
+                    THEN B.UPYM_MONTHS_TO
+                    ELSE A.UPYM_MTH_CNT END
+                  AND CAST(A.TERM_MTH_CNT AS INT) BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP = '7'
+                    THEN B.UPYM_MONTHS_FROM
+                    ELSE CAST(A.TERM_MTH_CNT AS INT) END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP = '7'
+                    THEN B.UPYM_MONTHS_TO
+                    ELSE CAST(A.TERM_MTH_CNT AS INT) END
+                  AND A.UPYM_AMT BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+                    THEN B.UPYM_AMT_FROM
+                    ELSE A.UPYM_AMT END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3')
+                    THEN B.UPYM_AMT_TO
+                    ELSE A.UPYM_AMT END
+                  AND 
+                    CASE A.BILL_AMT WHEN 0
+                    THEN 100
+                    ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    BETWEEN
+                    CASE WHEN B.UPYM_MNG_BS_TP = '4'
+                    THEN B.UPYM_AMT_FROM
+                    ELSE
+                      CASE A.BILL_AMT WHEN 0
+                      THEN 100
+                      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    END
+                  AND
+                    CASE WHEN B.UPYM_MNG_BS_TP = '4'
+                    THEN B.UPYM_AMT_TO
+                    ELSE
+                      CASE A.BILL_AMT WHEN 0
+                      THEN 100
+                      ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END
+                    END
+                  AND B.SO_ID = #{soId}
+                  AND B.UPYM_MNG_TP = '71'
+                  AND A.CTRT_STAT IN ('20','40')
+                  AND A.SO_ID = #{soId}
+                  AND A.UPYM_BS_YYMM = #{inDate}
+                  AND A.CUST_TP = 'C')
+       GROUP BY UPYM_BS_YYMM , UPYM_MNG_TP , CTRT_ID, SO_ID
+	</select>
+
+	<insert id="insertAuthChgAppl">
+		INSERT INTO TBLUP_AUTH_CHG_APPL
+		(
+			UPYM_BS_YYMM
+			, CTRT_ID
+			, REG_YYYYMMDDHHMISS
+			, CUST_ID
+			, PYM_ACNT_ID
+			, UPYM_MNG_TP
+			, UPYM_PRGR_MTH_CNT
+			, UPYM_MTH_CNT
+			, UPYM_AMT
+			, REG_DATE
+			, REGR_ID
+			, CHGR_DATE
+			, CHG_ID
+			, SO_ID
+		)
+		VALUES
+		(
+			#{upymBsYymm}
+			, #{ctrtId}
+			, #{regYyyymmddhhmiss}
+			, #{custId}
+			, #{pymAcntId}
+			, #{upymMngTp}
+			, #{upymPrgrMthCnt}
+			, #{upymMthCnt}
+			, #{upymAmt}
+			, #{regDate}
+			, #{regrId}
+			, #{chgrDate}
+			, #{chgId}
+			, #{soId}
+		)
+	</insert>
+	
+	<select id="getDebtTgtPsnList" resultType="DebtTgtPsn">
+		SELECT 
+			UPYM_BS_YYMM
+			,CTRT_ID
+			,BILL_YYMM
+			,PYM_ACNT_ID
+			,CUST_ID
+			,UPYM_PRGR_MTH_CNT
+			,UPYM_MTH_CNT
+			,BILL_AMT
+			,RCPT_AMT
+			,UPYM_AMT
+		FROM (
+			SELECT A.UPYM_BS_YYMM AS UPYM_BS_YYMM
+				,A.CTRT_ID AS CTRT_ID
+				,MAX(A.BILL_YYMM) AS BILL_YYMM
+				,MAX(A.PYM_ACNT_ID) AS PYM_ACNT_ID
+				,MAX(A.CUST_ID) AS CUST_ID
+				,MAX(A.UPYM_PRGR_MTH_CNT) AS UPYM_PRGR_MTH_CNT
+				,MAX(A.UPYM_MTH_CNT) AS UPYM_MTH_CNT
+				,SUM(D.BILL_AMT) AS BILL_AMT
+				,SUM(D.RCPT_AMT) AS RCPT_AMT
+				,MAX(A.UPYM_AMT) AS UPYM_AMT
+			FROM TBLUP_UPYM_ENTRUST_MAST A, TBLIV_BILL D
+			WHERE A.CTRT_ID = D.CTRT_ID
+			AND A.UPYM_BS_YYMM = #{inDate}
+			AND A.ORG_YN = 'B'
+			GROUP BY A.UPYM_BS_YYMM, A.CTRT_ID) A, TBLUP_UPYM_COPE_TP_BS B
+		WHERE A.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+		AND A.UPYM_MTH_CNT BETWEEN  CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_FROM ELSE CAST(A.UPYM_MTH_CNT AS INT) END
+		AND CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_TO ELSE CAST(A.UPYM_MTH_CNT AS INT) END
+		AND A.UPYM_AMT BETWEEN CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_FROM ELSE CAST(A.UPYM_AMT AS INT) END
+		AND CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_TO ELSE CAST(A.UPYM_AMT AS INT) END
+		AND  CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END BETWEEN
+		CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_FROM ELSE CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END END
+		AND CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_TO ELSE CASE A.BILL_AMT WHEN 0 THEN 100 ELSE (A.RCPT_AMT/A.BILL_AMT) * 100 END END
+		AND B.UPYM_MNG_TP = '99'
+	</select>
+	
+	<insert id="insertDebtTgtPsn">
+		INSERT INTO TBLUP_DEBT_TGT_PSN
+		(
+			UPYM_BS_YYMM
+			, CTRT_ID
+			, BILL_YYMM
+			, PYM_ACNT_ID
+			, CUST_ID
+			, UPYM_PRGR_MTH_CNT
+			, UPYM_MTH_CNT
+			, BILL_AMT
+			, RCPT_AMT
+			, UPYM_AMT
+			, ACCT_PROC_YN
+			, PAY_PROC_YN
+			, REGR_ID
+			, REG_DATE
+			, CHGR_ID
+			, CHG_DATE
+		)
+		VALUES
+		(
+			#{upymBsYymm}
+			, #{ctrtId}
+			, #{billYymm}
+			, #{pymAcntId}
+			, #{custId}
+			, #{upymPrgrMthCnt}
+			, #{upymMthCnt}
+			, #{billAmt}
+			, #{rcptAmt}
+			, #{upymAmt}
+			, #{acctProcYn}
+			, #{payProcYn}
+			, #{regrId}
+			, #{regDate}
+			, #{chgrId}
+			, #{chgDate}
+		)
+	</insert>
+	
+	<select id="getUpymCtrtMngTpList" resultType="UpymCtrtMngTp">
+		SELECT
+			v1.UPYM_BS_YYMM
+			, v1.PYM_ACNT_ID
+			, v1.CTRT_ID
+			, v1.CUST_ID
+			, v1.PYM_CUST_ID
+			, v1.SVC_TEL_NO
+			, v1.SO_ID
+			, v1.UPYM_PRGR_MTH_CNT
+			, v1.UPYM_MTH_CNT
+			, v1.BILL_AMT
+			, v1.RCPT_AMT
+			, v1.UPYM_BIG_AMT_YN
+			, v1.UPYM_AMT
+			, v1.CTRT_STAT
+			, v1.TERM_MTH_CNT
+			, v1.RATE_STRT_DT
+			, v1.TERM_DD
+		FROM
+		(
+			SELECT
+				A.UPYM_BS_YYMM
+				, A.PYM_ACNT_ID
+				, A.CTRT_ID
+				, MIN(A.CUST_ID) AS CUST_ID
+				, MIN(A.PYM_CUST_ID) AS PYM_CUST_ID
+				, MIN(CASE WHEN D.SVC_TEL_NO IS NULL THEN '00000000000' ELSE D.SVC_TEL_NO END) AS SVC_TEL_NO
+				, MIN(A.SO_ID) AS SO_ID
+				, CASE WHEN MIN(A.BILL_AMT - A.RCPT_AMT) &lt;= 0 THEN 0 WHEN MIN(A.BILL_YYMM) IS NULL THEN 0 WHEN A.UPYM_BS_YYMM IS NULL THEN 0 
+					ELSE ABS(((SUBSTR(A.UPYM_BS_YYMM, 1, 4) - SUBSTR(MIN(A.BILL_YYMM), 1, 4)) * 12) + (SUBSTR(A.UPYM_BS_YYMM, 5, 2) - SUBSTR(MIN(A.BILL_YYMM), 5, 2))) END AS UPYM_PRGR_MTH_CNT
+				, CASE COUNT(DISTINCT CASE WHEN A.BILL_AMT - A.RCPT_AMT &gt; 0 THEN A.BILL_YYMM ELSE '' END) WHEN 0 THEN 0
+					ELSE COUNT(DISTINCT CASE WHEN A.BILL_AMT-A.RCPT_AMT &gt; 0 THEN A.BILL_YYMM ELSE '' END) - (CASE MAX(A.BILL_YYMM) WHEN #{inDate} THEN 1 ELSE 0 END) END AS UPYM_MTH_CNT
+				, SUM(A.BILL_AMT) AS BILL_AMT
+				, SUM(A.RCPT_AMT) AS RCPT_AMT
+				, CASE WHEN MIN(C.UPYM_AMT_FROM) - SUM(A.BILL_AMT-A.RCPT_AMT) &gt; 0 THEN 'N' ELSE CASE WHEN MIN(C.UPYM_AMT_TO) - SUM(A.BILL_AMT-A.RCPT_AMT) &gt; 0 THEN 'Y' ELSE 'N' END END AS UPYM_BIG_AMT_YN
+				, SUM(A.BILL_AMT) - SUM(A.RCPT_AMT) AS UPYM_AMT
+				, MIN(D.CTRT_STAT) AS CTRT_STAT
+				, MAX(CASE WHEN D.TERM_DT = '99991231' THEN 0 WHEN A.UPYM_BS_YYMM IS NULL THEN 0 WHEN D.TERM_DT IS NULL THEN 0 ELSE ABS(((SUBSTR(A.UPYM_BS_YYMM, 1, 4) - SUBSTR(D.TERM_DT, 1, 4)) * 12) + (SUBSTR(A.UPYM_BS_YYMM, 5, 2) - SUBSTR(D.TERM_DT, 5, 2))) END) AS TERM_MTH_CNT
+				, MAX(CASE D.RATE_STRT_DT WHEN NULL THEN ' ' ELSE D.RATE_STRT_DT END) AS RATE_STRT_DT
+				, MAX(CASE D.TERM_DT WHEN NULL THEN ' ' ELSE D.TERM_DT END) AS TERM_DD
+			FROM TBLUP_UPYM_DTL A
+				, TBLUP_UPYM B
+				, TBLUP_UPYM_COPE_TP_BS C
+				, IFNBRM_CTRT_INFO D
+			WHERE  A.PYM_ACNT_ID = B.PYM_ACNT_ID
+			AND  A.UPYM_BS_YYMM = B.UPYM_BS_YYMM
+			AND  B.SO_ID = #{soId}
+			AND  A.UPYM_BS_YYMM = #{inDate}
+			AND  A.UPYM_BS_YYMM BETWEEN C.EFT_BGN_YYMM AND C.EFT_END_YYMM
+			AND  A.CTRT_ID = D.CTRT_ID
+			AND  C.UPYM_MNG_TP = '00'
+			AND  D.INACT_DTTM = '99991231235959'
+			GROUP BY A.UPYM_BS_YYMM,
+			A.PYM_ACNT_ID,
+			A.CTRT_ID
+		) V1
+		,  TBLUP_UPYM_COPE_TP_BS B
+		WHERE V1.UPYM_BS_YYMM BETWEEN B.EFT_BGN_YYMM AND B.EFT_END_YYMM
+		AND V1.UPYM_MTH_CNT BETWEEN  CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_FROM ELSE V1.UPYM_MTH_CNT END
+		AND CASE WHEN B.UPYM_MNG_BS_TP IN ('1', '3', '5', '6') THEN B.UPYM_MONTHS_TO ELSE V1.UPYM_MTH_CNT END
+		AND V1.TERM_MTH_CNT BETWEEN CASE WHEN B.UPYM_MNG_BS_TP = '7' THEN B.UPYM_MONTHS_FROM ELSE V1.TERM_MTH_CNT END
+		AND CASE WHEN B.UPYM_MNG_BS_TP = '7' THEN B.UPYM_MONTHS_TO ELSE V1.TERM_MTH_CNT END
+		AND V1.UPYM_AMT BETWEEN CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_FROM ELSE V1.UPYM_AMT END
+		AND CASE WHEN B.UPYM_MNG_BS_TP IN ('2', '3') THEN B.UPYM_AMT_TO ELSE V1.UPYM_AMT END
+		AND CASE V1.BILL_AMT WHEN 0 THEN 100 ELSE (V1.RCPT_AMT/V1.BILL_AMT) * 100 END BETWEEN CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_FROM ELSE CASE V1.BILL_AMT WHEN 0 THEN 100 ELSE (V1.RCPT_AMT/V1.BILL_AMT) * 100 END END
+		AND CASE WHEN B.UPYM_MNG_BS_TP = '4' THEN B.UPYM_AMT_TO ELSE CASE V1.BILL_AMT WHEN 0 THEN 100 ELSE (V1.RCPT_AMT/V1.BILL_AMT) * 100 END END
+		AND B.SO_ID = #{soId}
+		AND B.UPYM_MNG_TP = #{upymMngTp}
+	</select>
+	
+	<insert id="insertUpymCtrtMngTp">
+		INSERT INTO TBLUP_UPYM_CTRT_MNG_TP
+		(
+			UPYM_BS_YYMM
+			, PYM_ACNT_ID
+			, CTRT_ID
+			, CUST_ID
+			, PYM_CUST_ID
+			, SVC_TEL_NO
+			, SO_ID
+			, UPYM_PRGR_MTH_CNT
+			, UPYM_MTH_CNT
+			, BILL_AMT
+			, RCPT_AMT
+			, UPYM_BIG_AMT_YN
+			, UPYM_AMT
+			, UPYM_DUE_DT
+			, UPYM_CORP_CD
+			, UPYM_DIV_TP
+			, CORP_ID
+			, CTRT_STAT
+			, TERM_MTH_CNT
+			, SVC_STRT_DD
+			, TERM_DD
+			, SOCIAL_FG
+			, CUST_TP
+			, UPYM_MNG_TP
+			, REG_DATE
+			, REGR_ID
+		)
+		VALUES
+		(
+			#{upymBsYymm}
+			, #{pymAcntId}
+			, #{ctrtId}
+			, #{custId}
+			, #{pymCustId}
+			, #{svcTelNo}
+			, #{soId}
+			, #{upymPrgrMthCnt}
+			, #{upymMthCnt}
+			, #{billAmt}
+			, #{rcptAmt}
+			, #{upymBigAmtYn}
+			, #{upymAmt}
+			, #{upymDueDt}
+			, #{upymCorpCd}
+			, #{upymDivTp}
+			, #{corpId}
+			, #{ctrtStat}
+			, #{termMthCnt}
+			, #{svcStrtDd}
+			, #{termDd}
+			, #{socialFg}
+			, #{custTp}
+			, #{upymMngTp}
+			, #{regDate}
+			, #{regrId}
+		)
+	</insert>
+
+</mapper>

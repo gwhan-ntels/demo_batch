@@ -1,0 +1,726 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivd51m00Mapper">
+
+	<select id="getAdjBillList" resultType="AdjBill">
+		SELECT 
+			A.BILL_SEQ_NO
+			, B.USE_YYMM AS USE_YYMM
+			, B.PROD_CMPS_ID AS PROD_CMPS_ID
+			, B.SVC_CMPS_ID AS SVC_CMPS_ID
+			, B.CHRG_ITM_CD AS CHRG_ITM_CD
+			, A.BILL_YYMM AS BILL_YYMM
+			, A.BILL_CYCL AS BILL_CYCL
+			, A.BILL_DT AS BILL_DT
+			, B.SO_ID AS SO_ID
+			, B.GRP_ID AS GRP_ID
+			, A.PYM_ACNT_ID AS PYM_ACNT_ID
+			, A.ADJ_BILL_DT AS ADJ_BILL_DT
+			, B.CUST_ID AS CUST_ID
+			, B.CTRT_ID AS CTRT_ID
+			, G.CRNCY_CD AS CRNCY_CD
+			, MAX(G.EXRATE) AS EXRATE
+			, MAX(G.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+			, SUM(B.ADJ_APPL_AMT) AS ADJ_APPL_AMT
+			, A.BILL_RE_ISS_YN AS BILL_RE_ISS_YN
+			, C.PAY_MTHD AS PAY_MTHD
+			, CASE WHEN C.BILL_MDM_JIRO_YN &lt;&gt; 'N' THEN '01'
+				WHEN C.BILL_MDM_EML_YN &lt;&gt; 'N' THEN '03'
+				WHEN C.BILL_MDM_SMS_YN &lt;&gt; 'N' THEN '04'
+				ELSE '01' END AS BILL_METH
+			, MAX(A.APPR_DTTM) AS APPR_DTTM
+			, A.HOPE_APLY_YYMM AS HOPE_APLY_YYMM
+			, A.ADJ_RESN_CD AS ADJ_RESN_CD
+		FROM TBLIV_CHRG_ADJ_APLY A
+			, TBLIV_CHRG_ADJ_APLY_DTL B
+			, TBLIV_BILL_TGT_CUST C
+			, TBLIV_EXRATE_INFO G
+		WHERE A.ADJ_NO = #{adjNo}
+		AND (A.DCSN_PROC_STAT = '03' OR A.DCSN_PROC_STAT = '89')
+		AND B.ADJ_NO = A.ADJ_NO
+		AND A.ADJ_PT = '2'
+		AND B.ADJ_APPL_AMT &lt;&gt; 0
+		AND B.SO_ID = #{soId}
+		AND A.BILL_SEQ_NO = C.BILL_SEQ_NO
+		AND C.SO_ID = #{soId}
+		AND G.CRNCY_CD =  B.CRNCY_CD
+		AND G.EXRATE_APLY_DT = #{exrateAplyDt}
+		GROUP BY A.BILL_SEQ_NO
+			, B.USE_YYMM
+			, B.PROD_CMPS_ID
+			, B.SVC_CMPS_ID
+			, B.CHRG_ITM_CD
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, B.SO_ID
+			, B.GRP_ID
+			, A.PYM_ACNT_ID
+			, A.ADJ_BILL_DT
+			, B.CUST_ID
+			, B.CTRT_ID
+			, G.CRNCY_CD
+			, A.BILL_RE_ISS_YN
+			, C.PAY_MTHD
+			, CASE WHEN C.BILL_MDM_JIRO_YN &lt;&gt; 'N' THEN '01'
+				WHEN C.BILL_MDM_EML_YN &lt;&gt; 'N' THEN '03'
+				WHEN C.BILL_MDM_SMS_YN &lt;&gt; 'N' THEN '04'
+				ELSE '01' END
+			, SUBSTR(A.APPR_DTTM, 1, 6)
+			, A.HOPE_APLY_YYMM
+			, A.ADJ_RESN_CD
+		ORDER BY A.BILL_SEQ_NO
+			, B.PROD_CMPS_ID
+			, B.SVC_CMPS_ID
+	</select>
+	
+	<select id="getRcptAmt" resultType="double">
+		SELECT SUM(RCPT_AMT)
+		FROM TBLIV_BILL
+		WHERE BILL_SEQ_NO = #{bill.billSeqNo}
+		AND SO_ID = #{bill.soId}
+	</select>
+	
+	<update id="updateAdjAplyDcsnProcStat">
+		UPDATE TBLIV_CHRG_ADJ_APLY SET
+			DCSN_PROC_STAT = '03'
+			, CHG_DATE = #{chgDate}
+		WHERE ADJ_NO = #{adjNo}
+	</update>
+	
+	<select id="getPymSeqNo" resultType="Receipt">
+		SELECT
+			PYM_SEQ_NO
+			, SO_ID
+		FROM TBLPY_RCPT
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND SO_ID = #{soId}
+		AND DPST_CL = '22'
+	</select>
+	
+	<delete id="deleteRcpt">
+		DELETE FROM TBLPY_RCPT
+		WHERE PYM_SEQ_NO = #{pymSeqNo}
+		AND SO_ID = #{soId}
+	</delete>
+	
+	<delete id="deleteRcptDtl">
+		DELETE FROM TBLPY_RCPT_DTL
+		WHERE PYM_SEQ_NO = #{pymSeqNo}
+		AND SO_ID = #{soId}
+	</delete>
+	
+	<select id="getPrepayOccInfo" resultType="PrepayOcc">
+		SELECT
+			PREPAY_OCC_SEQ_NO
+			, PREPAY_TRANS_AMT
+			, SO_ID
+		FROM TBLPY_PREPAY_OCC
+		WHERE PREPAY_OCC_TGT_SEQ_NO = #{prepayOccSeqNo}
+		AND SO_ID = #{soId}
+	</select>
+	
+	<delete id="deletePrepayOcc">
+		DELETE FROM TBLPY_PREPAY_OCC
+		WHERE PREPAY_OCC_SEQ_NO = #{prepayOccSeqNo}
+		AND SO_ID = #{soId}
+	</delete>
+	
+	<update id="updateBillNotPaid">
+		UPDATE TBLIV_BILL SET
+			RCPT_AMT = 0
+			, FULL_PAY_YN = 'N'
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND SO_ID = #{soId}
+	</update>
+	
+	<update id="updateBillMastNotPaid">
+		UPDATE TBLIV_BILL_MAST SET
+			RCPT_AMT = 0
+			, UNPAY_AMT = BILL_AMT
+			, FULL_PAY_YN = 'N'
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND SO_ID = #{soId}
+	</update>
+	
+	<select id="getAdjBillInfo" resultType="CBillComm">
+		SELECT
+			USE_YYMM
+			, WON_BILL_AMT
+			, ADJ_PRV_BILL_AMT
+			, ADJ_AMT
+			, BILL_AMT
+			, EXRATE
+		FROM TBLIV_BILL
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND USE_YYMM = #{useYymm}
+		AND PROD_CMPS_ID = #{prodCmpsId}
+		AND SVC_CMPS_ID = #{svcCmpsId}
+		AND CHRG_ITM_CD = #{chrgItmCd}
+		AND SO_ID = #{soId}
+	</select>
+	
+	<update id="updateBillAdjAmt">
+		UPDATE TBLIV_BILL SET
+			ADJ_AMT = ADJ_AMT + #{adjAmt}
+			, BILL_AMT = BILL_AMT + #{adjAmt}
+			, WON_BILL_AMT = WON_BILL_AMT + #{adjAmt}
+			, CHG_DATE = #{chgDate}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND USE_YYMM = #{useYymm}
+		AND PROD_CMPS_ID = #{prodCmpsId}
+		AND SVC_CMPS_ID = #{svcCmpsId}
+		AND CHRG_ITM_CD = #{chrgItmCd}
+		AND SO_ID = #{soId}
+	</update>
+	
+	<update id="updateBillMastAdjAmt">
+		UPDATE TBLIV_BILL_MAST SET
+			BILL_AMT = BILL_AMT + #{adjAmt}
+			, WON_BILL_AMT = WON_BILL_AMT + #{adjAmt}
+			, UNPAY_AMT = UNPAY_AMT + #{adjAmt}
+			, CHG_DATE = #{chgDate}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND SO_ID = #{soId}
+	</update>
+	
+	<select id="getAdjTaxList" resultType="TaxTarget">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.BILL_YYMM
+			, A.USE_YYMM
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.BILL_AMT
+			, A.ADJ_AMT
+			, A.CHRG_ITM_CD
+			, B1.VCHRG_ITM_CD
+			, B1.VAT_TP
+			, B1.VAT_RATE
+			, B2.SCHRG_ITM_CD
+			, B2.SCT_TP
+			, B2.SCT_RATE
+		FROM
+		(
+			SELECT
+				BILL_SEQ_NO
+				, BILL_YYMM
+				, USE_YYMM
+				, PROD_CMPS_ID
+				, SVC_CMPS_ID
+				, CHRG_ITM_CD
+				, BILL_AMT
+				, ADJ_AMT
+			FROM TBLIV_BILL
+		 	WHERE BILL_SEQ_NO = #{billSeqNo}
+		 	AND SO_ID = #{soId}
+			AND CHRG_ITM_CD NOT IN (
+				SELECT REF_CODE
+				FROM TSYCO_CODE_DETAIL
+				WHERE COMMON_GRP = 'BL00000'
+				AND (COMMON_CD = '02' OR COMMON_CD = '06')
+				AND USE_YN = 'Y'
+ 			)
+		) A LEFT OUTER JOIN
+		(
+			SELECT
+				SVC_RATE_ITM_TYP_CD AS CHRG_ITM_CD
+				, ATTR_VAL AS VAT_TP
+				, (
+					SELECT
+						SET_VAL
+					FROM TBLIV_BILL_STP
+					WHERE SO_ID = #{soId}
+					AND SET_ITM_ID  = '00021'
+					AND EFT_BGN_YYMM &lt;= #{billYymm}
+					AND EFT_END_YYMM &gt;= #{billYymm}
+				) AS VAT_RATE
+				, (
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '02'
+					AND USE_YN = 'Y') AS VCHRG_ITM_CD
+			FROM IFNBRM_SVC_RATE_ITM_ATTR_INFO
+			WHERE SO_ID = #{soId}
+			AND INACT_DT &gt;= #{billYymm}
+			AND ACT_DT &lt;= #{billYymm}
+			AND ATTR_CD = 'DF055'
+		) B1 ON A.CHRG_ITM_CD = B1.CHRG_ITM_CD
+		LEFT OUTER JOIN (
+			SELECT
+				SVC_RATE_ITM_TYP_CD AS CHRG_ITM_CD
+				, ATTR_VAL AS SCT_TP
+				, (
+					SELECT SET_VAL
+					FROM TBLIV_BILL_STP
+					WHERE SO_ID = #{soId}
+					AND SET_ITM_ID = '00100'
+					AND EFT_BGN_YYMM &lt;= #{billYymm}
+					AND EFT_END_YYMM &gt;= #{billYymm}
+				) AS SCT_RATE
+				, (
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '06'
+					AND USE_YN = 'Y') AS SCHRG_ITM_CD
+			FROM IFNBRM_SVC_RATE_ITM_ATTR_INFO
+			WHERE SO_ID = #{soId}
+			AND INACT_DT &gt;= #{billYymm}
+			AND ACT_DT &lt;= #{billYymm}
+			AND ATTR_CD = 'DF064'
+		) B2 ON A.CHRG_ITM_CD = B2.CHRG_ITM_CD
+		ORDER BY A.BILL_SEQ_NO
+			, A.USE_YYMM
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+	</select>
+	
+	<select id="getPrevAdjTax" resultType="TaxTarget">
+		SELECT
+			CASE WHEN B.BILL_AMT IS NULL THEN 0 ELSE B.BILL_AMT END AS VAT_ADJ_AMT
+			, CASE WHEN C.BILL_AMT IS NULL THEN 0 ELSE C.BILL_AMT END AS SCT_ADJ_AMT
+		FROM
+		(
+			SELECT
+				BILL_SEQ_NO
+				, CHRG_ITM_CD
+				, BILL_AMT
+			FROM TBLIV_BILL_WRK
+			WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND SO_ID = #{soId}
+			AND BILL_YYMM = #{billYymm}
+			AND CHRG_ITM_CD = 
+			(
+				SELECT REF_CODE
+				FROM TSYCO_CODE_DETAIL
+				WHERE COMMON_GRP = 'BL00000'
+				AND COMMON_CD = '02'
+				AND USE_YN = 'Y'
+			)
+		) B
+		, (
+			SELECT
+				BILL_SEQ_NO
+				, CHRG_ITM_CD
+				, BILL_AMT
+			FROM
+			TBLIV_BILL_WRK
+			WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND SO_ID = #{soId}
+			AND BILL_YYMM = #{billYymm}
+			AND CHRG_ITM_CD = 
+			(
+				SELECT REF_CODE
+				FROM TSYCO_CODE_DETAIL
+				WHERE COMMON_GRP = 'BL00000'
+				AND COMMON_CD = '06'
+				AND USE_YN = 'Y'
+			)
+		) C
+		WHERE B.BILL_SEQ_NO = C.BILL_SEQ_NO
+	</select>
+	
+	<update id="updateBillAdjVat">
+		UPDATE TBLIV_BILL SET
+			ADJ_AMT = (ADJ_PRV_BILL_AMT - #{vat}) * (-1)
+			, BILL_AMT = #{vat}
+			, WON_BILL_AMT = #{vat}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND USE_YYMM = #{useYymm}
+		AND PROD_CMPS_ID = #{prodCmpsId}
+		AND SVC_CMPS_ID = #{svcCmpsId}
+		AND CHRG_ITM_CD = #{chrgItmCd}
+		AND SO_ID = #{soId}
+	</update>
+	
+	<update id="updateBillMastAdjVat">
+		UPDATE TBLIV_BILL_MAST SET
+			BILL_AMT = (SELECT SUM(BILL_AMT) FROM TBLIV_BILL WHERE BILL_SEQ_NO = #{billSeqNo} GROUP BY BILL_SEQ_NO)
+			, UNPAY_AMT = (SELECT SUM(BILL_AMT) FROM TBLIV_BILL WHERE BILL_SEQ_NO = #{billSeqNo} GROUP BY BILL_SEQ_NO)
+			, WON_BILL_AMT = (SELECT SUM(BILL_AMT) FROM TBLIV_BILL WHERE BILL_SEQ_NO = #{billSeqNo} GROUP BY BILL_SEQ_NO)
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND SO_ID = #{soId}
+	</update>
+	
+	<select id="getTotBillAmtWithoutRounding" resultType="double">
+		SELECT SUM(BILL_AMT) AS BILL_AMT
+		FROM TBLIV_BILL
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND CHRG_ITM_CD != 'SR877'
+	</select>
+	
+	<select id="existsRoundingAdjustment" resultType="boolean">
+		SELECT COUNT(*)
+		FROM TBLIV_BILL
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND CHRG_ITM_CD = 'SR877'
+	</select>
+	
+	<update id="updateRoundingAdjustment">
+		UPDATE TBLIV_BILL SET
+		BILL_AMT = #{billAmt}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND CHRG_ITM_CD = 'SR877'
+	</update>
+	
+	<delete id="deleteTaxBill">
+		DELETE FROM TBLIV_TAX_BILL
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND SO_ID = #{soId}
+		AND PYM_ACNT_ID = #{pymAcntId}
+	</delete>
+	
+	<select id="getSaleAdjList" resultType="SaleAdj">
+		SELECT
+			A.BILL_SEQ_NO AS BILL_SEQ_NO
+			, A.USE_YYMM AS USE_YYMM
+			, A.PROD_CMPS_ID AS PROD_CMPS_ID
+			, A.SVC_CMPS_ID AS SVC_CMPS_ID
+			, B.SALE_ITM_CD AS SALE_ITM_CD
+			, A.BILL_YYMM AS BILL_YYMM
+			, A.BILL_CYCL AS BILL_CYCL
+			, A.BILL_DT AS BILL_DT
+			, A.SO_ID AS SO_ID
+			, A.GRP_ID AS GRP_ID
+			, A.PYM_ACNT_ID AS PYM_ACNT_ID
+			, CASE WHEN G.CUST_ID IS NULL THEN ' ' ELSE G.CUST_ID END AS CUST_ID
+			, A.CTRT_ID AS CTRT_ID
+			, A.PROD_CD AS PROD_CD
+			, A.SVC_CD AS SVC_CD
+			, A.BIZ_CL AS BIZ_CL
+			, A.PROD_GRP AS PROD_GRP
+			, A.SVC_GRP AS SVC_GRP
+			, A.BILL_MM_TP AS BILL_MM_TP
+			, A.SALE_TP AS SALE_TP
+			, A.PAY_DUE_DT AS PAY_DUE_DT
+			, CASE WHEN C.TAX_TP IS NULL THEN '1' ELSE C.TAX_TP END AS TAX_TP
+			, CASE WHEN A.ATRT_CORP_ID IS NULL THEN ' ' ELSE A.ATRT_CORP_ID END AS ATRT_CORP_ID
+			, CASE WHEN A.ATRT_EMP_ID IS NULL THEN ' ' ELSE A.ATRT_EMP_ID END AS ATRT_EMP_ID
+			, A.CRNCY_CD AS CRNCY_CD
+			, A.EXRATE AS EXRATE
+			, A.EXRATE_APLY_DT AS EXRATE_APLY_DT
+			, CASE WHEN B.SALE_TYP IS NULL THEN CASE WHEN J.PROD_TYP = '23' THEN '03' ELSE '01' END ELSE B.SALE_TYP END SALE_CL
+		FROM TBLIV_BILL A
+			LEFT OUTER JOIN IFNBRM_CTRT_INFO G ON A.CTRT_ID = G.CTRT_ID AND A.SO_ID = G.SO_ID AND G.INACT_DTTM = '99991231235959'
+			LEFT OUTER JOIN IFNBRM_PROD_INFO J ON A.PROD_CD = J.PROD_CD AND A.SO_ID = J.SO_ID
+			, IFNBRM_SVC_RATE_ITM_INFO B
+			, IFNBRM_CUST_INFO C
+		WHERE A.BILL_SEQ_NO = #{billSeqNo}
+		AND A.PROD_CMPS_ID = #{prodCmpsId}
+		AND A.SVC_CMPS_ID = #{svcCmpsId}
+		AND A.SO_ID = #{soId}
+		AND A.CHRG_ITM_CD = B.SVC_RATE_ITM_TYP_CD
+		AND A.SO_ID = C.SO_ID
+		AND A.PYM_ACNT_ID = C.PYM_ACNT_ID
+		AND A.CUST_ID = C.CUST_ID
+		AND B.SALE_ITM_CD IS NOT NULL
+		AND A.CHRG_ITM_CD = #{chrgItmCd}
+	</select>
+	
+	<insert id="insertSaleAdj">
+		INSERT INTO TBLIV_SALE_ADJ
+		(
+			SEQ_NO
+			, BILL_SEQ_NO
+			, USE_YYMM
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, SALE_ITM_CD
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_CD
+			, SVC_CD
+			, BIZ_CL
+			, PROD_GRP
+			, SVC_GRP
+			, BILL_MM_TP
+			, SALE_TP
+			, SALE_AMT
+			, VAT
+			, PAY_DUE_DT
+			, TAX_TP
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, ACCT_TRNS_YN
+			, WON_SALE_AMT
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, REG_DATE
+			, ADJ_AMT
+			, SALE_CL
+		)
+		VALUES
+		(
+			#{seqNo}
+			, #{billSeqNo}
+			, #{useYymm}
+			, #{prodCmpsId}
+			, #{svcCmpsId}
+			, #{saleItmCd}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{soId}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{prodCd}
+			, #{svcCd}
+			, #{bizCl}
+			, #{prodGrp}
+			, #{svcGrp}
+			, #{billMmTp}
+			, #{saleTp}
+			, #{saleAmt}
+			, #{vat}
+			, #{payDueDt}
+			, #{taxTp}
+			, #{atrtCorpId}
+			, #{atrtEmpId}
+			, #{acctTrnsYn}
+			, #{wonSaleAmt}
+			, #{crncyCd}
+			, #{exrate}
+			, #{exrateAplyDt}
+			, #{regDate}
+			, #{adjAmt}
+			, #{saleCl}
+		)
+	</insert>
+	
+	<select id="getSaleBillAdj" resultType="SaleAdj">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.USE_YYMM
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.SALE_ITM_CD
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.SO_ID
+			, A.GRP_ID
+			, A.PYM_ACNT_ID
+			, A.CUST_ID
+			, A.CTRT_ID
+			, A.PROD_CD
+			, A.SVC_CD
+			--, A.BIZ_CL
+			, A.PROD_GRP
+			, A.SVC_GRP
+			, A.BILL_MM_TP
+			, A.SALE_TP
+			, A.BILL_AMT AS SALE_AMT
+			, A.VAT
+			, A.PAY_DUE_DT
+			, A.TAX_TP
+			, CASE WHEN A.ATRT_CORP_ID IS NULL THEN ' ' ELSE A.ATRT_CORP_ID END AS ATRT_CORP_ID
+			, CASE WHEN A.ATRT_EMP_ID IS NULL THEN ' ' ELSE A.ATRT_EMP_ID END AS ATRT_EMP_ID
+			, A.W_BILL_AMT AS WON_SALE_AMT
+			, A.CRNCY_CD
+			, A.EXRATE
+			, A.EXRATE_APLY_DT
+			, A.BILL_AMT AS ADJ_AMT
+			, A.SALE_CL
+		FROM
+		(
+			SELECT
+				A.BILL_SEQ_NO AS BILL_SEQ_NO
+				, O.USE_YYMM AS USE_YYMM
+				, B.PROD_CMPS_ID AS PROD_CMPS_ID
+				, B.SVC_CMPS_ID AS SVC_CMPS_ID
+				, K.SALE_ITM_CD AS SALE_ITM_CD
+				, O.BILL_YYMM AS BILL_YYMM
+				, O.BILL_CYCL AS BILL_CYCL
+				, O.BILL_DT AS BILL_DT
+				, B.SO_ID AS SO_ID
+				, B.GRP_ID AS GRP_ID
+				, O.PYM_ACNT_ID AS PYM_ACNT_ID
+				, C.CUST_ID AS CUST_ID
+				, B.CTRT_ID AS CTRT_ID
+				, C.PROD_CD AS PROD_CD
+				, C.SVC_CD AS SVC_CD
+				--, D.BIZ_CL AS BIZ_CL
+				, C.PROD_GRP AS PROD_GRP
+				, C.SVC_GRP AS SVC_GRP
+				, D.USE_MM_TYP AS BILL_MM_TP      --
+				, O.SALE_TP AS SALE_TP
+				, SUM(B.ADJ_APPL_AMT) AS ADJ_AMT
+				, SUM(B.ADJ_APPL_AMT) AS BILL_AMT
+				, 0 AS VAT
+				, O.PAY_DUE_DT AS PAY_DUE_DT
+				, (
+					SELECT DISTINCT
+						TAX_TP
+					FROM IFNBRM_CUST_INFO
+					WHERE SO_ID = B.SO_ID
+					AND CUST_ID = B.CUST_ID
+				) AS TAX_TP
+				, C.ORG_ID AS ATRT_CORP_ID
+				, C.USR_ID AS ATRT_EMP_ID
+				, SUM(B.ADJ_APPL_AMT) AS W_BILL_AMT
+				, B.CRNCY_CD AS CRNCY_CD
+				, B.EXRATE AS EXRATE
+				, B.EXRATE_APLY_DT AS EXRATE_APLY_DT
+				, K.SALE_TYP AS SALE_CL
+			FROM TBLIV_CHRG_ADJ_APLY A
+				, TBLIV_CHRG_ADJ_APLY_DTL B
+				LEFT OUTER JOIN IFNBRM_CTRT_INFO C
+					ON B.CTRT_ID = C.CTRT_ID AND B.SO_ID = C.SO_ID
+					AND B.PROD_CMPS_ID = C.PROD_CMPS_ID AND B.SVC_CMPS_ID = C.SVC_CMPS_ID
+				LEFT OUTER JOIN IFNBRM_PROD_INFO D
+					ON C.SVC_CD = D.SVC_CD AND C.PROD_CD = D.PROD_CD AND C.SO_ID = D.SO_ID
+				LEFT OUTER JOIN IFNBRM_SVC_RATE_ITM_INFO K ON B.CHRG_ITM_CD = K.SVC_RATE_ITM_TYP_CD
+				, TBLIV_BILL O
+			WHERE A.DCSN_PROC_STAT    = '03'      -- 결재처리상태(BLIV013)가 03.결제완료
+			AND A.SALE_APLY_YN        = 'N'
+			AND A.ADJ_NO              = #{adjNo}
+			AND B.ADJ_NO              = A.ADJ_NO  -- 조정번호
+			AND B.SO_ID               = #{soId}
+			AND B.ADJ_APPL_AMT        &lt;&gt; 0
+			AND B.CTRT_ID             = O.CTRT_ID
+			AND B.PROD_CMPS_ID        = O.PROD_CMPS_ID
+			AND B.SVC_CMPS_ID         = O.SVC_CMPS_ID
+			AND B.CHRG_ITM_CD         = O.CHRG_ITM_CD
+			AND B.SO_ID               = O.SO_ID
+			AND A.BILL_SEQ_NO         = O.BILL_SEQ_NO
+			AND B.CHRG_ITM_CD         = O.CHRG_ITM_CD
+			AND B.USE_YYMM            = O.USE_YYMM
+			GROUP BY A.BILL_SEQ_NO
+				, O.USE_YYMM
+				, B.PROD_CMPS_ID
+				, B.SVC_CMPS_ID
+				, K.SALE_ITM_CD
+				, O.BILL_YYMM
+				, O.BILL_CYCL
+				, O.BILL_DT
+				, B.SO_ID
+				, B.GRP_ID
+				, O.PYM_ACNT_ID
+				, C.CUST_ID
+				, B.CTRT_ID
+				, C.PROD_CD
+				, C.SVC_CD
+				--, D.BIZ_CL
+				, C.PROD_GRP
+				, C.SVC_GRP
+				, D.USE_MM_TYP
+				, O.SALE_TP
+				, O.PAY_DUE_DT
+				, H.TAX_TP
+				, C.ORG_ID
+				, C.USR_ID
+				, B.CRNCY_CD
+				, B.EXRATE
+				, B.EXRATE_APLY_DT
+				, K.SALE_TYP
+		) A
+	</select>
+	
+	<select id="getReIssSeq" resultType="int">
+		SELECT
+			CASE WHEN MAX(RE_ISS_SEQ) IS NULL THEN 0 ELSE MAX(RE_ISS_SEQ) END + 1
+		FROM TBLIV_BILL_RE_PBLS
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+	</select>
+	
+	<insert id="insertBillRePbls">
+		INSERT INTO TBLIV_BILL_RE_PBLS
+		(
+			BILL_SEQ_NO
+			, RE_ISS_SEQ
+			, RE_TP
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, PYM_ACNT_ID
+			, RCPT_ID
+			, CHNG_BILL_DT
+			, PAY_DUE_DT
+			, RCPT_PSN_ID
+			, RCPT_DTTM
+			, RE_ISS_PSN_INCHRG_ID
+			, RE_ISS_DTTM
+			, RE_ISS_RSN
+			, RE_ISS_YN
+			, BILL_RE_ISS_CNT
+			, TAX_RE_ISS_CNT
+			, REG_DATE
+			, CHGR_ID
+			, CHG_DATE
+			, RE_ISS_TP
+			, CHG_PAY_MTHD
+			, BIZ_REG_NO_YN
+			, CHG_CUR_WR_DT
+			, CHG_PRV_WR_DT
+			, UPYM_PRT_YN
+			, RE_SEND_SEQ
+			, SEND_TP
+		)
+		VALUES
+		(
+			#{billSeqNo}
+			, #{reIssSeq}
+			, #{reTp}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{pymAcntId}
+			, #{rcptId}
+			, #{chngBillDt}
+			, #{payDueDt}
+			, #{rcptPsnId}
+			, #{rcptDttm}
+			, #{reIssPsnInchrgId}
+			, #{reIssDttm}
+			, #{reIssRsn}
+			, #{reIssYn}
+			, #{billReIssCnt}
+			, #{taxReIssCnt}
+			, #{regDate}
+			, #{chgrId}
+			, #{chgDate}
+			, #{reIssTp}
+			, #{chgPayMthd}
+			, #{bizRegNoYn}
+			, #{chgCurWrDt}
+			, #{chgPrvWrDt}
+			, #{upymPrtYn}
+			, #{reSendSeq}
+			, #{sendTp}
+		)
+	</insert>
+	
+	<update id="updateChrgAdjAply">
+		UPDATE TBLIV_CHRG_ADJ_APLY SET
+			DCSN_PROC_STAT = #{dcsnProcStat}
+			, SALE_APLY_YN = #{saleAplyYn}
+			, SALE_APLY_DT = #{saleAplyDt}
+			, ADJ_BILL_DT = #{adjBillDt}
+			, BILL_APLY_DT = #{billAplyDt}
+			, CHGR_ID = #{chgrId}
+			, CHG_DATE = #{chgDate}
+		WHERE ADJ_NO = #{adjNo}
+	</update>
+	
+	<update id="updateCmctRfndAcntInfo">
+		UPDATE TCMCT_RFND_ACNT_INFO SET
+			RFND_STAT = '2'
+		WHERE SO_ID = #{soId}
+		AND CTRT_ID = #{ctrtId}
+		AND RFND_STAT = 1
+	</update>
+
+</mapper>

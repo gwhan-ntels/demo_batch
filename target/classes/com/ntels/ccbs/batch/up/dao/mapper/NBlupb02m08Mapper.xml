@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.up.dao.mapper.NBlupb02m08Mapper">
+
+	<select id="getAuthChgApplList" resultType="AuthChgAppl">
+		SELECT 
+			T1.UPYM_BS_YYMM AS UPYM_BS_YYMM
+			, T1.PYM_ACNT_ID AS PYM_ACNT_ID
+			, T3.CTRT_ID AS CTRT_ID
+			, T1.UPYM_MNG_TP AS UPYM_MNG_TP
+			, T1.SO_ID AS SO_ID
+		FROM 
+			TBLUP_UPYM_TACT_TGT_PSN T1
+			, TBLUP_UPYM T2
+			, TBLUP_UPYM_DTL T3
+		WHERE T1.UPYM_BS_YYMM = #{chDate}
+			AND T1.UPYM_MNG_TP IN ( '53' )
+			AND T1.UPYM_EXCP_YN = 'N'
+			AND T1.UPYM_BS_YYMM = T2.UPYM_BS_YYMM
+			AND T1.PYM_ACNT_ID  = T2.PYM_ACNT_ID
+			AND T2.PYM_ACNT_ID  = T3.PYM_ACNT_ID
+		GROUP BY
+			T1.UPYM_BS_YYMM
+			, T1.PYM_ACNT_ID
+			, T3.CTRT_ID
+			, T1.UPYM_MNG_TP
+			, T1.SO_ID
+	</select>
+
+	<insert id="insertAuthChgAppl">
+		INSERT INTO TBLUP_AUTH_CHG_APPL
+		(
+			UPYM_BS_YYMM
+			, PYM_ACNT_ID
+			, CTRT_ID
+			, UPYM_MNG_TP
+			, SO_ID
+			, AUTH_CHG_CMPL_YN
+			, PROC_DTTM
+			, PROC_PSN_ID
+			, PROC_MEMO
+			, REG_DATE
+			, REGR_ID
+			, CHGR_DATE
+			, CHG_ID
+		)
+		VALUES
+		(
+			#{upymBsYymm}
+			, #{pymAcntId}
+			, #{ctrtId}
+			, #{upymMngTp}
+			, #{soId}
+			, #{authChgCmplYn}
+			, #{procDttm}
+			, #{procPsnId}
+			, #{procMemo}
+			, #{regDate}
+			, #{regrId}
+			, #{chgrDate}
+			, #{chgId}
+		)
+	</insert>
+
+</mapper>

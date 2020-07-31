@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.common.dao.mapper.CommonMapper">
+
+	<select id="commonListExRate"  resultType="Common">
+  SELECT  CRNCY_CD, 
+              EXRATE 
+    FROM  TBLIV_EXRATE_INFO
+  WHERE  EXRATE_APLY_DT  =  ( SELECT MAX(EXRATE_APLY_DT)
+                                               FROM TBLIV_EXRATE_INFO
+				                                      WHERE EXRATE_APLY_DT &lt;= TO_CHAR(sysdate,'YYYYMMDD') )
+  </select>
+	<select id="commonListBillStp"  resultType="Common">
+	SELECT SET_ITM_ID
+    	      ,SET_VAL
+	  FROM TBLIV_BILL_CYCL_STP
+	 WHERE bill_yymm = #{billYymm}
+	    AND bill_cycl = #{billCycl}
+	    AND SO_ID = #{soId}
+  </select>
+	<select id="commonListClcMain"  resultType="Common">
+	SELECT BILL_YYMM
+	          ,BILL_CYCL
+	          ,TO_NUMBER(CLC_WRK_CL) AS CLC_WRK_CL
+	  FROM TBLCA_CLC_MAIN "
+	 WHERE CLC_WRK_NO = #{clcWrkNo}
+	</select>
+	<update id="commonUpdClcMain"  >
+	UPDATE TBLCA_CLC_MAIN 
+	   SET CLC_PROC_STAT = #{statCd}	      
+    	,PROC_DTTM = DATE_FORMAT(now(),'%Y%m%d%H%i')
+	 WHERE CLC_WRK_NO = #{clcWrkNo}
+  </update>
+  <insert id="commonInsClsInfo"  parameterType = "Common">
+	INSERT INTO TBLIV_CLS_INFO (CLS_TSK_CL, BILL_YYMM, BILL_CYCL, CLS_YN, CLS_DT, SO_ID, REGR_ID, REG_DATE,CHGR_ID, CHG_DATE ) 
+	VALUES ( #{clsTskCl},#{billYymm},#{billCycl},#{clsYn},DATE_FORMAT(now(),'%Y%m%d'),#{soId},#{regId},NULL,NULL)	      		
+
+  </insert>
+	<update id="commonUpdClsInfo" >
+	UPDATE TBLIV_CLS_INFO
+	       SET CLS_YN = #{clsYn}
+	  WHERE CLS_TSK_CL = #{clsTskCl}
+				AND BILL_YYMM  = #{billYymm}
+				AND SO_ID    = #{soId}
+	</update>
+	<select id="commonListBatPgm"	 resultType="Common">
+	 	SELECT BAT_PGM_ID
+	         , PGM_NM
+	         , CLS_STP_CL
+	         , CLS_TSK_CL
+	         , EXEC_OBJ
+	         , PGM_CT
+  FROM TBLIV_BAT_PGM_LOG 
+ WHERE BAT_PGM_ID = #{batPgmId}
+	</select>
+	<update id="commonUpdBatPgmLog"  parameterType = "Common">
+  UPDATE TBLIV_BAT_PGM_LOG
+        SET READ_CNT = #{readCnt}
+             ,PROC_CNT = #{procCnt}
+				     ,ERR_CNT  = #{errCnt}
+				     ,CMPL_CNT  = #{writeCnt}
+				     ,PGM_END_DTTM = DATE_FORMAT(now(),'%Y%m%d%H%i')
+				     
+				     ,BAT_PROC_STAT = #{batProcStat}
+  WHERE BAT_GRP_ID = #{grpId}
+     AND bs_yymm    = #{bsYymm}
+	   AND BAT_PGM_ID     = #{batPgmId}
+	   AND SO_ID         = #{soId}
+		 AND PGM_EXE_SEQ_NO = #{pgmExeSeqNo}
+	</update>
+	<insert id="commonInsBatPgmLog"  parameterType = "Common" >
+	INSERT INTO TBLIV_BAT_PGM_LOG (BAT_GRP_ID, BS_YYMM, BAT_PGM_ID, SO_ID, PGM_EXE_SEQ_NO, BILL_CYCL, BAT_PROC_STAT, LOG_FILE_PTH, LOG_FILE_NM, PGM_STRT_DTTM, REG_DATE )
+	 VALUES (#{grpId}, #{bsYymm}, #{batPgmId}, #{soId}, #{pgmExeSeqNo}, #{billCycl}, #{batProcStat}, #{logFilePath}, #{logFile}, DATE_FORMAT(now(),'%Y%m%d%H%i'), now())
+	</insert>
+
+    <select id="getSequence" resultType="int" parameterType="String">
+        SELECT /* 현재 Sequence 조회 jh.yun 2016.02.25 */ 
+            CURR_NO
+        FROM TSYCO_SEQUENCE
+        WHERE MOD_ID = #{modCd, jdbcType=VARCHAR}
+    </select>
+    
+    <update id="updateNextSequence" parameterType="String">
+        UPDATE /* 현재 Sequnce Update jh.yun 2016.02.25 */ 
+            TSYCO_SEQUENCE
+        SET CURR_NO = CURR_NO + 1
+        WHERE MOD_ID = #{modCd, jdbcType=VARCHAR}
+    </update>
+    
+    <update id="updateNextSequenceMulti">
+        UPDATE  
+            TSYCO_SEQUENCE
+        SET CURR_NO = CURR_NO + #{size}
+        WHERE MOD_ID = #{modCd, jdbcType=VARCHAR}
+    </update>
+    
+    <sql id="whereBatPgmLog">
+    	WHERE BAT_GRP_ID = #{grpId}
+		AND BS_YYMM = #{bsYymm}
+		AND SO_ID = #{soId}
+		AND BAT_PGM_ID = #{batPgmId}
+		AND PGM_EXE_SEQ_NO = #{pgmExeSeqNo}
+    </sql>
+    
+    <select id="batPgmLogCount" resultType="int">
+    	SELECT COUNT(*) AS CNT
+    	FROM TBLIV_BAT_PGM_LOG
+    	<include refid="whereBatPgmLog"/>
+    </select>
+    
+    <select id="batProcStat" resultType="string">
+    	SELECT BAT_PROC_STAT
+    	FROM TBLIV_BAT_PGM_LOG
+    	<include refid="whereBatPgmLog"/>
+    </select>
+    
+    <update id="updateBatProcStat">
+    	UPDATE TBLIV_BAT_PGM_LOG SET
+    	BAT_PROC_STAT = #{batProcStat}
+    	<include refid="whereBatPgmLog"/>
+    </update>
+	
+</mapper>

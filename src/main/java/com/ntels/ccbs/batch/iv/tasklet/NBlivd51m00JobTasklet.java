@@ -1,0 +1,473 @@
+package com.ntels.ccbs.batch.iv.tasklet;
+
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.StepContribution;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import com.ntels.ccbs.batch.common.CUtil;
+import com.ntels.ccbs.batch.common.service.BillingUtilService;
+import com.ntels.ccbs.batch.common.service.ClogService;
+import com.ntels.ccbs.batch.iv.common.entity.AdjBill;
+import com.ntels.ccbs.batch.iv.common.entity.BillCyclStp;
+import com.ntels.ccbs.batch.iv.common.entity.CBillComm;
+import com.ntels.ccbs.batch.iv.common.entity.ChrgAdjAply;
+import com.ntels.ccbs.batch.iv.common.entity.SaleAdj;
+import com.ntels.ccbs.batch.iv.common.entity.TaxTarget;
+import com.ntels.ccbs.batch.iv.common.service.BillCommService;
+import com.ntels.ccbs.batch.iv.common.service.BillRePbls;
+import com.ntels.ccbs.batch.iv.common.service.CBLService;
+import com.ntels.ccbs.batch.iv.common.service.CBillService;
+import com.ntels.ccbs.batch.iv.common.service.InvoiceService;
+import com.ntels.ccbs.batch.iv.service.NBlivb01m09Service;
+import com.ntels.ccbs.batch.iv.service.NBlivd51m00Service;
+import com.ntels.ccbs.batch.py.entity.PrepayOcc;
+import com.ntels.ccbs.batch.py.entity.Receipt;
+
+@Component("nBlivd51m00JobTasklet")
+@Scope("step")
+public class NBlivd51m00JobTasklet implements Tasklet,StepExecutionListener {
+
+	@Autowired
+	private ClogService clogService;
+	
+	@Autowired
+	private NBlivd51m00Service nBlivd51m00Service;
+	
+	@Autowired
+	private NBlivb01m09Service nBlivb01m09Service;
+	
+	@Autowired
+	private CBLService cblService;
+	
+	@Autowired
+	private BillCommService billCommService;
+	
+	@Autowired
+	private CBillService cbillService;
+	
+	@Autowired
+	private InvoiceService invoiceService;
+	
+	@Autowired
+	private BillingUtilService billUtilService;
+	
+	@Value("#{jobParameters['soId']}")
+	private String soId;
+	
+	@Value("#{jobParameters['regrId']}")
+	private String regrId;
+	
+	@Value("#{jobParameters['adjNo']}")
+	private String adjNo;
+	
+	@Value("#{jobParameters['workYymm']}")
+	private String billYymm;
+	
+	@Value("#{jobParameters['billCycl']}")
+	private String billCycl;
+	
+	private String exrateAplyDt;
+	
+	private String payDueDt;
+	
+	private String remark;
+	
+	private List<AdjBill> adjBillList;
+
+	@Override
+	public ExitStatus afterStep(StepExecution stepExecution) {
+		clogService.writeAfterStepLog(stepExecution);
+		return null;
+	}
+
+	@Override
+	public void beforeStep(StepExecution arg0) {
+		
+	}
+
+	@Override
+	public RepeatStatus execute(StepContribution arg0, ChunkContext arg1) throws Exception {
+		
+		exrateAplyDt = cblService.getExrateAplyDt();
+		clogService.writeLog("exrateAplyDt : " + exrateAplyDt);
+
+		BillCyclStp billCyclStp = new BillCyclStp();
+		billCyclStp.setSoId(soId);
+		billCyclStp.setBillCycl(billCycl);
+		billCyclStp.setBillYymm(billYymm);
+		
+		payDueDt = cblService.getCyclPayDueDt(billCyclStp);
+
+		adjBillList = nBlivd51m00Service.getAdjBillList(adjNo, soId, exrateAplyDt);
+
+		if (adjBillList.isEmpty() == true) {
+			return RepeatStatus.FINISHED;
+		}
+		
+		for (AdjBill adjBill : adjBillList) {
+			adjBill.setOldBillSeqNo(adjBill.getBillSeqNo());
+			adjBill.setBillSeqNo(cbillService.getBillSeqNo(adjBill.getBillYymm()
+					, adjBill.getBillCycl(), adjBill.getBillDt(), adjBill.getPymAcntId(), "00"));
+
+		}
+		
+		adjBillList.sort(new Comparator<AdjBill>() {
+
+			@Override
+			public int compare(AdjBill o1, AdjBill o2) {
+				return o1.getBillSeqNo().compareTo(o2.getBillSeqNo());
+			}
+
+		});
+		
+		List<AdjBill> tempList = new ArrayList<>();
+		String oldBillSeqNo = "";
+		
+		for (AdjBill adjBill : adjBillList) {
+			if (oldBillSeqNo.equals(adjBill.getBillSeqNo()) == false) {
+				adjBill.setSaleTp("01");
+				adjBill.setPayDueDt(payDueDt);
+				adjBill.setFullPayYn("N");
+				adjBill.setDebtProcYn("N");
+				if (adjBill.getApprDttm() != null) {
+					adjBill.setApprDttm(adjBill.getApprDttm().substring(0, 6));	
+				}
+				tempList.add(adjBill);
+			}
+		}
+		
+		adjBillList.clear();
+		adjBillList = tempList;
+		
+		// 로그 출력용 코드
+		for (AdjBill adjBill : adjBillList) {
+			clogService.writeLog(ToStringBuilder.reflectionToString(adjBill));
+		}
+		
+		AdjBill firstItem = adjBillList.get(0);
+		
+		// 수납내역 및 선수금 발생내역 삭제
+		int result = processAdj(firstItem);
+		
+		if (result == 20000) {
+			return RepeatStatus.FINISHED;
+		}
+		
+		// 청구내역에서 수납금액을 0으로 설정
+		CBillComm bill = new CBillComm();
+		bill.setBillSeqNo(firstItem.getOldBillSeqNo());
+		bill.setSoId(firstItem.getSoId());
+		
+		nBlivd51m00Service.updateBillNotPaid(bill);
+		nBlivd51m00Service.updateBillMastNotPaid(bill);
+		
+		for (AdjBill adjBill : adjBillList) {
+			adjBill.setOldBillSeqNo(adjBill.getBillSeqNo());
+		
+			// 청구내역에서 해당 서비스 상세번호가 존재하는지 체크
+			// 해당월의 원화청구금액, 조정청구금액, 조정금액, 청구금액을 조회한다.
+			CBillComm searchAdjBill = new CBillComm();
+			searchAdjBill.setBillSeqNo(adjBill.getOldBillSeqNo());
+			searchAdjBill.setUseYymm(adjBill.getUseYymm());
+			searchAdjBill.setProdCmpsId(adjBill.getProdCmpsId());
+			searchAdjBill.setSvcCmpsId(adjBill.getSvcCmpsId());
+			searchAdjBill.setChrgItmCd(adjBill.getChrgItmCd());
+			searchAdjBill.setSoId(adjBill.getSoId());
+			searchAdjBill.setPymAcntId(adjBill.getPymAcntId());
+			
+			List<CBillComm> adjBillList = nBlivd51m00Service.getAdjBillInfo(searchAdjBill);
+			
+			if (adjBillList == null || adjBillList.isEmpty() == true) {
+				// 조정처리할 청구내역이 없습니다.
+				clogService.writeLog(String.format("Does not exist Adjustment process TBLIV_BILL. Adj_No[%s] Bill_Seq_No[%s]"
+												, adjNo, adjBill.getOldBillSeqNo()));
+				return RepeatStatus.FINISHED;
+			}
+			
+			searchAdjBill.setAdjAmt(adjBill.getAdjApplAmt());
+			
+			nBlivd51m00Service.updateBillAdjAmt(searchAdjBill);
+			nBlivd51m00Service.updateBillMastAdjAmt(searchAdjBill);
+			
+			if ("Y".equals(firstItem.getBillReIssYn()) == true) {
+				// 인쇄내역 생성
+				// 청구내역 생성
+				insertRePbls(firstItem);
+				invoiceService.printByBillSeqNo(searchAdjBill);
+			}
+			
+		}
+		
+		adjVat(firstItem);
+		
+		CBillComm searchAdjBill = new CBillComm();
+		searchAdjBill.setBillSeqNo(firstItem.getBillSeqNo());
+		searchAdjBill.setSoId(firstItem.getSoId());
+		searchAdjBill.setPymAcntId(firstItem.getPymAcntId());
+		
+		nBlivd51m00Service.deleteTaxBill(searchAdjBill);
+		searchAdjBill.setBillCycl(billCycl);
+		nBlivb01m09Service.insertAdjBillTax(searchAdjBill, remark);
+		
+		CBillComm searchBill = new CBillComm();
+		searchBill.setSoId(soId);
+		searchBill.setAdjNo(Double.parseDouble(adjNo));
+		List<SaleAdj> saleAdjList = nBlivd51m00Service.getSaleBillAdj(searchBill);
+		
+		for (SaleAdj saleAdj : saleAdjList) {
+			saleAdj.setSeqNo(Integer.toString(billCommService.getSaleAdjIssNo()));
+		}
+		
+		nBlivd51m00Service.insertSaleAdj(saleAdjList);
+		
+		ChrgAdjAply chrgAdjAply = new ChrgAdjAply();
+		chrgAdjAply.setAdjNo(Long.parseLong(adjNo));
+		chrgAdjAply.setDcsnProcStat("05");
+		chrgAdjAply.setSaleAplyYn("Y");
+		chrgAdjAply.setSaleAplyDt(CUtil.utilGetDateTime(2));
+		chrgAdjAply.setAdjBillDt(CUtil.utilGetDateTime(2));
+		chrgAdjAply.setBillAplyDt(CUtil.utilGetDateTime(2));
+		chrgAdjAply.setChgrId(regrId);
+		chrgAdjAply.setChgDate(new Timestamp(new Date().getTime()));
+		chrgAdjAply.setBillSeqNo(firstItem.getBillSeqNo());
+		
+		nBlivd51m00Service.updateChrgAdjAply(chrgAdjAply);
+		
+		if ("29".equals(firstItem.getAdjResnCd()) == true) {
+			CBillComm updateBill = new CBillComm();
+			updateBill.setSoId(firstItem.getSoId());
+			updateBill.setCtrtId(firstItem.getCtrtId());
+			
+			nBlivd51m00Service.updateCmctRfndAcntInfo(updateBill);
+		}
+		
+//		if (true) {
+//			throw new Exception();
+//		}
+		
+		return null;
+	}
+	
+	private int processAdj(AdjBill adjBill) {
+		
+		String oldBillSeqNo = adjBill.getOldBillSeqNo();
+		
+		CBillComm bill = new CBillComm();
+		bill.setBillSeqNo(oldBillSeqNo);
+		bill.setSoId(soId);
+		
+		Double rcptAmt = nBlivd51m00Service.getRcptAmt(bill);
+		rcptAmt = rcptAmt == null ? 0 : rcptAmt;
+		
+		clogService.writeLog("수납된 금액 : " + rcptAmt);
+		
+		if (rcptAmt > 0) {
+			clogService.writeLog(String.format("The amount of receive there. Adj_No[%s] Bill_Seq_No[%s]"
+									, adjNo, oldBillSeqNo));
+			
+			nBlivd51m00Service.updateAdjAplyDcsnProcStat(new Timestamp(new Date().getTime()), adjNo);
+			
+			// TODO proc 소스의 return 20000의 경우를 처리하라
+			return 20000;
+		}
+		
+		Receipt searchReceipt = new Receipt();
+		searchReceipt.setBillSeqNo(oldBillSeqNo);
+		searchReceipt.setSoId(soId);
+		
+		List<Receipt> pymSeqNoList = nBlivd51m00Service.getPymSeqNo(searchReceipt);
+		
+		for (Receipt receipt : pymSeqNoList) {
+			// 선수금 내역을 조회하여 삭제
+			int deletePrepayOccResult = deletePrepayOcc(receipt);
+			
+			if (deletePrepayOccResult != 0) {
+				return deletePrepayOccResult;
+			}
+			
+			// 수납 상세내역에서 삭제
+			clogService.writeLog("수납 상세내역 삭제");
+			nBlivd51m00Service.deleteRcptDtl(receipt);
+			
+			// 수납내역에서 삭제
+			clogService.writeLog("수납내역 삭제");
+			nBlivd51m00Service.deleteRcpt(receipt);
+		}
+
+		return 0;
+		
+	}
+	
+	private int deletePrepayOcc(Receipt receipt) {
+		
+		PrepayOcc searchPrepayOcc = new PrepayOcc();
+		searchPrepayOcc.setPrepayOccTgtSeqNo(receipt.getPymSeqNo());
+		searchPrepayOcc.setSoId(soId);
+		
+		List<PrepayOcc> prepayOccList = nBlivd51m00Service.getPrepayOccInfo(searchPrepayOcc);
+		
+		for (PrepayOcc prepayOcc : prepayOccList) {
+			
+			if (prepayOcc.getPrepayTransAmt() != 0) {
+				clogService.writeLog(String.format("Alternative charge exist in TBLPY_PREPAY_OCC. Prepay_Occ_Seq_No[%s]"
+													, prepayOcc.getPrepayOccSeqNo()));
+				return 1;
+			}
+			
+			nBlivd51m00Service.deletePrepayOcc(prepayOcc);
+		}
+		
+		return 0;
+		
+	}
+	
+	private int adjVat(AdjBill adjBill) {
+		clogService.writeLog("부가세 조정");
+		
+		CBillComm searchBill = new CBillComm();
+		searchBill.setBillSeqNo(adjBill.getOldBillSeqNo());
+		searchBill.setSoId(adjBill.getSoId());
+		
+		List<TaxTarget> adjVatList = nBlivd51m00Service.getAdjTaxList(searchBill);
+		String useYymm = "";
+		
+		try {
+			useYymm = CUtil.addMonths(adjBill.getBillYymm(), -1);	
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		
+		for (int i = 0; i < adjVatList.size(); i++) {
+			TaxTarget taxTarget = adjVatList.get(i);
+			// 부가세 조정매출
+			if (taxTarget.getVatAdjAmt() - taxTarget.getVat() != 0) {
+
+				CBillComm updateBill = new CBillComm();
+				updateBill.setVat(taxTarget.getVat());
+				updateBill.setBillSeqNo(taxTarget.getBillSeqNo());
+				updateBill.setUseYymm(useYymm);
+				updateBill.setProdCmpsId(taxTarget.getProdCmpsId());
+				updateBill.setSvcCmpsId(taxTarget.getSvcCmpsId());
+				updateBill.setChrgItmCd(taxTarget.getVchrgItmCd());
+				updateBill.setSoId(soId);
+
+				nBlivd51m00Service.updateBillAdjVat(updateBill);
+
+				if (taxTarget.getVat() - taxTarget.getVatAdjAmt() != 0) {
+					updateBill.setAdjAmt(taxTarget.getVat() - taxTarget.getVatAdjAmt());
+					insertSaleAdj(updateBill);
+				}
+				
+			}
+		}
+		
+		// 라운딩 처리
+		double totBillAmt = nBlivd51m00Service.getTotBillAmtWithoutRounding(searchBill);
+		double billAmtAfterRounding = billUtilService.adjustLastDigit(totBillAmt);
+		
+		CBillComm roundingBill = new CBillComm();
+		roundingBill.setBillSeqNo(adjBill.getBillSeqNo());
+		roundingBill.setBillAmt(billAmtAfterRounding - totBillAmt);
+		
+		nBlivd51m00Service.updateRoundingAdjustment(roundingBill);
+		
+//		for (TaxTarget taxTarget : adjVatList) {
+//			
+//			// 부가세 조정매출
+//			if (taxTarget.getSctAdjAmt() - taxTarget.getSct() != 0) {
+//
+//				CBillComm updateBill = new CBillComm();
+//				updateBill.setVat(taxTarget.getSct());
+//				updateBill.setBillSeqNo(taxTarget.getBillSeqNo());
+//				updateBill.setUseYymm(taxTarget.getUseYymm());
+//				updateBill.setProdCmpsId(taxTarget.getProdCmpsId());
+//				updateBill.setSvcCmpsId(taxTarget.getSvcCmpsId());
+//				updateBill.setChrgItmCd(taxTarget.getSchrgItmCd());
+//				updateBill.setSoId(taxTarget.getSoId());
+//				
+//				nBlivd51m00Service.updateBillAdjVat(updateBill);
+//				
+//				if (taxTarget.getSct() - taxTarget.getSctAdjAmt() != 0) {
+//					updateBill.setAdjAmt(taxTarget.getSct() - taxTarget.getSctAdjAmt());
+//					insertSaleAdj(updateBill);
+//				}
+//				
+//			}
+//						
+//		}
+		
+		for (TaxTarget taxTarget : adjVatList) {
+			CBillComm updateBillMast = new CBillComm();
+			updateBillMast.setBillSeqNo(taxTarget.getBillSeqNo());
+			updateBillMast.setSoId(adjBill.getSoId());
+			updateBillMast.setChgDate(new Timestamp(new Date().getTime()));
+			
+			nBlivd51m00Service.updateBillMastAdjVat(updateBillMast);
+		}
+		
+		return 0;
+	}
+	
+	private int insertSaleAdj(CBillComm bill) {
+		List<SaleAdj> saleList = nBlivd51m00Service.getSaleAdjList(bill);
+		
+		clogService.writeLog("insertSaleAdj adjAmt : " + bill.getAdjAmt());
+		
+		
+		for (SaleAdj saleAdj : saleList) {
+			saleAdj.setSeqNo(Integer.toString(billCommService.getSaleAdjIssNo()));
+			saleAdj.setSaleAmt(bill.getAdjAmt());
+			saleAdj.setVat(bill.getAdjAmt());
+			saleAdj.setAcctTrnsYn("N");
+			saleAdj.setWonSaleAmt(bill.getAdjAmt());
+			saleAdj.setAdjAmt(bill.getAdjAmt());
+			saleAdj.setRegDate(new Timestamp(new Date().getTime()));
+		}
+		
+		return nBlivd51m00Service.insertSaleAdj(saleList);
+	}
+	
+	private int insertRePbls(AdjBill adjBill) {
+		BillRePbls billRePbls = new BillRePbls();
+		billRePbls.setBillSeqNo(adjBill.getOldBillSeqNo());
+		
+		Integer reIssSeq = nBlivd51m00Service.getReIssSeq(adjBill.getOldBillSeqNo());
+		
+		billRePbls.setReIssSeq(reIssSeq == null ? 1 : reIssSeq);
+		billRePbls.setReTp("21");
+		billRePbls.setBillYymm(adjBill.getBillYymm());
+		billRePbls.setBillCycl(adjBill.getBillCycl());
+		billRePbls.setBillDt(adjBill.getBillDt());
+		billRePbls.setPymAcntId(adjBill.getPymAcntId());
+		billRePbls.setRcptId(adjBill.getChgrId());
+		billRePbls.setChngBillDt(adjBill.getBillDt());
+		billRePbls.setPayDueDt(adjBill.getPayDueDt());
+		billRePbls.setRcptPsnId(adjBill.getChgrId());
+		billRePbls.setRcptDttm(CUtil.utilGetDateTime(1));
+		billRePbls.setReIssRsn("Reissue After Charge Adjustment(Auto Request)");
+		billRePbls.setReIssYn("N");
+		billRePbls.setRegDate(new Timestamp(new Date().getTime()));
+		billRePbls.setReIssTp(adjBill.getBillMeth());
+		billRePbls.setChgPayMthd(adjBill.getPymMthd());
+		billRePbls.setBizRegNoYn("N");
+		billRePbls.setUpymPrtYn("N");
+		
+		return nBlivd51m00Service.insertBillRePbls(billRePbls);
+	}
+	
+}

@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.GenerateSplitPaymentMapper">
+
+	<select id="getSplitPymCtrtInfoList" resultType="billSpltPym">
+		SELECT
+			'1' AS BILL_SEQ_NO
+			, A.USE_YYMM
+			, A.PROD_CMPS_ID									-- 상품구성ID
+			, A.SVC_CMPS_ID										-- 서비스구성ID
+			, A.CHRG_ITM_CD										-- 요금항목코드
+			, A.BILL_YYMM										-- 청구년월
+			, A.BILL_CYCL										-- 청구주기
+			, A.BILL_DT											-- 청구일자
+			, A.SO_ID											-- 계열사ID
+			, A.GRP_ID											-- 단체ID
+			, A.PYM_ACNT_ID										-- 납부계정ID
+			, A.CUST_ID											-- 고객ID
+			, A.CTRT_ID											-- 계약ID
+			, A.SVC_GRP											-- 서비스군
+			, A.PROD_CD											-- 상품 ID
+			, A.SVC_CD											-- 서비스 ID
+			, A.BIZ_CL											-- 사업구분
+			, A.PROD_GRP										-- 상품군
+			, A.SVC_GRP											-- 서비스군
+			, A.BILL_MM_TP										-- 당 후납구분
+			, A.SALE_TP											-- 매출구분
+			, A.USG_CNT											-- 사용건수
+			, A.USG_AMT											-- 사용량
+			, CASE WHEN A.ADJ_PRV_BILL_AMT IS NULL THEN 0
+			ELSE A.ADJ_PRV_BILL_AMT END AS ADJ_PRV_BILL_AMT		-- 조정전 금액
+			, CASE WHEN A.ADJ_AMT IS NULL THEN 0
+			ELSE A.ADJ_AMT END AS ADJ_AMT						-- 조정금액
+			, A.BILL_AMT										-- 청구금액
+			, A.PAY_DUE_DT										-- 납기일자
+			, B.SPLT_PYM_TP										-- 분할납부기준
+			, A.CHRG_ITM_CD										-- 요금항목코드
+			, A.ATRT_CORP_ID            
+			, A.ATRT_EMP_ID             
+			, A.WON_BILL_AMT									-- 원화청구금액
+			, A.CRNCY_CD										-- 화폐코드
+			, A.EXRATE_APLY_DT									-- 환율기준일자
+			, A.EXRATE											-- 환율
+			, D.CHRG_CTGRY										-- 원 요금영역
+		FROM
+		(
+			SELECT *
+			FROM TCMBL_ITLLMT_PYM_INFO
+			WHERE SUBSTR(ACT_DTTM, 1, 8) &lt;= #{billYymm} || '01'	--  효력시작일자
+			AND SUBSTR(INACT_DTTM, 1, 8) &gt;= #{billYymm} || '01'	-- 효력종료일자
+			AND USE_YN = 'Y'
+		) B
+		, (
+			SELECT
+				CTRT_ID
+				, PYM_ACNT_ID
+				, MAX(ITLLMT_VAL) AS ITLLMT_VAL						-- 에러방지를 위하여 임시로 처리함
+			FROM TCMBL_ITLLMT_PYM_INFO_DTL
+			GROUP BY CTRT_ID, PYM_ACNT_ID
+		) C
+		, IFNBRM_SVC_RATE_ITM_INFO D								-- 항목관계정의->과금항목
+		, IFNBRM_CTRT_INFO E
+		, TBLIV_BILL_WRK A											-- 청구내역 테이블
+		, TBLCH_MULTI_SEQ Z
+		WHERE A.BILL_YYMM = #{billYymm}								-- 청구년월
+		AND A.BILL_CYCL = #{billCycl}								-- 청구주기
+		AND A.BILL_DT = #{billDt}									-- 청구일자
+		AND A.SO_ID = #{soId}
+		AND D.SO_ID = #{soId}
+		AND D.SVC_RATE_ITM_TYP_CD = A.CHRG_ITM_CD					-- 요금항목코드
+		AND C.CTRT_ID = E.CTRT_ID
+		AND E.SO_ID = #{soId}
+		AND E.INACT_DTTM = '99991231235959'
+		AND C.PYM_ACNT_ID != E.PYM_ACNT_ID
+		AND B.CTRT_ID = A.CTRT_ID									-- 계약ID
+		AND B.SO_ID = A.SO_ID
+		AND C.CTRT_ID = A.CTRT_ID									-- 계약ID
+		AND B.SPLT_PYM_TP = '2'										-- 요율인 경우 처리
+		AND Z.SO_ID = #{soId}
+		AND Z.GUBUN = '2'
+		AND Z.P_SEQ = #{pSeq}
+		AND A.PYM_ACNT_ID &gt;= Z.STRT_NO
+		AND A.PYM_ACNT_ID &lt;= Z.END_NO
+		AND EXISTS (
+			SELECT 1
+			FROM TCMBL_ITLLMT_PYM_INFO_DTL	-- 납부계정정보상세 TBL (분할납 마스터만 존재하고 분할납상세 테이블에 존재하지 
+			WHERE CTRT_ID = B.CTRT_ID		-- 계약ID
+			AND INACT_DTTM = B.INACT_DTTM
+		)
+		UNION ALL
+		SELECT
+			'1' AS BILL_SEQ_NO
+			, A.USE_YYMM
+			, A.PROD_CMPS_ID										-- 상품구성ID
+			, A.SVC_CMPS_ID											-- 서비스구성ID
+			, A.CHRG_ITM_CD											-- 요금항목코드
+			, A.BILL_YYMM											-- 청구년월
+			, A.BILL_CYCL											-- 청구주기
+			, A.BILL_DT												-- 청구일자
+			, A.SO_ID												-- 계열사ID
+			, A.GRP_ID												-- 단체ID
+			, A.PYM_ACNT_ID											-- 납부계정ID
+			, A.CUST_ID												-- 고객ID
+			, A.CTRT_ID												-- 계약ID
+			, A.SVC_GRP												-- 서비스군
+			, A.PROD_CD												-- 상품 ID
+			, A.SVC_CD												-- 서비스 ID
+			, A.BIZ_CL												-- 사업구분
+			, A.PROD_GRP											-- 상품군
+			, A.SVC_GRP												-- 서비스군
+			, A.BILL_MM_TP											-- 당 후납구분
+			, A.SALE_TP												-- 매출구분
+			, A.USG_CNT												-- 사용건수
+			, A.USG_AMT												-- 사용량
+			, CASE WHEN A.ADJ_PRV_BILL_AMT IS NULL THEN 0
+			ELSE A.ADJ_PRV_BILL_AMT END AS ADJ_PRV_BILL_AMT			-- 조정전 금액
+			, CASE WHEN A.ADJ_AMT IS NULL THEN 0
+			ELSE A.ADJ_AMT END AS ADJ_AMT							-- 조정금액
+			, A.BILL_AMT											-- 청구금액
+			, A.PAY_DUE_DT											-- 납기일자
+			, B.SPLT_PYM_TP											-- 분할납부기준
+			, CASE B.SPLT_PYM_TP WHEN '4' THEN CAST(C.ITLLMT_VAL AS CHAR)
+			ELSE A.CHRG_ITM_CD END AS CHRG_ITM_CD					-- 분리할요금항목코드
+			, A.ATRT_CORP_ID
+			, A.ATRT_EMP_ID
+			, A.WON_BILL_AMT										-- 원화청구금액
+			, A.CRNCY_CD											-- 화폐코드
+			, A.EXRATE_APLY_DT										-- 환율기준일자
+			, A.EXRATE												-- 환율
+			, D.CHRG_CTGRY											-- 원 요금영역
+		FROM
+		(
+			SELECT *
+			FROM TCMBL_ITLLMT_PYM_INFO
+			WHERE SUBSTR(ACT_DTTM, 1, 8) &lt;= #{billYymm} || '01'	--  효력시작일자
+			AND SUBSTR(INACT_DTTM, 1, 8) &gt;= #{billYymm} || '01'	-- 효력종료일자
+			AND USE_YN = 'Y'
+		) B -- 분리납부정보 TBL
+		, (
+			SELECT
+				CTRT_ID
+				, PYM_ACNT_ID
+				, MAX(ITLLMT_VAL) AS ITLLMT_VAL  -- 에러방지를 위하여 임시로 처리함
+			FROM TCMBL_ITLLMT_PYM_INFO_DTL
+			GROUP BY
+				CTRT_ID
+				, PYM_ACNT_ID
+		) C
+		, IFNBRM_SVC_RATE_ITM_INFO D			-- 항목관계정의->과금항목
+		, IFNBRM_CTRT_INFO E
+		, TBLIV_BILL_WRK A
+		, TBLCH_MULTI_SEQ Z
+		WHERE A.BILL_YYMM = #{billYymm}					-- 청구년월
+		AND A.BILL_CYCL = #{billCycl}					-- 청구주기
+		AND A.BILL_DT = #{billDt}						-- 청구일자
+		AND A.SO_ID = #{soId}
+		AND D.SO_ID = #{soId}
+		AND D.SVC_RATE_ITM_TYP_CD = A.CHRG_ITM_CD		-- 요금항목코드
+		AND C.CTRT_ID = E.CTRT_ID
+		AND E.SO_ID = #{soId}
+		AND E.INACT_DTTM = '99991231235959'
+		AND C.PYM_ACNT_ID != E.PYM_ACNT_ID
+		AND B.CTRT_ID = A.CTRT_ID						-- 계약ID
+		AND B.SO_ID = A.SO_ID
+		AND C.CTRT_ID = A.CTRT_ID						-- 계약ID
+		AND B.SPLT_PYM_TP != '2'						-- 요율이 아닌경우 처리
+		AND Z.SO_ID = #{soId}
+		AND Z.GUBUN = '2'
+		AND Z.P_SEQ = #{pSeq}
+		AND A.PYM_ACNT_ID &gt;= Z.STRT_NO
+		AND A.PYM_ACNT_ID &lt;= Z.END_NO
+		AND EXISTS (
+			SELECT 1
+			FROM TCMBL_ITLLMT_PYM_INFO_DTL  			-- 납부계정정보상세 TBL (분할납 마스터만 존재하고 분할납상세 테이블에 존재하지 않는경우 제외)
+			WHERE CTRT_ID = B.CTRT_ID					-- 계약ID
+			AND INACT_DTTM = B.INACT_DTTM
+		)
+	</select>
+	
+	<insert id="insertSpltPym">
+		INSERT INTO TBLIV_SPLT_PYM
+		(
+		  BILL_SEQ_NO
+		  , USE_YYMM
+		  , PROD_CMPS_ID
+		  , SVC_CMPS_ID
+		  , CHRG_ITM_CD
+		  , BILL_YYMM
+		  , BILL_CYCL
+		  , BILL_DT
+		  , SO_ID
+		  , GRP_ID
+		  , PYM_ACNT_ID
+		  , CUST_ID
+		  , CTRT_ID
+		  , PROD_CD
+		  , SVC_CD
+		  , BIZ_CL
+		  , PROD_GRP
+		  , SVC_GRP
+		  , BILL_MM_TP
+		  , SALE_TP
+		  , USG_CNT
+		  , USG_AMT
+		  , ADJ_PRV_BILL_AMT
+		  , ADJ_AMT
+		  , BILL_AMT
+		  , PAY_DUE_DT
+		  , SPLT_PYM_TP
+		  , CHRG_CTGRY
+		  , SPLT_CHRG_ITM_CD
+		  , ATRT_CORP_ID
+		  , ATRT_EMP_ID
+		  , WON_BILL_AMT
+		  , CRNCY_CD
+		  , EXRATE
+		  , EXRATE_APLY_DT
+		  , REG_DATE
+		)
+		VALUES
+		(
+		  {billSeqNo}
+		  , {useYymm}
+		  , {prodCmpsId}
+		  , {svcCmpsId}
+		  , {chrgItmCd}
+		  , {billYymm}
+		  , {billCycl}
+		  , {billDt}
+		  , {soId}
+		  , {grpId}
+		  , {pymAcntId}
+		  , {custId}
+		  , {ctrtId}
+		  , {prodCd}
+		  , {svcCd}
+		  , {bizCl}
+		  , {prodGrp}
+		  , {svcGrp}
+		  , {billMmTp}
+		  , {saleTp}
+		  , {usgCnt}
+		  , {usgAmt}
+		  , {adjPrvBillAmt}
+		  , {adjAmt}
+		  , {billAmt}
+		  , {payDueDt}
+		  , {spltPymTp}
+		  , {chrgCtgry}
+		  , {spltChrgItmCd}
+		  , {atrtCorpId}
+		  , {atrtEmpId}
+		  , {wonBillAmt}
+		  , {crncyCd}
+		  , {exrate}
+		  , {exrateAplyDt}
+		  , {regDate}
+		)
+	</insert>
+	
+	<select id="getSpltPymResultList" resultType="billSpltPym">
+		SELECT
+		    CASE A.SPLT_PYM_TP WHEN '2'
+		    THEN B.CTRT_ID||A.USE_YYMM||A.PROD_CMPS_ID||A.SVC_CMPS_ID||A.CHRG_ITM_CD||B.PYM_ACNT_ID
+		    ELSE B.CTRT_ID||A.USE_YYMM||B.PYM_ACNT_ID END AS FETCH_ORDER
+		    , B.CTRT_ID                                                     -- 계약ID
+		    , B.PYM_ACNT_ID AS TO_PYM_ACNT_ID                               -- 분리 납부 계정ID
+		    , A.BILL_SEQ_NO                                                 -- 청구일련번호
+		    , A.USE_YYMM                                                    -- 사용년월
+		    , A.PROD_CMPS_ID                                                -- 상품구성ID
+		    , A.SVC_CMPS_ID                                                 -- 서비스구성ID
+		    , A.CHRG_ITM_CD                                                 -- 요금항목코드
+		    , A.BILL_YYMM                                                   -- 청구년월
+		    , A.BILL_CYCL                                                   -- 청구주기
+		    , A.BILL_DT                                                     -- 청구일자
+		    , A.SO_ID                                                       -- 계열사ID
+		    , A.GRP_ID                                                      -- 계열사ID
+		    , A.PYM_ACNT_ID                                                 -- 납부계정ID
+		    , A.CUST_ID                                                     -- 고객ID
+		    , A.CTRT_ID                                                     -- 계약ID
+		    , A.PROD_CD                                                     -- 상품코드
+		    , A.SVC_CD                                                      -- 서비스코드
+		    , A.BIZ_CL                                                      -- 사업구분
+		    , A.PROD_GRP                                                    -- 상품군
+		    , A.SVC_GRP                                                     -- 서비스군
+		    , A.BILL_MM_TP                                                  -- 당후납 구구분
+		    , A.SALE_TP                                                     -- 매출구분
+		    , A.USG_CNT                                                     -- 사용건수
+		    , A.USG_AMT                                                     -- 사용량
+		    , CASE WHEN A.ADJ_PRV_BILL_AMT IS NULL THEN 0
+		    ELSE A.ADJ_PRV_BILL_AMT END AS ADJ_PRV_BILL_AMT                 -- 조정전 금액
+		    , CASE WHEN A.ADJ_AMT IS NULL THEN 0
+		    ELSE A.ADJ_AMT END AS ADJ_AMT                                   -- 조정금액
+		    , 0 AS  UNPAY_AMT
+		    , A.BILL_AMT                                                    -- 청구금액
+		    , A.PAY_DUE_DT                                                  -- 납기일자
+		    , A.SPLT_PYM_TP                                                 -- 분리납부유형
+		    , CASE A.SPLT_PYM_TP WHEN '3' THEN CAST(B.ITLLMT_VAL AS CHAR)
+		    ELSE A.CHRG_CTGRY END AS CHRG_CTGRY                             -- 요금유형
+		    , CASE A.SPLT_PYM_TP WHEN '4' THEN CAST(B.ITLLMT_VAL AS CHAR)
+		    ELSE A.CHRG_ITM_CD END AS CHRG_ITM_CD                           --  분리요금항목코드
+		    , A.ATRT_CORP_ID                                                -- 유치업체ID
+		    , A.ATRT_EMP_ID                                                 -- 유치사원ID
+		    , A.WON_BILL_AMT                                                -- 원화청구금액
+		    , A.CRNCY_CD                                                    -- 화폐코드
+		    , A.EXRATE                                                      -- 환율
+		    , A.EXRATE_APLY_DT                                              -- 환율적용일자
+		    , CASE WHEN B.ITLLMT_VAL IS NULL THEN ' '
+		    ELSE B.ITLLMT_VAL END AS ITLLMT_VAL                             -- 분할기준값
+		    , CASE WHEN B.ITLLMT_CL IS NULL THEN ' '
+		    ELSE B.ITLLMT_CL END AS ITLLMT_CL                               -- 분할유형값
+		    , (
+		        SELECT SUM(TO_NUMBER(ITLLMT_VAL))    -- 분할기준값
+		        FROM TCMBL_ITLLMT_PYM_INFO_DTL C1
+		        , TCMBL_ITLLMT_PYM_INFO C2
+		        WHERE C1.CTRT_ID = B.CTRT_ID
+		        AND C2.CTRT_ID = C1.CTRT_ID
+		        AND SUBSTR(C1.INACT_DTTM,1,6) &gt;= '999912'
+		        AND C2.SPLT_PYM_TP IN ( '1','2')
+		    ) AS TO_ITLMT_VAL
+		    , B.CTRT_ID || A.USE_YYMM|| A.CHRG_ITM_CD  AS DIVI_KEY          -- 계약ID||요금항목코드
+		FROM TBLIV_SPLT_PYM A                                               -- 분리납부내역 TBL
+		, (
+		    SELECT
+		        CTRT_ID
+		        , PYM_ACNT_ID
+		        , INACT_DTTM
+		        , MAX(ITLLMT_CL) AS ITLLMT_CL
+		        , MAX(ITLLMT_VAL) AS ITLLMT_VAL -- 에러방지를 위하여 임시로 처리함
+		    FROM TCMBL_ITLLMT_PYM_INFO_DTL
+		    GROUP BY
+		        CTRT_ID
+		        , PYM_ACNT_ID
+		        , INACT_DTTM
+		) B                                                                 -- 분리납부정보상세 TBL
+		, IFNBRM_CUST_INFO C                                                -- 납부계정정보     TBL
+		, TBLCH_MULTI_SEQ Z
+		WHERE 1=1
+		AND Z.SO_ID = #{soId}    
+		AND Z.GUBUN = '2'
+		AND Z.P_SEQ = #{pSeq}
+		AND A.BILL_YYMM = #{billYymm}        --  청구년월
+		AND A.BILL_CYCL = #{billCycl}       --  청구주기
+		AND A.BILL_DT = #{billDt}         --  청구일자
+		AND A.SO_ID = #{soId}
+		AND SUBSTR(B.INACT_DTTM,1,8) &gt;= #{billYymm}||'01'  -- 효력종료일자
+		AND B.CTRT_ID = A.CTRT_ID           --  계약 ID
+		AND C.SO_ID = #{soId}
+		AND C.PYM_ACNT_ID = B.PYM_ACNT_ID       --  납부계정ID
+		AND A.CUST_ID = C.CUST_ID
+		AND A.CTRT_ID = CASE A.SPLT_PYM_TP WHEN '1' THEN B.CTRT_ID WHEN '2' THEN B.CTRT_ID ELSE A.CTRT_ID END -- 분할납부기준이 금액/요율일때
+		AND A.CHRG_CTGRY = CASE A.SPLT_PYM_TP WHEN '3' THEN CAST(B.ITLLMT_VAL AS CHAR) ELSE A.CHRG_CTGRY END -- 분할납부기준이 요금영역일때
+		AND A.CHRG_ITM_CD = CASE A.SPLT_PYM_TP WHEN '4' THEN CAST(B.ITLLMT_VAL AS CHAR) ELSE A.CHRG_ITM_CD END -- 분할납부기준이 요금항목일때
+		AND C.PYM_ACNT_ID  &gt;= Z.STRT_NO
+		AND C.PYM_ACNT_ID  &lt;= Z.END_NO
+		ORDER BY B.CTRT_ID
+	</select>
+	
+	<insert id="insertSpltPymProcRstl">
+		INSERT INTO TBLIV_SPLT_PYM_PROC_RSLT
+		(
+		    BILL_SEQ_NO
+		    , USE_YYMM
+		    , PROD_CMPS_ID
+		    , SVC_CMPS_ID
+		    , CHRG_ITM_CD
+		    , BILL_YYMM
+		    , BILL_CYCL
+		    , BILL_DT
+		    , SO_ID
+		    , GRP_ID
+		    , PYM_ACNT_ID
+		    , CTRT_ID
+		    , PROD_CD
+		    , SVC_CD
+		    , BIZ_CL
+		    , PROD_GRP
+		    , SVC_GRP
+		    , BILL_MM_TP
+		    , SALE_TP
+		    , USG_CNT
+		    , USG_AMT
+		    , ADJ_PRV_BILL_AMT
+		    , ADJ_AMT
+		    , BILL_AMT
+		    , PAY_DUE_DT
+		    , SPLT_PYM_TP
+		    , CHRG_CTGRY
+		    , ATRT_CORP_ID
+		    , ATRT_EMP_ID
+		    , WON_BILL_AMT
+		    , CRNCY_CD
+		    , EXRATE
+		    , EXRATE_APLY_DT
+		    , REG_DATE
+		)
+		VALUES
+		(
+		    #{billSeqNo}
+		    , #{useYymm}
+		    , #{prodCmpsId}
+		    , #{svcCmpsId}
+		    , #{chrgItmCd}
+		    , #{billYymm}
+		    , #{billCycl}
+		    , #{billDt}
+		    , #{soId}
+		    , #{grpId}
+		    , #{pymAcntId}
+		    , #{ctrtId}
+		    , #{prodCd}
+		    , #{svcCd}
+		    , #{bizCl}
+		    , #{prodGrp}
+		    , #{svcGrp}
+		    , #{billMmTp}
+		    , #{saleTp}
+		    , #{usgCnt}
+		    , #{usgAmt}
+		    , #{adjPrvBillAmt}
+		    , #{adjAmt}
+		    , #{billAmt}
+		    , #{payDueDt}
+		    , #{spltPymTp}
+		    , #{chrgCtgry}
+		    , #{atrtCorpId}
+		    , #{atrtEmpId}
+		    , #{wonBillAmt}
+		    , #{crncyCd}
+		    , #{exrate}
+		    , #{exrateAplyDt}
+		    , #{regDate}
+		)
+	</insert>
+
+</mapper>

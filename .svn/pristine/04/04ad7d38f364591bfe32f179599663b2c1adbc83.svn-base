@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.common.dao.mapper.CBillWrkMapper">
+	
+	    <insert id = "saveInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+          INSERT INTO TBLIV_BILL_WRK(
+            BILL_SEQ_NO,
+            USE_YYMM,
+            PROD_CMPS_ID,
+            SVC_CMPS_ID,
+            CHRG_ITM_CD,
+            BILL_YYMM,
+            BILL_CYCL,
+            BILL_DT,
+            SO_ID,
+            GRP_ID,
+            PYM_ACNT_ID,
+            CUST_ID,
+            CTRT_ID,
+            PROD_CD,
+            SVC_CD,
+            BIZ_CL,
+            PROD_GRP,
+            SVC_GRP,
+            BILL_MM_TP,
+            SALE_TP,
+            USG_CNT,
+            USG_AMT,
+            ADJ_PRV_BILL_AMT,
+            ADJ_AMT,
+            BILL_AMT,
+            PAY_DUE_DT,
+            RCPT_AMT,
+            FULL_PAY_YN,
+            ATRT_CORP_ID,
+            ATRT_EMP_ID,
+            WON_BILL_AMT,
+            CRNCY_CD,
+            EXRATE,
+            EXRATE_APLY_DT,
+            SALE_ITM_CD,
+            PREPAY_OCC_SEQ_NO,
+            PREPD_CTRT_ID,
+            REG_DATE,
+            CHG_DATE,
+            DEBT_PROC_YN) VALUES (
+            #{billSeqNo},
+            #{useYymm},
+            #{prodCmpsId},
+            #{svcCmpsId},
+            #{chrgItmCd},
+            #{billYymm},
+            #{billCycl},
+            #{billDt},
+            #{soId},
+            #{grpId},
+            #{pymAcntId},
+            #{custId},
+            #{ctrtId},
+            #{prodCd},
+            #{svcCd},
+            #{bizCl},
+            #{prodGrp},
+            #{svcGrp},
+            #{billMmTp},
+            #{saleTp},
+            #{usgCnt},
+            #{usgAmt},
+            #{adjPrvBillAmt},
+            #{adjAmt},
+            #{billAmt},
+            #{payDueDt},
+            #{rcptAmt},
+            #{fullPayYn},
+            #{atrtCorpId},
+            #{atrtEmpId},
+            #{wonBillAmt},
+            #{crncyCd},
+            #{exrate},
+            #{exrateAplyDt},
+            #{saleItmCd},
+            #{prepayOccSeqNo},
+            #{prepdCtrtId},
+            #{regDate},
+            #{chgDate},
+            #{debtProcYn})
+
+    </insert>         
+	
+
+	    <insert id = "saveSimulationInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+          INSERT INTO TBLIV_SIMULATION_BILL (
+            CLC_WRK_NO,
+            BILL_SEQ_NO,
+            USE_YYMM,
+            PROD_CMPS_ID,
+            SVC_CMPS_ID,
+            CHRG_ITM_CD,
+            BILL_YYMM,
+            BILL_CYCL,
+            BILL_DT,
+            SO_ID,
+            GRP_ID,
+            PYM_ACNT_ID,
+            CUST_ID,
+            CTRT_ID,
+            PROD_CD,
+            SVC_CD,
+            BIZ_CL,
+            PROD_GRP,
+            SVC_GRP,
+            BILL_MM_TP,
+            SALE_TP,
+            USG_CNT,
+            USG_AMT,
+            ADJ_PRV_BILL_AMT,
+            ADJ_AMT,
+            BILL_AMT,
+            PAY_DUE_DT,
+            FULL_PAY_YN,
+            ATRT_CORP_ID,
+            ATRT_EMP_ID,
+            WON_BILL_AMT,
+            CRNCY_CD,
+            EXRATE,
+            EXRATE_APLY_DT,
+            SALE_ITM_CD,
+            PREPAY_OCC_SEQ_NO,
+            PREPD_CTRT_ID,
+            REG_DATE,
+            CHG_DATE ) VALUES (
+            #{clcWrkNo},
+            #{billSeqNo},
+            #{useYymm},
+            #{prodCmpsId},
+            #{svcCmpsId},
+            #{chrgItmCd},
+            #{billYymm},
+            #{billCycl},
+            #{billDt},
+            #{soId},
+            #{grpId},
+            #{pymAcntId},
+            #{custId},
+            #{ctrtId},
+            #{prodCd},
+            #{svcCd},
+            #{bizCl},
+            #{prodGrp},
+            #{svcGrp},
+            #{billMmTp},
+            #{saleTp},
+            #{usgCnt},
+            #{usgAmt},
+            #{adjPrvBillAmt},
+            #{adjAmt},
+            #{billAmt},
+            #{payDueDt},
+            #{fullPayYn},
+            #{atrtCorpId},
+            #{atrtEmpId},
+            #{wonBillAmt},
+            #{crncyCd},
+            #{exrate},
+            #{exrateAplyDt},
+            #{saleItmCd},
+            #{prepayOccSeqNo},
+            #{prepdCtrtId},
+            #{regDate},
+            #{chgDate})
+
+    </insert>         
+	
+	
+ 
+    
+     <delete id = "deleteInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+              DELETE FROM TBLIV_BILL_WRK  A         
+              WHERE BILL_YYMM = #{billYymm}
+               AND CTRT_ID    = #{ctrtId}
+               AND SO_ID      = #{soId}
+    </delete>
+    
+     <delete id = "deleteDetailInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+         DELETE FROM TBLIV_BILL_WRK                
+          WHERE BILL_SEQ_NO  = #{billSeqNo} 
+            AND USE_YYMM     = #{useYymm    }
+            AND BILL_YYMM    = #{billYymm   }
+            AND BILL_CYCL    = #{billCycl   }
+            AND BILL_DT      = #{billDt     }
+            AND PYM_ACNT_ID  = #{pymAcntId }
+            AND PROD_CMPS_ID = #{prodCcmpsId}
+            AND SVC_CMPS_ID  = #{svcCcmpsId }
+            AND CHRG_ITM_CD  = #{chrgItmCd }
+     
+
+    </delete>         
+    
+    
+    <update id = "updateInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+           UPDATE TBLIV_BILL_WRK                             
+                    SET BILL_AMT         = BILL_AMT         + #{adjApplAmt}
+                       ,ADJ_AMT          = ADJ_AMT          + #{adjApplAmt}
+                       ,WON_BILL_AMT     = WON_BILL_AMT     + #{adjApplAmt}
+                       ,CHG_DATE          = #{chgDate}
+                  WHERE BILL_SEQ_NO  = #{billSeqNo}
+                    AND USE_YYMM     = #{useYymm}     
+                    AND PROD_CMPS_ID = #{prodCmpsId}  
+                    AND SVC_CMPS_ID  = #{svcCmpsId}  
+                    AND CHRG_ITM_CD  = #{chrgItmCd} 
+                    AND SO_ID        = #{soId}     
+    </update>         
+    
+    <update id = "updateOplInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+           UPDATE TBLIV_BILL_WRK                             
+                    SET ADJ_AMT          = BILL_AMT * (-1)
+                       ,BILL_AMT         = 0
+                       ,WON_BILL_AMT     = 0
+                       ,CHG_DATE          = #{chgDate}
+                  WHERE BILL_SEQ_NO  = #{billSeqNo}
+                    AND USE_YYMM     = #{useYymm}     
+                    AND PROD_CMPS_ID = #{prodCmpsId}  
+                    AND SVC_CMPS_ID  = #{svcCmpsId}  
+                    AND CHRG_ITM_CD  = #{chrgItmCd} 
+                    AND SO_ID        = #{soId}     
+    </update>         
+    
+    
+    <select id = "selectInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+        SELECT  P.USE_YYMM,                                             
+        		P.WON_BILL_AMT,                                         
+        		P.ADJ_PRV_BILL_AMT,                                     
+        		P.ADJ_AMT,                                              
+        		P.BILL_AMT,                                             
+        		P.EXRATE                                                
+   		FROM TBLIV_BILL_WRK  P                                       
+  	   WHERE P.BILL_SEQ_NO  = #{billSeqNo}
+    	 AND P.USE_YYMM     = #{useYymm}
+    	 AND P.PROD_CMPS_ID = #{prodCmpsId}
+    	 AND P.SVC_CMPS_ID  = #{svcCmpsId}
+    	 AND P.CHRG_ITM_CD  = #{chrgItmCd}
+    	 AND P.SO_ID        = #{soId}
+    	 AND ROWNUM         = 1                                      
+    </select>         
+    
+    
+    
+    
+    
+</mapper>

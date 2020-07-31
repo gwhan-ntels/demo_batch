@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report1" language="groovy" pageWidth="555" pageHeight="842" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="20" bottomMargin="20" uuid="39482244-6f14-4fa4-8bc0-0acf0dc50392">
+	<property name="ireport.zoom" value="4.0"/>
+	<property name="ireport.x" value="906"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="CRNCY_CD" class="java.lang.String"/>
+	<field name="chargeName" class="java.lang.String">
+		<fieldDescription><![CDATA[chargeName]]></fieldDescription>
+	</field>
+	<field name="itemCode" class="java.lang.String">
+		<fieldDescription><![CDATA[itemCode]]></fieldDescription>
+	</field>
+	<field name="amount" class="java.lang.Double">
+		<fieldDescription><![CDATA[amount]]></fieldDescription>
+	</field>
+	<field name="strAmount" class="java.lang.String">
+		<fieldDescription><![CDATA[strAmount]]></fieldDescription>
+	</field>
+	<variable name="SummaryCount" class="java.lang.Integer" incrementType="Group" incrementGroup="ChargeSummaryGroup" calculation="Count">
+		<variableExpression><![CDATA[Boolean.TRUE]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<group name="ChargeSummaryGroup">
+		<groupHeader>
+		</groupHeader>
+	</group>
+	<columnHeader>
+		<band height="30">
+			<rectangle>
+				<reportElement x="10" y="0" width="430" height="25" forecolor="#B3B3B3" backcolor="#4A442B" uuid="90a615f7-9f6b-429d-8fa5-bcb87d221132"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="20" y="0" width="430" height="25" forecolor="#F3F3F3" uuid="2cb7e5e8-a76b-4e47-9ffc-8117bd4e0620"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Summary of Current Charges]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="440" y="0" width="105" height="25" forecolor="#B3B3B3" backcolor="#4A442B" uuid="90a615f7-9f6b-429d-8fa5-bcb87d221132"/>
+			</rectangle>
+<!-- 			<staticText>
+				<reportElement x="440" y="0" width="105" height="25" forecolor="#F3F3F3" uuid="ad6f4b74-1619-47f7-aace-07d6c6430eb0"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Amount ( RM )]]></text>
+			</staticText> -->
+			<textField>
+				<reportElement x="440" y="0" width="105" height="25" forecolor="#F3F3F3" uuid="ad6f4b74-1619-47f7-aace-07d6c6430eb0"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Amount (" + $P{CRNCY_CD} + ")"]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement x="10" y="25" width="1" height="5" forecolor="#B3B3B3"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="544" y="25" width="1" height="5" forecolor="#B3B3B3"/>
+			</rectangle>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="25">
+			<printWhenExpression><![CDATA[new Boolean($V{SummaryCount}.intValue() > 0)]]></printWhenExpression>
+			<rectangle>
+				<reportElement x="10" y="0" width="1" height="25" forecolor="#B3B3B3" uuid="90a615f7-9f6b-429d-8fa5-bcb87d221132"/>
+			</rectangle>
+			<textField>
+				<reportElement x="20" y="0" width="150" height="25" uuid="916ea966-992d-4275-86f5-52fa2d323eea"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{chargeName}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="440" y="0" width="85" height="25" uuid="c1677f97-9916-48c7-b7e1-060cc33840c7"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{strAmount})]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement x="544" y="0" width="1" height="25" forecolor="#B3B3B3" uuid="90a615f7-9f6b-429d-8fa5-bcb87d221132"/>
+			</rectangle>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="6">
+			<rectangle>
+				<reportElement x="10" y="0" width="1" height="5" forecolor="#B3B3B3"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="544" y="0" width="1" height="5" forecolor="#B3B3B3"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="10" y="5" width="535" height="1" forecolor="#B3B3B3" uuid="90a615f7-9f6b-429d-8fa5-bcb87d221132"/>
+			</rectangle>
+		</band>
+	</columnFooter>
+</jasperReport>

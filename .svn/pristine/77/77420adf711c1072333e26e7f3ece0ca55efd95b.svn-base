@@ -1,0 +1,176 @@
+package com.ntels.ccbs.batch.iv.dao;
+
+import java.sql.Timestamp;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+import com.ntels.ccbs.batch.common.dao.JdbcDao;
+import com.ntels.ccbs.batch.iv.common.entity.AdjBill;
+import com.ntels.ccbs.batch.iv.common.entity.CBillComm;
+import com.ntels.ccbs.batch.iv.common.entity.ChrgAdjAply;
+import com.ntels.ccbs.batch.iv.common.entity.SaleAdj;
+import com.ntels.ccbs.batch.iv.common.entity.TaxTarget;
+import com.ntels.ccbs.batch.iv.common.service.BillRePbls;
+import com.ntels.ccbs.batch.iv.dao.mapper.NBlivd51m00Mapper;
+import com.ntels.ccbs.batch.py.entity.PrepayOcc;
+import com.ntels.ccbs.batch.py.entity.Receipt;
+
+@Repository
+public class NBlivd51m00DaoImpl extends JdbcDao implements NBlivd51m00Dao {
+
+	@Autowired
+	private NBlivd51m00Mapper nBlivd51m00Mapper;
+	
+	@Override
+	protected String getMapperPath() {
+		return "com/ntels/ccbs/batch/iv/dao/mapper";
+	}
+
+	@Override
+	protected String getMapperName() {
+		return "NBlivd51m00Mapper";
+	}
+	
+	@Override
+	public List<AdjBill> getAdjBillList(AdjBill adjBill) {
+		return getList("getAdjBillList", AdjBill.class, adjBill);
+	}
+	
+	@Override
+	public Double getRcptAmt(CBillComm bill) {
+		return nBlivd51m00Mapper.getRcptAmt(bill);
+	}
+	
+	@Override
+	public int updateAdjAplyDcsnProcStat(Timestamp chgDate, String adjNo) {
+		return nBlivd51m00Mapper.updateAdjAplyDcsnProcStat(chgDate, adjNo);
+	}
+	
+	@Override
+	public List<Receipt> getPymSeqNo(Receipt receipt) {
+		return getList("getPymSeqNo", Receipt.class, receipt);
+	}
+	
+	@Override
+	public List<PrepayOcc> getPrepayOccInfo(PrepayOcc prepayOcc) {
+		return getList("getPrepayOccInfo", PrepayOcc.class, prepayOcc);
+	}
+	
+	@Override
+	public int deleteRcpt(Receipt receipt) {
+		return deleteOne("deleteRcpt", receipt);
+	}
+	
+	@Override
+	public int deleteRcptDtl(Receipt receipt) {
+		return deleteOne("deleteRcptDtl", receipt);
+	}
+	
+	@Override
+	public int deletePrepayOcc(PrepayOcc prepayOcc) {
+		return deleteOne("deletePrepayOcc", prepayOcc);
+	}
+	
+	@Override
+	public int updateBillNotPaid(CBillComm bill) {
+		return updateOne("updateBillNotPaid", bill);
+	}
+	
+	@Override
+	public int updateBillMastNotPaid(CBillComm bill) {
+		return updateOne("updateBillMastNotPaid", bill);
+	}
+	
+	@Override
+	public List<CBillComm> getAdjBillInfo(CBillComm bill) {
+		return getList("getAdjBillInfo", CBillComm.class, bill);
+	}
+	
+	@Override
+	public int updateBillAdjAmt(CBillComm bill) {
+		return updateOne("updateBillAdjAmt", bill);
+	}
+	
+	@Override
+	public int updateBillMastAdjAmt(CBillComm bill) {
+		return updateOne("updateBillMastAdjAmt", bill);
+	}
+	
+	@Override
+	public List<TaxTarget> getAdjTaxList(CBillComm bill) {
+		return getList("getAdjTaxList", TaxTarget.class, bill);
+	}
+	
+	@Override
+	public TaxTarget getPrevAdjTax(CBillComm bill) {
+		return getOne("getPrevAdjTax", TaxTarget.class, bill);
+	}
+	
+	@Override
+	public int updateBillAdjVat(CBillComm bill) {
+		return updateOne("updateBillAdjVat", bill);
+	}
+	
+	@Override
+	public int updateBillMastAdjVat(CBillComm bill) {
+		return updateOne("updateBillMastAdjVat", bill);
+	}
+	
+	@Override
+	public int deleteTaxBill(CBillComm bill) {
+		return deleteOne("deleteTaxBill", bill);
+	}
+	
+	@Override
+	public List<SaleAdj> getSaleAdjList(CBillComm bill) {
+		return getList("getSaleAdjList", SaleAdj.class, bill);
+	}
+	
+	@Override
+	public int insertSaleAdj(List<SaleAdj> saleAdjList) {
+		return insert("insertSaleAdj", SaleAdj.class, saleAdjList);
+	}
+	
+	@Override
+	public List<SaleAdj> getSaleBillAdj(CBillComm bill) {
+		return getList("getSaleBillAdj", SaleAdj.class, bill);
+	}
+	
+	@Override
+	public Integer getReIssSeq(String billSeqNo) {
+		return nBlivd51m00Mapper.getReIssSeq(billSeqNo);
+	}
+	
+	@Override
+	public int insertBillRePbls(BillRePbls billRePbls) {
+		return insertOne("insertBillRePbls", billRePbls);
+	}
+	
+	@Override
+	public int updateChrgAdjAply(ChrgAdjAply chrgAdjAply) {
+		return updateOne("updateChrgAdjAply", chrgAdjAply);
+	}
+	
+	@Override
+	public int updateCmctRfndAcntInfo(CBillComm bill) {
+		return updateOne("updateCmctRfndAcntInfo", bill);
+	}
+	
+	@Override
+	public double getTotBillAmtWithoutRounding(CBillComm bill) {
+		return nBlivd51m00Mapper.getTotBillAmtWithoutRounding(bill);
+	}
+	
+	@Override
+	public boolean existsRoundingAdjustment(CBillComm bill) {
+		return nBlivd51m00Mapper.existsRoundingAdjustment(bill);
+	}
+	
+	@Override
+	public int updateRoundingAdjustment(CBillComm bill) {
+		return nBlivd51m00Mapper.updateRoundingAdjustment(bill);
+	}
+	
+}

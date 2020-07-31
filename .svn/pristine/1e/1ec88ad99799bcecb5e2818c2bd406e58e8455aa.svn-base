@@ -1,0 +1,706 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="vadsInvoice" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="7acf7937-4e32-430f-9f2a-02008db074c0">
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="272"/>
+	<style name="ChargeColumnHead" fontSize="11" isBold="true"/>
+	<style name="ChargeColumnBody" fontSize="11" isBold="false"/>
+	<parameter name="VADS_INVOICE" class="com.ntels.ccbs.invoice.domain.VadsInvoice"/>
+	<parameter name="pymAcntId" class="java.lang.String">
+		<defaultValueExpression><![CDATA["71111000691"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="barcodeImg" class="java.lang.String"/>
+	<parameter name="VADS_LOGO" class="java.lang.String">
+		<defaultValueExpression><![CDATA["/Users/Cashyalla/projects/ntels/VADS/Reference/Invoice/logo_vads.png"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="LIST_SIZE" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA["0"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SECOND_DATASOURCE" class="net.sf.jasperreports.engine.data.JRBeanCollectionDataSource"/>
+	<field name="itemCode" class="java.lang.String">
+		<fieldDescription><![CDATA[itemCode]]></fieldDescription>
+	</field>
+	<field name="serviceName" class="java.lang.String">
+		<fieldDescription><![CDATA[serviceName]]></fieldDescription>
+	</field>
+	<field name="termStartDate" class="java.lang.String">
+		<fieldDescription><![CDATA[termStartDate]]></fieldDescription>
+	</field>
+	<field name="termEndDate" class="java.lang.String">
+		<fieldDescription><![CDATA[termEndDate]]></fieldDescription>
+	</field>
+	<field name="contractBasedOffer" class="java.lang.String">
+		<fieldDescription><![CDATA[contractBasedOffer]]></fieldDescription>
+	</field>
+	<field name="gst" class="java.lang.Integer">
+		<fieldDescription><![CDATA[gst]]></fieldDescription>
+	</field>
+	<field name="subTotal" class="java.lang.String">
+		<fieldDescription><![CDATA[subTotal]]></fieldDescription>
+	</field>
+	<field name="gstAmount" class="java.lang.String">
+		<fieldDescription><![CDATA[gstAmount]]></fieldDescription>
+	</field>
+	<field name="totalDue" class="java.lang.String">
+		<fieldDescription><![CDATA[totalDue]]></fieldDescription>
+	</field>
+	<field name="chargeDataSource" class="net.sf.jasperreports.engine.data.JRBeanCollectionDataSource">
+		<fieldDescription><![CDATA[chargeDataSource]]></fieldDescription>
+	</field>
+	<variable name="ChargeNumber" class="java.lang.Integer" incrementType="Group" incrementGroup="ChargeGroup" calculation="Count">
+		<variableExpression><![CDATA[Boolean.TRUE]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<group name="ChargeGroup">
+		<groupExpression><![CDATA[$F{itemCode}]]></groupExpression>
+		<groupHeader>
+			<band height="101" splitType="Stretch">
+				<printWhenExpression><![CDATA[new Boolean($V{ChargeNumber}.intValue() > 0)]]></printWhenExpression>
+				<rectangle>
+					<reportElement x="10" y="10" width="20" height="20" forecolor="#B3B3B3" uuid="55979227-6304-4f2b-93bd-5ec951fd2d72"/>
+				</rectangle>
+				<textField>
+					<reportElement x="10" y="10" width="20" height="20" uuid="62a1bb3e-238c-4604-bf04-097a0d40a5f8"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{ChargeNumber}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="36" y="7" width="300" height="15" uuid="99d9d1a1-a205-4d95-890d-7376874621ad"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="10"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{itemCode}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="37" y="18" width="300" height="15" uuid="b2b14ccb-8839-4660-8a2b-053bacf5f68f"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{serviceName}]]></textFieldExpression>
+				</textField>
+				<rectangle>
+					<reportElement x="10" y="50" width="300" height="18" forecolor="#B3B3B3" backcolor="#F1F7F8" uuid="bf9d55f1-a829-4fbb-8538-fa4a8afa5eb7"/>
+				</rectangle>
+				<staticText>
+					<reportElement x="20" y="50" width="100" height="18" uuid="2e4a8485-3431-495a-8c72-4bce26ab0a73"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<text><![CDATA[Term Start Date : ]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="93" y="50" width="100" height="18" uuid="efa73fc2-ac0c-4230-85d6-3801ac63c894"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{termStartDate}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="162" y="50" width="110" height="18" uuid="35543482-1373-4176-bb81-355fa37b7cd3"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<text><![CDATA[, Term End Date : ]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="239" y="50" width="100" height="18" uuid="efa73fc2-ac0c-4230-85d6-3801ac63c894"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{termEndDate}]]></textFieldExpression>
+				</textField>
+				<rectangle>
+					<reportElement x="10" y="68" width="300" height="18" forecolor="#B3B3B3" backcolor="#F1F7F8" uuid="bf9d55f1-a829-4fbb-8538-fa4a8afa5eb7"/>
+				</rectangle>
+				<textField>
+					<reportElement x="20" y="68" width="230" height="18" uuid="2e4a8485-3431-495a-8c72-4bce26ab0a73"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Contract Based Offer : " + $F{contractBasedOffer}]]></textFieldExpression>
+				</textField>
+				<subreport>
+					<reportElement x="0" y="96" width="532" height="1" uuid="c3ad11e3-4397-4c52-a77e-b7bc7edabf1b"/>
+	                <subreportParameter name="CRNCY_CD">
+	                    <subreportParameterExpression><![CDATA[$P{VADS_INVOICE}.getCurrency()]]></subreportParameterExpression>
+	                </subreportParameter>
+					<dataSourceExpression><![CDATA[$F{chargeDataSource}]]></dataSourceExpression>
+					<subreportExpression><![CDATA[new String($P{VADS_INVOICE}.getResourcesDir()) + "vads_charge_item_detail.jasper"]]></subreportExpression>
+				</subreport>
+			</band>
+			<band height="70">
+				<printWhenExpression><![CDATA[new Boolean($V{ChargeNumber}.intValue() > 0)]]></printWhenExpression>
+				<staticText>
+					<reportElement x="388" y="10" width="73" height="20" uuid="4f26e739-5f47-4375-9359-c207c6f930b6"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="12" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Sub total :]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="466" y="10" width="68" height="20" uuid="2b5b2bb5-447f-49fa-9265-8e42cd7f8420"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{subTotal}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="388" y="30" width="73" height="20" uuid="feebce3b-247b-4c0f-8ef6-d29e34442822"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA["GST(" + $F{gst}.toString() + "%)"]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="466" y="30" width="68" height="20" uuid="ac00b2a1-de00-479f-86bf-e2234aec27c2"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="12"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{gstAmount}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="388" y="50" width="73" height="20" uuid="5907716a-06fb-4975-9341-9e999924e8d7"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="12" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Total Due :]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="466" y="50" width="68" height="20" uuid="40912f61-7282-4050-9225-76959e13f28c"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{totalDue}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<title>
+		<band height="82" splitType="Stretch">
+			<image>
+				<reportElement x="20" y="20" width="110" height="62" uuid="c1c99125-304f-4aca-b760-3ce4aeeeb840">
+					<printWhenExpression><![CDATA[$V{PAGE_NUMBER} == 1]]></printWhenExpression>
+				</reportElement>
+				<imageExpression><![CDATA[$P{VADS_INVOICE}.getResourcesDir() + "logo_vads.png"]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="380" y="20" width="165" height="44" uuid="a7b6f525-7c89-48b1-bc52-45dae244e82b"/>
+				<textElement textAlignment="Right">
+					<font size="24" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TAX INVOICE]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="50" splitType="Stretch">
+			<staticText>
+				<reportElement x="250" y="20" width="173" height="30" uuid="9b2b580a-fab7-4b7d-8bab-89cd39222242"/>
+				<textElement textAlignment="Right">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Your Account # ]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="380" y="20" width="165" height="30" forecolor="#00008A" uuid="9b2b580a-fab7-4b7d-8bab-89cd39222242"/>
+				<textElement textAlignment="Right">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getAccount()]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<detail>
+		<band height="340" splitType="Stretch">
+			<printWhenExpression><![CDATA[new Boolean($V{ChargeNumber}.intValue() == 1)]]></printWhenExpression>
+			<staticText>
+				<reportElement x="20" y="0" width="173" height="30" forecolor="#00008A" uuid="ab5682d7-942d-4eb9-82a6-eb4436f702ec"/>
+				<textElement textAlignment="Left">
+					<font size="21" isBold="true"/>
+				</textElement>
+				<text><![CDATA[VADS E-BILL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="33" width="200" height="30" forecolor="#00008A" uuid="b5871fb9-7412-4a7d-9e08-88a5a49d7d52"/>
+				<textElement textAlignment="Left">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<text><![CDATA[VADS Berhad (208739-W)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="53" width="230" height="30" uuid="0d9f89e7-26fb-4422-bd37-4db565b701f9"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[15th Floor,Plaza VADS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="68" width="230" height="30" uuid="a6378baf-d858-47e2-9be6-d5c7d9a94f38"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[No. 1, Jalan Tun Mohd. Fuad, Taman Tun]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="83" width="230" height="30" uuid="fceed859-f0e2-4e46-b901-9dacfd3b585c"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Dr Ismail, 60000 Kuala Lumpur, Malaysia]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="120" width="230" height="30" uuid="e49595d1-8edf-427a-a753-5efd108547bf"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[GST ID: 000338886656]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="145" width="230" height="30" uuid="f616278a-7d7b-45c9-a741-ed7b1ebe5ab7"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Mail to address:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="20" y="155" width="230" height="30" forecolor="#F0A31D" uuid="70ff21fc-6eef-481d-b589-65f10845e0df"/>
+				<textElement textAlignment="Left">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getCustNm()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="20" y="165" width="230" height="30" uuid="3fb85686-c3f6-45a9-95ba-17af2eb384ef"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getBaseAddr()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="20" y="185" width="165" height="30" uuid="3aa89f5e-b182-4092-8b6d-82bab271de4a"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getAddrDtl()]]></textFieldExpression>
+			</textField>
+			<textField hyperlinkType="Reference">
+				<reportElement x="20" y="205" width="230" height="30" forecolor="#1922FB" uuid="62dd9c05-8211-47e0-899f-bc7d7fa110ed"/>
+				<textElement>
+					<font size="10" isBold="true" isUnderline="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getEml()]]></textFieldExpression>
+				<hyperlinkReferenceExpression><![CDATA["mailto:" + $P{VADS_INVOICE}.getEml()]]></hyperlinkReferenceExpression>
+			</textField>
+			<staticText>
+				<reportElement x="320" y="33" width="112" height="19" uuid="785cb7bb-9bad-4694-b9d9-be6acb661c93"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Invoice enquiries]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="430" y="33" width="112" height="19" forecolor="#00008A" uuid="6878a24c-e077-4be3-8ce9-fe9601b479da"/>
+				<textElement textAlignment="Right">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[1300-88-9998]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="320" y="50" width="112" height="19" uuid="65b6b744-5202-432b-a4d7-9d8cd780f647"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Your Invoice No]]></text>
+			</staticText>
+			<rectangle radius="0">
+				<reportElement x="423" y="49" width="132" height="15" forecolor="#B3B3B3" uuid="865bc3c4-22fa-49b0-99da-1e1de1e29829"/>
+			</rectangle>
+			<textField>
+				<reportElement x="412" y="50" width="130" height="19" uuid="65b6b744-5202-432b-a4d7-9d8cd780f647"/>
+				<textElement textAlignment="Right">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getInvoiceNo()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="320" y="67" width="112" height="19" uuid="ca015a58-f55f-4623-86f3-3bd0d5f54e82"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Invoice Date]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="430" y="67" width="112" height="19" uuid="65b6b744-5202-432b-a4d7-9d8cd780f647"/>
+				<textElement textAlignment="Right">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getInvoiceDate()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="320" y="84" width="112" height="19" uuid="3e1fe4ac-0a6f-47e2-ab86-bc0323c8b645"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Internal Ref. No]]></text>
+			</staticText>
+<!-- 			<staticText>
+				<reportElement x="320" y="101" width="112" height="19" uuid="f0c9587f-8767-4463-874e-94c6262546ea"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Deposit (RM)]]></text>
+			</staticText> -->
+			<textField>
+				<reportElement x="320" y="101" width="112" height="19" uuid="f0c9587f-8767-4463-874e-94c6262546ea"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Deposit(" + $P{VADS_INVOICE}.getCurrency() + ")"]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00;-#,##0.00">
+				<reportElement x="430" y="101" width="112" height="19" uuid="002966a7-634a-4c14-91b3-957df4c4ba5d"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getDeposit()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="320" y="118" width="112" height="19" uuid="f962296a-4ced-4e62-9773-ddd186b5254b"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Revenue Code]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="430" y="118" width="112" height="19" uuid="444afa2b-442f-4362-a728-9532def51082"/>
+				<textElement textAlignment="Left">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getRevenueCode()]]></textFieldExpression>
+			</textField>
+			<image>
+				<reportElement x="335" y="188" width="160" height="35" uuid="c6f7f5bf-6e31-4e56-b387-a6b1e3951b83"/>
+				<imageExpression><![CDATA[$P{barcodeImg}]]></imageExpression>
+			</image>
+			<rectangle>
+				<reportElement x="10" y="235" width="75" height="25" forecolor="#B3B3B3" uuid="865bc3c4-22fa-49b0-99da-1e1de1e29829"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="10" y="235" width="75" height="25" uuid="3dc9991c-a440-4a7b-b3d1-47af2a30927b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Previous Dues]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="10" y="260" width="75" height="25" forecolor="#B3B3B3" uuid="865bc3c4-22fa-49b0-99da-1e1de1e29829"/>
+			</rectangle>
+			<textField>
+				<reportElement x="10" y="260" width="75" height="25" uuid="141aad24-0914-423d-8f69-966c6e300129"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getCurrency() + " " + $P{VADS_INVOICE}.getPreviousDues()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="90" y="235" width="10" height="50" uuid="3dc9991c-a440-4a7b-b3d1-47af2a30927b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[-]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="105" y="235" width="75" height="25" forecolor="#B3B3B3" uuid="d8441aab-80e2-49dc-9523-f6a7c51be7bd"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="105" y="235" width="75" height="25" uuid="3dc9991c-a440-4a7b-b3d1-47af2a30927b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Your Payments]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="105" y="260" width="75" height="25" forecolor="#B3B3B3" uuid="2f9d6f6b-7b99-4fbb-9d83-7f2827edcb2a"/>
+			</rectangle>
+			<textField>
+				<reportElement x="105" y="260" width="75" height="25" uuid="80dfb5f2-bc58-4e74-8fd9-edae97d161a1"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getCurrency() + " " + $P{VADS_INVOICE}.getPayments()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="185" y="235" width="10" height="50" uuid="3dc9991c-a440-4a7b-b3d1-47af2a30927b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[+]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="200" y="235" width="75" height="25" forecolor="#B3B3B3" uuid="3bfad8fd-eed1-4207-a2ae-6b7986a80b88"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="200" y="235" width="75" height="25" uuid="3dc9991c-a440-4a7b-b3d1-47af2a30927b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Adjustments]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="200" y="260" width="75" height="25" forecolor="#B3B3B3" uuid="83643f8c-468b-487d-adea-4484dc433fcf"/>
+			</rectangle>
+			<textField>
+				<reportElement x="200" y="260" width="75" height="25" uuid="1455939f-ae17-4032-8c1b-836307ea4e21"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getCurrency() + " " + $P{VADS_INVOICE}.getAdjustments()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="280" y="235" width="10" height="50" uuid="3dc9991c-a440-4a7b-b3d1-47af2a30927b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[+]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="295" y="235" width="65" height="25" forecolor="#B3B3B3" backcolor="#EAE7D9" uuid="9a9203a2-703f-463d-83cc-f1b9606b3f34"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="295" y="235" width="65" height="25" uuid="3dc9991c-a440-4a7b-b3d1-47af2a30927b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Current Charges]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="295" y="260" width="65" height="25" forecolor="#B3B3B3" uuid="f8395a33-0d03-4b21-9fde-d96fc715bfe6"/>
+			</rectangle>
+			<textField>
+				<reportElement x="295" y="260" width="65" height="25" uuid="b8571f29-ac26-4317-af6c-3e8a446c7521"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getCurrency() + " " + $P{VADS_INVOICE}.getCurrentCharges()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="365" y="235" width="10" height="50" uuid="499909e2-6ac9-40b7-b317-c6462587457d"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[=]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="380" y="235" width="75" height="25" forecolor="#B3B3B3" backcolor="#EAE7D9" uuid="90a615f7-9f6b-429d-8fa5-bcb87d221132"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="380" y="235" width="75" height="25" uuid="c2b55d42-8177-44db-9b7d-f32b158d1373"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="html">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total<br/>Amount Due]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="380" y="260" width="75" height="25" forecolor="#B3B3B3" uuid="76c33861-fffb-49b4-8da1-7d2e80b33499"/>
+			</rectangle>
+			<textField>
+				<reportElement x="380" y="260" width="75" height="25" forecolor="#00008A" uuid="671e854d-a195-4f89-8f3e-a0c09c7a805a"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getCurrency() + " " + $P{VADS_INVOICE}.getTotalAmountDue()]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement x="455" y="235" width="90" height="25" forecolor="#B3B3B3" uuid="50f75d04-c516-4416-a186-f78b116e1aa0"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="455" y="235" width="90" height="25" uuid="3dc9991c-a440-4a7b-b3d1-47af2a30927b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Payment Due Date]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="455" y="260" width="90" height="25" forecolor="#B3B3B3" uuid="7e8ca6e5-dd75-4a7a-b61e-c45c00612e7d"/>
+			</rectangle>
+			<textField>
+				<reportElement x="455" y="260" width="90" height="25" forecolor="#00008A" uuid="dde785a8-2011-4bb3-95a7-b08c5e9303e9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{VADS_INVOICE}.getPaymentDueDate()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="298" width="532" height="33" uuid="3dc9991c-a440-4a7b-b3d1-47af2a30927b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Your invoice should be paid promptly by the stipulated date as to avoid unnecessary interruption / disconnection. Late payment will result in service termination.]]></text>
+			</staticText>
+			<subreport>
+				<reportElement x="0" y="331" width="532" height="1" uuid="bc40c21a-f3ef-4654-999b-c29a0a629c84"/>
+                <subreportParameter name="CRNCY_CD">
+                    <subreportParameterExpression><![CDATA[$P{VADS_INVOICE}.getCurrency()]]></subreportParameterExpression>
+                </subreportParameter>
+				<dataSourceExpression><![CDATA[$P{VADS_INVOICE}.getChargeSummaryDataSource()]]></dataSourceExpression>
+				<subreportExpression><![CDATA[new String($P{VADS_INVOICE}.getResourcesDir()) + "vads_charge_summary.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+		<band height="103" splitType="Prevent">
+			<printWhenExpression><![CDATA[new Boolean($V{ChargeNumber}.intValue() == 1)]]></printWhenExpression>
+			<rectangle>
+				<reportElement x="10" y="0" width="240" height="100" forecolor="#B3B3B3" uuid="90a615f7-9f6b-429d-8fa5-bcb87d221132"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="20" y="10" width="220" height="90" uuid="ae3db831-97ec-46eb-8deb-1f1f5b6b03bc"/>
+				<textElement textAlignment="Left" markup="html">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[GST will be charged at 6% on taxable supplies except for customers given relief under Item 3, Schedule A of GST (Relief) Order 2014.<br/><br/><br/><br/>]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="58" width="85" height="11" uuid="2d898344-49e9-42b1-8b70-8bb703b00591"/>
+				<textElement textAlignment="Left">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[GST Indicator:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="68" width="85" height="11" uuid="7bf25ea7-ae06-421b-980c-d1ea604f262f"/>
+				<textElement textAlignment="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[SR = Standard Rate Supplies]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="78" width="85" height="11" uuid="ed624e37-7f73-45dc-a294-ab2ce8b52c30"/>
+				<textElement textAlignment="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[ZR = Local Zero Rated Supplies]]></text>
+			</staticText>
+			<image>
+				<reportElement x="280" y="8" width="262" height="71" uuid="555d5bbe-ead4-44ef-aed7-e4e55dc8d7d4"/>
+				<imageExpression><![CDATA[$P{VADS_INVOICE}.getResourcesDir() + "temp.png"]]></imageExpression>
+			</image>
+		</band>
+		<band height="40" splitType="Stretch">
+			<printWhenExpression><![CDATA[new Boolean($V{ChargeNumber}.intValue() == 1)]]></printWhenExpression>
+			<rectangle>
+				<reportElement x="10" y="10" width="535" height="25" forecolor="#B3B3B3" backcolor="#4A442B" uuid="bf9d55f1-a829-4fbb-8538-fa4a8afa5eb7"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="20" y="10" width="535" height="25" forecolor="#F3F3F3" uuid="780a3394-266d-4f66-b7f2-53b860f295ea"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Invoice Items - Current Charges]]></text>
+			</staticText>
+		</band>
+		<band height="320" splitType="Stretch">
+			<printWhenExpression><![CDATA[new Boolean($P{LIST_SIZE}.intValue() == $V{ChargeNumber}.intValue())]]></printWhenExpression>
+			<rectangle>
+				<reportElement x="10" y="10" width="535" height="30" forecolor="#B3B3B3" backcolor="#4A442B" uuid="fa75b256-ef88-4e69-8f86-80004e21b549"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="10" y="10" width="535" height="25" forecolor="#F3F3F3" uuid="00710294-bbbe-404b-8b9b-50d44d84a461"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="15" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ANNOUNCEMENT]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="10" y="40" width="535" height="170" forecolor="#B3B3B3" uuid="6f7ebbba-fa65-4606-8404-e012a11975b6"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="20" y="50" width="515" height="20" uuid="695e4114-2da4-4a22-80ad-cd5ba446f893"/>
+				<textElement textAlignment="Left" markup="html">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<text><![CDATA[<u>PENYATAAN PRIVASI VADS</u>]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="65" width="515" height="68" uuid="5e1bab36-5180-4bf6-9738-67abd65e3e66"/>
+				<textElement textAlignment="Left" markup="html">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Dalam usaha memastikan pematuhan kepada Akta Perlindungan Data Peribadi 2010 (APDP), VADS telah mewujudkan satu dasar perlindungan data peribadi yang akan mengawal penggunaan dan perlindungan data peribadi anda sebagai pelanggan VADS. Untuk mengetahui dasar tersebut secara terperinci, sila rujuk Penyataan Privasi VADS di <a href="http://www.vads.com"><font color="blue"><u>www.vads.com</u></font></a> yang mana tertakluk kepada perubahan dari masa ke semasa oleh VADS.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="130" width="515" height="20" uuid="695e4114-2da4-4a22-80ad-cd5ba446f893"/>
+				<textElement textAlignment="Left" markup="html">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<text><![CDATA[<u>VADS' PRIVACY STATEMENT</u>]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="145" width="515" height="68" uuid="5e1bab36-5180-4bf6-9738-67abd65e3e66"/>
+				<textElement textAlignment="Left" markup="html">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[In its effort to ensure compliance to the Personal Data Protection Act 2010 (PDPA), VADS has put in place a personal data protection policy which shall govern the use and protection of your personal data as VADS' customer. For details of the policy, please refer to VADS' Privacy Statement at <a href="http://www.vads.com"><font color="blue"><u>www.vads.com</u></font></a> which may be reviewed by VADS from time to time.]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="10" y="210" width="535" height="80" forecolor="#B3B3B3" uuid="6f7ebbba-fa65-4606-8404-e012a11975b6"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="20" y="220" width="515" height="20" uuid="695e4114-2da4-4a22-80ad-cd5ba446f893"/>
+				<textElement textAlignment="Left" markup="html">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FIND OUT MORE ABOUT VADS MARKETPLACE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="240" width="515" height="68" uuid="5e1bab36-5180-4bf6-9738-67abd65e3e66"/>
+				<textElement textAlignment="Left" markup="html">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[For more information on VADS Marketplace and how it can benefit you, feel free to browse the VADS website at <a href="http://www.vads.com"><font color="blue"><u>www.vads.com</u></font></a>, call the VADS Helpdesk at <span style="color: #00008A; font-weight: bold;">1300-88-9998</span> or drop us an email at <a href="mailto:vconnect@vads.com"><font color="blue"><u>vconnect@vads.com</u></font></a>.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="295" width="515" height="20" uuid="bde931fd-a1b3-41fe-a039-f191b986f997"/>
+				<textElement textAlignment="Left">
+					<font size="9" isBold="false"/>
+				</textElement>
+				<text><![CDATA[All dates and times are in Malaysia Time ( MYT )]]></text>
+			</staticText>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="54" splitType="Stretch">
+			<staticText>
+				<reportElement x="430" y="22" width="44" height="20" uuid="6ee5a330-6475-4f98-80e1-0f57588e1bc9"/>
+				<textElement textAlignment="Right">
+					<font size="14"/>
+				</textElement>
+				<text><![CDATA[Page]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="485" y="22" width="25" height="20" uuid="28df0fad-4e23-40ee-a345-0b836d9627f6"/>
+				<textElement textAlignment="Right">
+					<font size="14"/>
+				</textElement>
+				<text><![CDATA[of]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="465" y="22" width="30" height="20" uuid="dfd7abfd-4c0c-4933-8761-ecc22cc06545"/>
+				<textElement textAlignment="Right">
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="508" y="22" width="26" height="20" uuid="8496bcfa-466e-417e-8d1c-0c76a27b5c8d"/>
+				<textElement textAlignment="Right">
+					<font size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="42" splitType="Stretch"/>
+	</summary>
+</jasperReport>

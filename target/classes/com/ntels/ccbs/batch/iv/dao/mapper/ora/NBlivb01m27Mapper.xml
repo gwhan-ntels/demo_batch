@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m27Mapper">
+
+	<select id="querySale" resultType="Sale">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.USE_YYMM
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.SALE_ITM_CD
+			, A.BILL_MM_TP
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.SO_ID
+			, MAX(A.GRP_ID) AS GRP_ID
+			, A.PYM_ACNT_ID
+			, CASE WHEN C.CUST_ID IS NULL THEN '1111111111' ELSE C.CUST_ID END AS CUST_ID
+			, A.CTRT_ID
+			, MAX(A.PROD_CD) AS PROD_CD
+			, A.SVC_CD
+			, A.BIZ_CL
+			, A.PROD_GRP
+			, A.SVC_GRP
+			, A.SALE_TP
+			, 0 AS ADJ_AMT
+			, SUM(A.BILL_AMT) AS SALE_AMT
+			, 0 AS VAT
+			, 0 AS SCT
+			, MIN(A.PAY_DUE_DT) AS PAY_DUE_DT
+			, CASE WHEN MAX(C.TAX_TP) IS NULL THEN '1' ELSE MAX(C.TAX_TP) END AS TAX_TP
+			, MAX(AA.ORG_ID) AS ATRT_COPR_ID
+			, MAX(AA.USR_ID) AS ATRT_EMP_ID
+			, SUM(A.BILL_AMT) AS WON_SALE_AMT
+			, A.CRNCY_CD
+			, A.EXRATE
+			, MAX(A.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+			, A.SALE_TP
+		FROM TBLIV_BILL A
+			LEFT OUTER JOIN IFNBRM_CTRT_INFO AA ON A.CTRT_ID = AA.CTRT_ID AND A.SO_ID = AA.SO_ID
+			, IFNBRM_SVC_RATE_ITM_INFO B
+			, IFNBRM_CUST_INFO C
+		WHERE A.BILL_YYMM &gt;= #{useYymm}
+		AND A.BILL_YYMM = #{billYymm}
+		AND A.SO_ID = #{soId}
+		AND A.CHRG_ITM_CD = B.SVC_RATE_ITM_TYP_CD
+		AND A.SO_ID = C.SO_ID
+		AND A.PYM_ACNT_ID = C.PYM_ACNT_ID
+		AND A.CUST_ID = C.CUST_ID
+		AND A.BILL_CYCL = '01'
+		AND A.BILL_AMT != 0
+		GROUP BY 
+			A.BILL_SEQ_NO
+			, A.USE_YYMM
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.SALE_ITM_CD
+			, A.BILL_MM_TP
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.SO_ID
+			, A.PYM_ACNT_ID
+			, CASE WHEN C.CUST_ID IS NULL THEN '1111111111' ELSE C.CUST_ID END
+			, A.CTRT_ID
+			, A.SVC_CD
+			, A.BIZ_CL
+			, A.PROD_GRP
+			, A.SVC_GRP
+			, A.SALE_TP
+			, A.CRNCY_CD
+			, A.EXRATE
+			, A.SALE_TP
+	</select>
+	
+
+	<insert id="insertSaleTemp">
+		INSERT INTO TBLIV_SALE
+		(
+			BILL_SEQ_NO
+			, USE_YYMM
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, SALE_ITM_CD
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_CD
+			, SVC_CD
+			, BIZ_CL
+			, PROD_GRP
+			, SVC_GRP
+			, BILL_MM_TP
+			, SALE_TP
+			, SALE_AMT
+			, VAT
+			, SCT
+			, PAY_DUE_DT
+			, TAX_TP
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, ACCT_TRNS_YN
+			, WON_SALE_AMT
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, REG_DATE
+			, ADJ_AMT
+			, SALE_CL
+		)
+		VALUES
+		(
+			#{sale.billSeqNo, jdbcType=VARCHAR}
+			, #{sale.useYymm, jdbcType=VARCHAR}
+			, #{sale.prodCmpsId, jdbcType=VARCHAR}
+			, #{sale.svcCmpsId, jdbcType=VARCHAR}
+			, #{sale.saleItmCd, jdbcType=VARCHAR}
+			, #{sale.billYymm, jdbcType=VARCHAR}
+			, #{sale.billCycl, jdbcType=VARCHAR}
+			, #{sale.billDt, jdbcType=VARCHAR}
+			, #{sale.soId, jdbcType=VARCHAR}
+			, #{sale.grpId, jdbcType=VARCHAR}
+			, #{sale.pymAcntId, jdbcType=VARCHAR}
+			, #{sale.custId, jdbcType=VARCHAR}
+			, #{sale.ctrtId, jdbcType=VARCHAR}
+			, #{sale.prodCd, jdbcType=VARCHAR}
+			, #{sale.svcCd, jdbcType=VARCHAR}
+			, #{sale.bizCl, jdbcType=VARCHAR}
+			, #{sale.prodGrp, jdbcType=VARCHAR}
+			, #{sale.svcGrp, jdbcType=VARCHAR}
+			, #{sale.billMmTp, jdbcType=VARCHAR}
+			, #{sale.saleTp, jdbcType=VARCHAR}
+			, #{sale.saleAmt, jdbcType=DOUBLE}
+			, #{sale.vat, jdbcType=DOUBLE}
+			, #{sale.sct, jdbcType=DOUBLE}
+			, #{sale.payDueDt, jdbcType=VARCHAR}
+			, #{sale.taxTp, jdbcType=VARCHAR}
+			, #{sale.atrtCorpId, jdbcType=VARCHAR}
+			, #{sale.atrtEmpId, jdbcType=VARCHAR}
+			, #{sale.acctTrnsYn, jdbcType=VARCHAR}
+			, #{sale.wonSaleAmt, jdbcType=DOUBLE}
+			, #{sale.crncyCd, jdbcType=VARCHAR}
+			, #{sale.exrate, jdbcType=DOUBLE}
+			, #{sale.exrateAplyDt, jdbcType=VARCHAR}
+			, #{sale.regDate, jdbcType=DATE}
+			, #{sale.adjAmt, jdbcType=DOUBLE}
+			, #{sale.saleCl, jdbcType=VARCHAR}
+		)
+	</insert>
+	
+	<insert id="insertSale">
+		INSERT INTO TBLIV_SALE
+		(
+			BILL_SEQ_NO
+			, USE_YYMM
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, SALE_ITM_CD
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_CD
+			, SVC_CD
+			, BIZ_CL
+			, PROD_GRP
+			, SVC_GRP
+			, BILL_MM_TP
+			, SALE_TP
+			, SALE_AMT
+			, VAT
+			, SCT
+			, PAY_DUE_DT
+			, TAX_TP
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, ACCT_TRNS_YN
+			, WON_SALE_AMT
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, REG_DATE
+			, ADJ_AMT
+			, SALE_CL
+		)
+		VALUES
+		(
+			#{sale.billSeqNo, jdbcType=VARCHAR}
+			, #{sale.useYymm, jdbcType=VARCHAR}
+			, #{sale.prodCmpsId, jdbcType=VARCHAR}
+			, #{sale.svcCmpsId, jdbcType=VARCHAR}
+			, #{sale.saleItmCd, jdbcType=VARCHAR}
+			, #{sale.billYymm, jdbcType=VARCHAR}
+			, #{sale.billCycl, jdbcType=VARCHAR}
+			, #{sale.billDt, jdbcType=VARCHAR}
+			, #{sale.soId, jdbcType=VARCHAR}
+			, #{sale.grpId, jdbcType=VARCHAR}
+			, #{sale.pymAcntId, jdbcType=VARCHAR}
+			, #{sale.custId, jdbcType=VARCHAR}
+			, #{sale.ctrtId, jdbcType=VARCHAR}
+			, #{sale.prodCd, jdbcType=VARCHAR}
+			, #{sale.svcCd, jdbcType=VARCHAR}
+			, #{sale.bizCl, jdbcType=VARCHAR}
+			, #{sale.prodGrp, jdbcType=VARCHAR}
+			, #{sale.svcGrp, jdbcType=VARCHAR}
+			, #{sale.billMmTp, jdbcType=VARCHAR}
+			, #{sale.saleTp, jdbcType=VARCHAR}
+			, #{sale.saleAmt, jdbcType=DOUBLE}
+			, #{sale.vat, jdbcType=DOUBLE}
+			, #{sale.sct, jdbcType=DOUBLE}
+			, #{sale.payDueDt, jdbcType=VARCHAR}
+			, #{sale.taxTp, jdbcType=VARCHAR}
+			, #{sale.atrtCorpId, jdbcType=VARCHAR}
+			, #{sale.atrtEmpId, jdbcType=VARCHAR}
+			, #{sale.acctTrnsYn, jdbcType=VARCHAR}
+			, #{sale.wonSaleAmt, jdbcType=DOUBLE}
+			, #{sale.crncyCd, jdbcType=VARCHAR}
+			, #{sale.exrate, jdbcType=DOUBLE}
+			, #{sale.exrateAplyDt, jdbcType=VARCHAR}
+			, #{sale.regDate, jdbcType=DATE}
+			, #{sale.adjAmt, jdbcType=DOUBLE}
+			, #{sale.saleCl, jdbcType=VARCHAR}
+		)
+	</insert>
+	
+	<delete id="deletePrevData">
+		DELETE TBLIV_SALE
+		WHERE BILL_YYMM = #{billYymm}
+		AND SO_ID = #{soId}
+		AND GRP_ID = '02'
+	</delete>
+
+</mapper>

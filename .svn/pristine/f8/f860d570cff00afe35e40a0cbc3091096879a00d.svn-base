@@ -1,0 +1,437 @@
+package com.ntels.ccbs.batch.ch.tasklet;
+
+import java.lang.reflect.Method;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.batch.core.annotation.BeforeStep;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import com.ntels.ccbs.batch.ch.common.entity.IntergratedList;
+import com.ntels.ccbs.batch.ch.common.entity.Multi;
+import com.ntels.ccbs.batch.ch.common.entity.RateAttr;
+import com.ntels.ccbs.batch.ch.common.entity.RateInfo;
+import com.ntels.ccbs.batch.ch.common.service.RateInfoService;
+import com.ntels.ccbs.batch.ch.entity.NBlchb02m01;
+import com.ntels.ccbs.batch.ch.service.NBlchb02m01Service;
+import com.ntels.ccbs.batch.common.CUtil;
+
+/**
+ * <PRE>
+ * 1. ClassName: NBlchb02m01Writer
+ * 2. FileName : NBlchb02m01Writer.java
+ * 3. Package  : com.ntels.ccbs.batch.ch.tasklet
+ * 4. Comment  :
+ * 5. 작성자   : lsm
+ * 6. 작성일   : 2016. 5. 26. 오후 3:17:01
+ * 7. 변경이력
+ *		이름	:	일자	: 변경내용
+ *     ———————————————————————————————————
+ *		lsm :	2016. 5. 26.	: 신규 개발.
+ * </PRE>
+ */
+@Component
+@Scope("step") //<-- parameter 필요할 경우 선언
+public class NBlchb02m01Writer implements ItemWriter<NBlchb02m01>, StepExecutionListener {
+	Logger log = LoggerFactory.getLogger(this.getClass());
+
+	String stepName;
+	ItemWriter<NBlchb02m01> itemWriter;
+
+	@Autowired
+	private NBlchb02m01Service nBlchb02m01Service;
+
+	@Autowired
+	private RateInfoService rateInfoService;
+
+	private Multi multi = new Multi();
+	private Multi prevMulti = new Multi();
+	private IntergratedList intergratedList = new IntergratedList();
+
+	List<RateInfo> listRRate;
+	List<RateAttr> listRrateAttr;
+	private String val1 = null;
+	private String val2 = null;
+	private String val3 = null;
+	private String val4 = null;
+	private String val5 = null;
+	private double useAmt = 0.0;
+	private double vat = 0.0;
+	private double rateVal = 0.0;
+
+	RateInfo listRate;
+
+	List<Object> objectlist = new ArrayList<Object>();
+
+	/**
+	 * job step이 시작 되기 전 실행
+	 * 
+	 * @param stepExecution void
+	 */
+	@BeforeStep
+	public void getInterStepData(StepExecution stepExecution) {
+		stepName = stepExecution.getStepName();
+	}
+
+	@Value("#{jobParameters['logFileName']}") String logFileName;
+	@Value("#{jobParameters['clcWrkNo']}")    String clcWrkNo;
+	@Value("#{jobParameters['soId']}")        String soId;
+	@Value("#{jobParameters['billYymm']}")    String billYymm;
+	@Value("#{jobParameters['billCycl']}")    String billCycl;
+	@Value("#{jobParameters['pgmId']}")       String pgmId;
+	@Value("#{jobParameters['pgmSeq']}")      String pgmSeq;
+	@Value("#{jobParameters['grpId']}")       String grpId;
+	@Value("#{jobParameters['pgmExeSeqNo']}") String pgmExeSeqNo;
+
+	public void write(List<? extends NBlchb02m01> items) throws Exception {
+		Boolean bCompCondChk = false;
+		Boolean bCompFctrChk = false;
+		Long rateFctrNo = null;
+		String prevSvcCmpsId = "First";
+		String prevRateItmCd = "First";
+		int rRound = 0;
+		int matchCnt = 0; /* 팩터 체크용 */
+		boolean bFinalChk = false;
+
+		objectlist.clear();
+
+		for (NBlchb02m01 list : items) {
+	
+			matchCnt = 0;
+			bFinalChk = false;
+
+			CUtil.copyObjectValue(multi, prevMulti); //원 청구년월 정보를 prev에 셋팅한다.
+
+			//원 청구기간 전의 데이터라면 해당 청구년월 기간으로 산정한다.
+			while (CUtil.getIntCompdate(list.getActDt(), prevMulti.getStartDate()) < 0) {
+				//기존 청구년월일 이전의 경우에 대해서는 이전 해당 청구년월일을 가져와서 사용기간을 구한다.
+				prevMulti.setBillYymm(CUtil.addMonths(prevMulti.getBillYymm(), -1)); //원 청구년월의 기간별 이전 청구년월로 셋팅한다.
+				prevMulti = rateInfoService.listMulti(prevMulti);
+			}
+
+			list.setUseCnt(Long.parseLong(CUtil.getUseDay(list.getActDt(), list.getInactDt(), 0)));
+
+			int dayCycl = Integer.parseInt(CUtil.getUseDay(prevMulti.getStartDate(), prevMulti.getEndDate(), 0));
+
+			if (prevSvcCmpsId.equals("First") || prevRateItmCd.equals("First")) { //최초 대상이 없는 경우 RateItemCd를 채워준다.
+				prevSvcCmpsId = list.getSvcCmpsId();
+				prevRateItmCd = list.getRateItmCd();
+			} else if (!prevSvcCmpsId.equals(list.getSvcCmpsId()) || !prevRateItmCd.equals(list.getRateItmCd())) {
+				prevSvcCmpsId = list.getSvcCmpsId();
+				prevRateItmCd = list.getRateItmCd();
+			}
+
+			useAmt = 0;
+			vat = 0;
+			rateVal = 0;
+			Class<NBlchb02m01> cls = NBlchb02m01.class;
+			Object obj = list;
+			Method m = null;
+			String listFctrCd = null;
+			String listFctrVal = null;
+			Map<Long, Object> rateMap = new HashMap<Long, Object>();
+			RateInfo rateInfo = null;
+
+			matchCnt = 0;
+			// RateItem같은 경우 조건을 체크한다.
+			for (int i = 0; i < listRRate.size(); i++) {
+				
+				if (listRRate.get(i).getProdCd().compareTo(list.getProdCd()) > 0) {
+					matchCnt = 0;
+					break;
+				} else if (listRRate.get(i).getProdCd().compareTo(list.getProdCd()) < 0) {
+				    matchCnt = 0;
+					continue;
+				} else if (list.getRateItmCd().equals(listRRate.get(i).getRateItmCd())
+//						&& list.getRinactDt().equals(listRRate.get(i).getInactDt())
+//						&& list.getRactDt().equals(listRRate.get(i).getActDt())
+						/*&& listRRate.get(i).getFctrRefTyp().equals("T")*/) {
+					bCompCondChk = false;
+					bCompFctrChk = false;
+					
+					if (!listRRate.get(i).getFctrNo().equals(listRRate.get(i).getFctrCnt())) {
+						rateMap.put(listRRate.get(i).getFctrNo(), listRRate.get(i));
+					} else {
+	
+						rateMap.put(listRRate.get(i).getFctrNo(), listRRate.get(i));
+
+						for (int j = 0; j < rateMap.size(); j++) {
+							Long rateNo = (long) j + 1;
+							rateInfo = (RateInfo) rateMap.get(rateNo);
+
+							String rateFctrCd = rateInfo.getFctrCd();
+
+							for (int k = 0; k < 19; k++) {
+								Long listNo = (long) k + 1;
+								
+								m = cls.getMethod("getFctrCd" + Long.toString(listNo));
+								listFctrCd = (String) m.invoke(obj);
+				
+								if (rateFctrCd.equals(listFctrCd)) {
+									m = cls.getMethod("getFctrVal" + Long.toString(listNo));
+									listFctrVal = (String) m.invoke(obj);
+									
+									switch ( j+1  ) 
+									{
+										case 1:
+											list.setFctrCd1(listFctrCd);
+											list.setFctrVal1(listFctrVal);
+								        break;
+										case 2:
+											list.setFctrCd2(listFctrCd);
+											list.setFctrVal2(listFctrVal);
+								        break;
+										case 3:
+											list.setFctrCd3(listFctrCd);
+											list.setFctrVal3(listFctrVal);
+								        break;
+										case 4:
+											list.setFctrCd4(listFctrCd);
+											list.setFctrVal4(listFctrVal);
+								        break;
+										case 5:
+											list.setFctrCd5(listFctrCd);
+											list.setFctrVal5(listFctrVal);
+								        break;
+										case 6:
+											list.setFctrCd6(listFctrCd);
+											list.setFctrVal6(listFctrVal);
+								        break;
+										case 7:
+											list.setFctrCd7(listFctrCd);
+											list.setFctrVal7(listFctrVal);
+								        break;
+										case 8:
+											list.setFctrCd8(listFctrCd);
+											list.setFctrVal8(listFctrVal);
+								        break;
+										case 9:
+											list.setFctrCd9(listFctrCd);
+											list.setFctrVal9(listFctrVal);
+								        break;
+									}
+									k = 19;
+									break;
+									
+									
+								}
+								
+				     		}
+
+							CUtil.copyObjectValue(list, intergratedList);
+												
+							bCompCondChk = rateInfoService.getOprndChk(rateInfo, intergratedList, listFctrVal);
+
+							if (bCompCondChk) {
+								rateFctrNo = rateInfo.getFctrNo();
+								
+								
+								if (rateInfo.getRateInfoExeFl().equals("1")) {
+				
+									rateInfo = (RateInfo) rateMap.get((long) rateMap.size());									
+								}
+								
+								bCompFctrChk = rateInfoService.getFctrChk(rateInfo, intergratedList, listFctrVal, rateFctrNo);
+
+								
+								// 팩터 대상 카운트
+								if (bCompFctrChk) {
+									matchCnt++;
+								} 
+							}
+						}
+
+						
+						
+						if (listRRate.get(i).getFctrCnt() == matchCnt) {
+							bFinalChk = true;
+						}
+						
+					
+						//마지막 처리내역이면서 정상인 경우에만 처리한다.
+						if (bFinalChk && bCompFctrChk) {
+
+							//속성별 계산된 값을 정의한다.
+							for (int l = 0; l < listRrateAttr.size(); l++) {
+								if (listRRate.get(i).getRateItmCd().equals(listRrateAttr.get(l).getRateItmCd())) {
+									//VAL1 : DF058	AT00000007	요금_2.일할계산산입기준(개통/해지일)	PP00050	: 1 개통일포함, 해지일 미포함
+									//VAL2 : DF057	AT00000006	요금_1.일할계산기준일	PP00042 : 00 일할계산없음, 01 월일수 기준
+									//VAL3 : DF038	AT00000008	과금_4.금액올림방식	PP00036 : 1 올림 2 내림 3 반올림 4 올림없음
+									//VAL4 : DF039	AT00000010	과금_5.금액올림위치	PP00037 : -1 단단위로 맞춤 -2 소수점아래첫째자리로 맞춤 -3 소수점아래둘째자리로 맞춤 0 10단위로 맞춤 1 100단위로 맞춤
+									//VAL5 : DF055	AT00000041	과세_1.대상여부	PP00060	: 0 부과 안함 1 부과
+									val1 = listRrateAttr.get(l).getVal1();
+									val2 = listRrateAttr.get(l).getVal2();
+									val3 = listRrateAttr.get(l).getVal3();
+									val4 = listRrateAttr.get(l).getVal4();
+									val5 = listRrateAttr.get(l).getVal5();
+									break;
+								}
+							}
+							//개통일 포함 여부
+							if (val1.equals("1")) {
+								list.setUseCnt(Long.parseLong(CUtil.getUseDay(list.getActDt(), list.getInactDt(), 0)));
+							}
+
+							
+							//상품개수 세팅 --> 청구에서 사용하기 위해 세팅
+							list.setUseQty(Long.parseLong(list.getProdCnt()));
+
+							if (listRRate.get(i).getRateRefFl().equals("0")) {
+								rateVal = listRRate.get(i).getRateVal();
+							} else if (listRRate.get(i).getRateRefFl().equals("1")) {
+								String fctrCd = listRRate.get(i).getRateFctrCd();
+								rateVal = Integer.parseInt(getFctrVal(list, fctrCd));
+							}
+					       /*
+					        * 단가, 수량 정보 수정 요망
+					        * 	
+					        */
+					
+							if (listRRate.get(i).getQtyRefFl().equals("0")) {
+								rateVal = rateVal * listRRate.get(i).getQty();
+							} else if (listRRate.get(i).getQtyRefFl().equals("1")) {
+								String qtyFctrCd = listRRate.get(i).getQtyFctrCd();
+								rateVal = rateVal * Double.valueOf(getFctrVal(list, qtyFctrCd));
+								//rateVal = rateVal * Integer.parseInt(getFctrVal(list, qtyFctrCd));
+							}
+							
+							//공정률 계산
+							double procRate = Double.valueOf((String) list.getProcRate());
+							rateVal = rateVal * procRate / 100;
+                         
+							//일할계산 여부
+							if (val2.equals("00")) {
+								useAmt = rateVal;
+							} else if (val2.equals("01")) {
+								useAmt = list.getUseCnt() * rateVal / dayCycl;
+							}
+							//올림 단위
+							if (Integer.parseInt(val3) == 1) {
+								rRound = 3;
+							} else if (Integer.parseInt(val3) == 2) {
+								rRound = 1;
+							} else if (Integer.parseInt(val3) == 3) {
+								rRound = 2;
+							}
+							useAmt = CUtil.Round(useAmt, Integer.parseInt(val4) + 1, rRound);
+							list.setUseAmt(useAmt);
+                          
+							//부가세 여부
+							if (val5.equals("1")) {
+								vat = CUtil.Round(useAmt * 6 / 100, -2, 2); //부가세는 반올림처리
+							} else {
+								vat = 0.0;
+							}
+							list.setVat(vat);
+							
+							break;
+						}
+					}
+				}
+			}
+
+			//최종 계산값을 리스트에 저장한다. 맵핑 카운트 초기화
+			if (bFinalChk && bCompFctrChk) {
+				
+				list.setRegDate(new java.sql.Timestamp(new java.util.Date().getTime()));
+				if (list.getUseAmt() != 0) {
+					objectlist.add(list);
+				}
+			}
+			//break;
+			
+		
+		}
+        
+		System.err.println("objectlist = " + objectlist);
+		nBlchb02m01Service.saveJdbcDirect(objectlist);
+	}
+
+	public void beforeStep(StepExecution stepExecution) {
+		multi.setSoId(soId);
+		multi.setBillYymm(billYymm);
+		multi.setClcWrkNo(clcWrkNo);
+		multi.setBillCycl(billCycl);
+		multi.setMultiCycl(billCycl.substring(0, 1));
+		multi.setSeq(billCycl.substring(1, 2));
+		multi.setpSeq("2");
+		multi.setRegDate(new java.sql.Timestamp(new java.util.Date().getTime()));
+		multi.setChrgCtgry("R");
+
+		try {
+			multi = rateInfoService.listMulti(multi);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+
+		listRRate = rateInfoService.listRateItm(multi);
+		listRrateAttr = rateInfoService.listRrateAttr(multi);
+	}
+
+	public ExitStatus afterStep(StepExecution stepExecution) {
+		return null;
+	}
+
+	public String getFctrVal(NBlchb02m01 list, String fctrCd) {
+		String fctrVal = null;
+
+		Class<NBlchb02m01> cls = NBlchb02m01.class;
+		Object obj = list;
+		Method m = null;
+		String listFctrCd = null;
+
+		try {
+			for (int funcNo = 1; funcNo < 20; funcNo++) {
+
+				m = cls.getMethod("getFctrCd" + Integer.toString(funcNo));
+				listFctrCd = (String) m.invoke(obj);
+
+				if (listFctrCd.equals(fctrCd)) {
+					m = cls.getMethod("getFctrVal" + Integer.toString(funcNo));
+					fctrVal = (String) m.invoke(obj);
+
+					break;
+				}
+			}
+		} catch (Exception e) {
+		}
+		return fctrVal;
+	}
+
+	public int getFctrNo(NBlchb02m01 list, String fctrCd) {
+		int nFctNo = 0;
+
+		Class<NBlchb02m01> cls = NBlchb02m01.class;
+		Object obj = list;
+		Method m = null;
+		String listFctrCd = null;
+
+		try {
+			for (int funcNo = 1; funcNo < 20; funcNo++) {
+
+				m = cls.getMethod("getFctrCd" + Integer.toString(funcNo));
+				listFctrCd = (String) m.invoke(obj);
+
+				if (listFctrCd.equals(fctrCd)) {
+			        nFctNo = funcNo;
+					break;
+				}
+			}
+		} catch (Exception e) {
+		}
+		System.out.println("");
+		return nFctNo;
+	}
+}

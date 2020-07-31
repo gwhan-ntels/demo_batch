@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m13Mapper">
+
+	<!-- 수납이 완료되지 않은 청구건에 대해 선수금 발생내역을 조회한다. -->
+	<select id="getPrepayOccForUnpaidBill" resultType="PrepayOcc">
+		SELECT
+			A.PREPAY_OCC_SEQ_NO
+			, A.PYM_ACNT_ID
+			, A.PREPAY_BAL
+			, A.SO_ID
+			, A.DPST_DT
+			, A.TRANS_DT
+		FROM TBLPY_PREPAY_OCC A
+			, TBLCH_MULTI_SEQ B
+		WHERE 1 = 1
+		 	AND B.SO_ID = #{soId}
+		 	AND B.GUBUN = '2'
+		 	AND B.P_SEQ = #{pSeq}
+			AND A.PREPAY_PROC_STAT != '2'
+			AND A.SO_ID = #{soId}
+			AND A.TRANS_CMPL_YN = 'N'
+			AND A.PREPAY_BAL &gt; 0
+			AND A.CNCL_YN != 'Y'
+			AND A.PREPAY_OCC_RESN != '9'
+			AND A.PYM_ACNT_ID &gt;= B.STRT_NO
+			AND A.PYM_ACNT_ID &lt;= B.END_NO
+			AND EXISTS 
+			(
+				SELECT
+					Y.PYM_ACNT_ID
+					, SUM(X.BILL_AMT) - SUM(X.RCPT_AMT) AS UP_PAY_SUM
+				FROM TBLIV_BILL_TGT_CUST Y
+					, TBLIV_BILL_WRK X
+				WHERE Y.BILL_SEQ_NO = X.BILL_SEQ_NO
+					AND X.PYM_ACNT_ID = Y.PYM_ACNT_ID
+					AND X.SO_ID = Y.SO_ID
+					AND CASE WHEN Y.BILL_EXPT_YN IS NULL THEN 'N' ELSE Y.BILL_EXPT_YN END = 'N'
+					AND Y.PYM_ACNT_ID = A.PYM_ACNT_ID
+					AND Y.SO_ID = A.SO_ID
+				GROUP BY Y.PYM_ACNT_ID
+				HAVING SUM(X.BILL_AMT) - SUM(X.RCPT_AMT) != 0
+			)
+		ORDER BY A.PREPAY_OCC_SEQ_NO
+	</select>
+	
+	<select id="getUnpaidBillAmt" resultType="CBillComm">
+		SELECT
+			BILL_SEQ_NO
+			, SO_ID
+			, BILL_MM_TP
+			, SUM(BILL_AMT) AS BILL_AMT
+			, SUM(RCPT_AMT) AS RCPT_AMT
+			, 0 AS APLY_AMT
+		FROM TBLIV_BILL_WRK
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND SO_ID = #{soId}
+		GROUP BY BILL_SEQ_NO
+			, SO_ID
+			, BILL_MM_TP
+		HAVING SUM(BILL_AMT - RCPT_AMT) &gt; 0
+	</select>
+	
+	<insert id="insertOverpayBillAply">
+		INSERT INTO TBLIV_OVERPAY_BILL_APLY
+		(
+			BILL_SEQ_NO
+			, SO_ID
+			, BILL_MM_TP
+			, PREPAY_OCC_SEQ_NO
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, PYM_ACNT_ID
+			, PREPAY_BAL
+			, BILL_APLY_AMT
+			, BILL_CRT_DT
+			, PAY_PROC_YN
+			, PAY_PROC_DT
+			, REG_DATE
+			, PRE_SO_ID
+			, GRP_ID
+			, CUST_ID
+			, CTRT_ID
+		)
+		VALUES
+		(
+			#{billSeqNo}
+			, #{soId}
+			, #{billMmTp}
+			, #{prepayOccSeqNo}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{pymAcntId}
+			, #{prepayBal}
+			, #{billAplyAmt}
+			, #{billCrtDt}
+			, #{payProcYn}
+			, #{payProcDt}
+			, #{regDate}
+			, #{preSoId}
+			, #{grpId}
+			, #{custId}
+			, #{ctrtId}
+		)
+	</insert>
+	
+	<select id="getOverpayBillInfo" resultType="OverpayBillAply">
+		SELECT
+			BILL_SEQ_NO
+			, PYM_ACNT_ID
+			, PREPAY_OCC_SEQ_NO
+			, SO_ID
+			, BILL_MM_TP
+			, BILL_APLY_AMT
+		FROM TBLIV_OVERPAY_BILL_APLY
+		WHERE BILL_SEQ_NO LIKE #{billSeqNo} || '%'
+			AND SO_ID = #{soId}
+			AND BILL_YYMM = #{billYymm}
+			AND BILL_CYCL = #{billCycl}
+			AND PYM_ACNT_ID = #{pymAcntId}
+			AND PAY_PROC_YN = 'N'
+		ORDER BY BILL_SEQ_NO
+			, PREPAY_OCC_SEQ_NO
+	</select>
+	
+	<select id="getRemainRcptAmtFromBillWrk" resultType="double">
+		SELECT
+			SUM(BILL_AMT) - SUM(RCPT_AMT)
+		FROM TBLIV_BILL_WRK
+		WHERE BILL_SEQ_NO = #{bill.billSeqNo}
+		<if test="bill.custId != null">
+			AND CUST_ID = #{bill.custId}
+		</if>
+		<if test="bill.ctrtId != null">
+			AND CTRT_ID = #{bill.ctrtId}
+		</if>
+		<if test="bill.pymAcntId != null">
+			AND PYM_ACNT_ID = #{bill.pymAcntId}
+		</if>
+			AND SO_ID = #{bill.soId}
+	</select>
+	
+	<select id="getBillWrkInfoForPrepay" resultType="CBillComm">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.CHRG_ITM_CD
+			, A.BILL_AMT
+			, A.RCPT_AMT
+			, A.FULL_PAY_YN
+			, A.GRP_ID
+			, A.PYM_ACNT_ID
+			, A.CUST_ID
+			, A.CTRT_ID
+			, A.BILL_MM_TP
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.SO_ID
+			, A.USE_YYMM
+			, A.CRNCY_CD
+			, A.EXRATE
+			, A.EXRATE_APLY_DT
+			, B.CHRG_CTGRY
+			,A.PROD_GRP
+		FROM TBLIV_BILL_WRK A
+			, IFNBRM_SVC_RATE_ITM_INFO
+		WHERE A.BILL_SEQ_NO = #{billSeqNo}
+			AND A.SO_ID = #{soId}
+			AND A.CHRG_ITM_CD =  B.SVC_RATE_ITM_TYP_CD
+			AND PYM_ACNT_ID = #{pymAcntId}
+		ORDER BY A.BILL_SEQ_NO
+			, CASE B.CHRG_CTGRY WHEN 'R' THEN 1
+				WHEN 'U' THEN 2
+				WHEN 'N' THEN 3
+				ELSE 9 END
+	</select>
+	
+	<update id="updateBillWrkRcptAmt">
+		UPDATE TBLIV_BILL_WRK SET
+			RCPT_AMT = RCPT_AMT + #{rcptAmt},
+			, FULL_PAY_YN = CASE WHEN RCPT_AMT + #{rcptAmt} = BILL_AMT THEN 'Y' ELSE 'N' END
+			, CHG_DATE = #{chgDate}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND USE_YYMM = #{useYymm}			
+			AND PROD_CMPS_ID = #{prodCmpsId}
+			AND SVC_CMPS_ID = #{svcCmpsId}	
+			AND CHRG_ITM_CD = #{chrgItmCd}
+			AND SO_ID = #{soId}
+			AND FULL_PAY_YN  = 'N'
+	</update>
+	
+	<update id="updateOverpayBillAply">
+		UPDATE TBLIV_OVERPAY_BILL_APLY SET
+			, PAY_PROC_YN = 'Y'
+			. PAY_PROC_DT = #{payProcDt}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND SO_ID = #{soId}
+			AND BILL_MM_TP = #{billMmTp}
+			AND PREPAY_OCC_SEQ_NO = #{prepayOccSeqNo}
+	</update>
+
+</mapper>

@@ -1,0 +1,817 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m09Mapper">
+
+	<select id="getTaxCount" resultType="int">
+		SELECT
+			COUNT(1)
+		FROM TBLIV_TAX_BILL
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND SO_ID = #{soId}
+	</select>
+
+	<select id="getTaxTargetList" resultType="TaxTarget">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.BILL_YYMM
+			, A.USE_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.BIZ_CL
+			, CASE A.BIZ_CL WHEN 'I' THEN 'Internet Using Fee And Others'
+				WHEN 'A' THEN 'CATV Receiving Fee And Others'
+				WHEN 'D' THEN 'DTV Receiving Fee And Others'
+				ELSE 'Mobile Using Fee And Others' END AS RMRK
+			, A.PYM_ACNT_ID
+			, A.BILL_AMT
+			, A.GRP_ID
+			, A.PROD_GRP
+			, A.SVC_GRP
+			, A.PROD_CD
+			, A.SVC_CD
+			, A.CTRT_ID
+			, A.CUST_ID
+			, A.SALE_TP
+			, A.CRNCY_CD
+			, A.EXRATE_APLY_DT
+			, A.EXRATE
+			, A.PAY_DUE_DT
+			, A.ATRT_CORP_ID
+			, A.ATRT_EMP_ID
+			, A.CHRG_ITM_CD
+			, A.TAX_TP
+			, CASE WHEN B1.VAT_TP IS NULL THEN '0' ELSE B1.VAT_TP END AS VAT_TP
+			, CASE WHEN B1.VAT_RATE IS NULL THEN '0' ELSE B1.VAT_RATE END AS VAT_RATE
+			, B1.VCHRG_ITM_CD
+			, CASE WHEN B2.SVAT_TP IS NULL THEN '0' ELSE B2.SVAT_TP END AS SCT_TP
+			, CASE WHEN B2.SVAT_RATE IS NULL THEN '0' ELSE B2.SVAT_RATE END AS SCT_RATE
+			, B2.SCHRG_ITM_CD
+			, CASE WHEN C.CUST_TP IS NULL THEN ' ' ELSE C.CUST_TP END AS CUST_TP			-- 고객유형
+			, CASE WHEN C.BIZ_REG_NO IS NULL THEN ' ' ELSE C.BIZ_REG_NO END AS BIZ_REG_NO	-- 사업자등록번호
+			, CASE WHEN C.CUST_NM IS NULL THEN ' ' ELSE C.CUST_NM END AS CUST_NM			-- 고객명
+			, CASE WHEN C.BUSI_TP IS NULL THEN ' ' ELSE C.BUSI_TP END AS BUSI_TP			-- 업종
+			, CASE WHEN C.BUSI_CNDT IS NULL THEN ' ' ELSE C.BUSI_CNDT END AS BUSI_CNDT		-- 업태
+			, C.ADDR_DTL AS ADDR															-- 주소
+			, C.ZIP_CD AS ZIP_CD		-- 우편번호
+		FROM
+		(
+			SELECT
+				A.BILL_SEQ_NO
+				, A.BILL_MM_TP
+				, A.SO_ID
+				, A.PROD_CMPS_ID
+				, A.SVC_CMPS_ID
+				, A.BILL_YYMM
+				, MAX(A.USE_YYMM) AS USE_YYMM
+				, A.BILL_CYCL
+				, A.BILL_DT
+				, B.PYM_ACNT_ID
+				, A.BIZ_CL
+				, SUM(A.BILL_AMT) AS BILL_AMT
+				, MAX(A.GRP_ID) AS GRP_ID 
+				, MAX(A.PROD_GRP) AS PROD_GRP 
+				, MAX(A.SVC_GRP) AS SVC_GRP 
+				, MAX(A.PROD_CD) AS PROD_CD 
+				, MAX(A.SVC_CD) AS SVC_CD 
+				, A.CUST_ID
+				, A.CTRT_ID
+				, MAX(A.SALE_TP) AS SALE_TP
+				, MAX(A.CRNCY_CD) AS CRNCY_CD
+				, MAX(A.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+				, MAX(A.EXRATE) AS EXRATE
+				, MAX(A.PAY_DUE_DT) AS PAY_DUE_DT
+				, MAX(A.ATRT_CORP_ID) AS ATRT_CORP_ID
+				, MAX(A.ATRT_EMP_ID) AS ATRT_EMP_ID
+				, MAX(A.CHRG_ITM_CD) AS CHRG_ITM_CD
+				, B.TAX_TP
+			FROM TBLIV_BILL_TGT_CUST B
+				, TBLIV_BILL_WRK A
+				, TBLCH_MULTI_SEQ C
+		 	WHERE 1=1
+		 	AND C.SO_ID = #{soId}
+		 	AND C.GUBUN = '2'
+		 	AND C.P_SEQ = #{pSeq}
+			AND B.BILL_YYMM = #{billYymm}       -- BILL_YYMM
+			AND B.BILL_CYCL = #{billCycl}           -- BILL_CYCL
+			AND B.BILL_DT = #{billDt}     -- BILL_DT
+			AND B.SO_ID = #{soId}           -- SO_ID
+			AND B.BILL_SEQ_NO = A.BILL_SEQ_NO  -- Ã»±¸ÀÏ·Ã¹øÈ£
+			AND A.SO_ID = A.SO_ID
+			AND A.PYM_ACNT_ID &gt;= C.STRT_NO
+			AND A.PYM_ACNT_ID &lt;= C.END_NO
+			GROUP BY A.BILL_SEQ_NO
+				, A.BILL_MM_TP
+				, A.SO_ID
+				, A.PROD_CMPS_ID
+				, A.SVC_CMPS_ID
+				, A.BILL_YYMM
+				, A.BIZ_CL
+				, A.BILL_CYCL
+				, A.BILL_DT
+				, B.PYM_ACNT_ID
+				, A.CUST_ID
+				, A.CTRT_ID
+				, A.CHRG_ITM_CD
+				, B.TAX_TP
+		) A LEFT OUTER JOIN
+		(
+			SELECT
+				SVC_RATE_ITM_TYP_CD AS CHRG_ITM_CD
+				, ATTR_VAL AS VAT_TP
+				, (
+					SELECT
+						SET_VAL
+					FROM TBLIV_BILL_STP
+					WHERE SO_ID = #{soId}
+					AND SET_ITM_ID  = '00021'
+					AND EFT_BGN_YYMM &lt;= #{billYymm}
+					AND EFT_END_YYMM &gt;= #{billYymm}
+				) AS VAT_RATE
+				, (
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '02'
+					AND USE_YN = 'Y') AS VCHRG_ITM_CD
+			FROM TPMPD_SVC_RATE_ITM_TYP_ATTR
+			WHERE SO_ID = #{soId}
+			AND INACT_DT &gt;= #{billYymm}
+			AND ACT_DT &lt;= #{billYymm}
+			AND ATTR_CD = 'AT003'
+		) B1 ON A.CHRG_ITM_CD = B1.CHRG_ITM_CD
+		LEFT OUTER JOIN (
+			SELECT
+				SVC_RATE_ITM_TYP_CD AS CHRG_ITM_CD
+				, ATTR_VAL AS SVAT_TP
+				, (
+					SELECT SET_VAL
+					FROM TBLIV_BILL_STP
+					WHERE SO_ID = #{soId}
+					AND SET_ITM_ID = '00100'
+					AND EFT_BGN_YYMM &lt;= #{billYymm}
+					AND EFT_END_YYMM &gt;= #{billYymm}
+				) AS SVAT_RATE
+				, (
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '06'
+					AND USE_YN = 'Y') AS SCHRG_ITM_CD
+			FROM TPMPD_SVC_RATE_ITM_TYP_ATTR
+			WHERE SO_ID = #{soId}
+			AND INACT_DT &gt;= #{billYymm}
+			AND ACT_DT &lt;= #{billYymm}
+			AND ATTR_CD = 'DF064'
+		) B2 ON A.CHRG_ITM_CD = B2.CHRG_ITM_CD
+		, IFNBRM_CUST_INFO C
+		WHERE A.SO_ID = C.SO_ID
+		AND A.PYM_ACNT_ID = C.PYM_ACNT_ID
+		AND A.CUST_ID = C.CUST_ID
+		ORDER BY
+			A.BILL_SEQ_NO
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.BILL_YYMM
+			, A.BIZ_CL
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.PYM_ACNT_ID
+			, C.CUST_TP
+			, C.BIZ_REG_NO
+			, C.CUST_NM
+			, C.BUSI_TP
+			, C.BUSI_CNDT
+			, C.TAX_TP
+			, C.ADDR_DTL
+			, C.ZIP_CD
+	</select>
+	
+	<select id="getTaxTargetListByBillSeqNo" resultType="TaxTarget">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.BILL_YYMM
+			, A.USE_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.BIZ_CL
+			, CASE A.BIZ_CL WHEN 'I' THEN 'Internet Using Fee And Others'
+				WHEN 'A' THEN 'CATV Receiving Fee And Others'
+				WHEN 'D' THEN 'DTV Receiving Fee And Others'
+				ELSE 'Mobile Using Fee And Others' END AS RMRK
+			, A.PYM_ACNT_ID
+			, A.BILL_AMT
+			, A.GRP_ID
+			, A.PROD_GRP
+			, A.SVC_GRP
+			, A.PROD_CD
+			, A.SVC_CD
+			, A.CTRT_ID
+			, A.CUST_ID
+			, A.SALE_TP
+			, A.CRNCY_CD
+			, A.EXRATE_APLY_DT
+			, A.EXRATE
+			, A.PAY_DUE_DT
+			, A.ATRT_CORP_ID
+			, A.ATRT_EMP_ID
+			, A.CHRG_ITM_CD
+			, A.TAX_TP
+			, CASE WHEN B1.VAT_TP IS NULL THEN '0' ELSE B1.VAT_TP END AS VAT_TP
+			, CASE WHEN B1.VAT_RATE IS NULL THEN '0' ELSE B1.VAT_RATE END AS VAT_RATE
+			, B1.VCHRG_ITM_CD
+			, CASE WHEN B2.SVAT_TP IS NULL THEN '0' ELSE B2.SVAT_TP END AS SCT_TP
+			, CASE WHEN B2.SVAT_RATE IS NULL THEN '0' ELSE B2.SVAT_RATE END AS SCT_RATE
+			, B2.SCHRG_ITM_CD
+			, CASE WHEN C.CUST_TP IS NULL THEN ' ' ELSE C.CUST_TP END AS CUST_TP			-- 고객유형
+			, CASE WHEN C.BIZ_REG_NO IS NULL THEN ' ' ELSE C.BIZ_REG_NO END AS BIZ_REG_NO	-- 사업자등록번호
+			, CASE WHEN C.CUST_NM IS NULL THEN ' ' ELSE C.CUST_NM END AS CUST_NM			-- 고객명
+			, CASE WHEN C.BUSI_TP IS NULL THEN ' ' ELSE C.BUSI_TP END AS BUSI_TP			-- 업종
+			, CASE WHEN C.BUSI_CNDT IS NULL THEN ' ' ELSE C.BUSI_CNDT END AS BUSI_CNDT		-- 업태
+			, C.ADDR_DTL AS ADDR															-- 주소
+			, C.ZIP_CD AS ZIP_CD		-- 우편번호
+		FROM
+		(
+			SELECT
+				A.BILL_SEQ_NO
+				, A.BILL_MM_TP
+				, A.SO_ID
+				, A.PROD_CMPS_ID
+				, A.SVC_CMPS_ID
+				, A.BILL_YYMM
+				, MAX(A.USE_YYMM) AS USE_YYMM
+				, A.BILL_CYCL
+				, A.BILL_DT
+				, B.PYM_ACNT_ID
+				, A.BIZ_CL
+				, SUM(A.BILL_AMT) AS BILL_AMT
+				, MAX(A.GRP_ID) AS GRP_ID 
+				, MAX(A.PROD_GRP) AS PROD_GRP 
+				, MAX(A.SVC_GRP) AS SVC_GRP 
+				, MAX(A.PROD_CD) AS PROD_CD 
+				, MAX(A.SVC_CD) AS SVC_CD 
+				, A.CUST_ID
+				, A.CTRT_ID
+				, MAX(A.SALE_TP) AS SALE_TP
+				, MAX(A.CRNCY_CD) AS CRNCY_CD
+				, MAX(A.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+				, MAX(A.EXRATE) AS EXRATE
+				, MAX(A.PAY_DUE_DT) AS PAY_DUE_DT
+				, MAX(A.ATRT_CORP_ID) AS ATRT_CORP_ID
+				, MAX(A.ATRT_EMP_ID) AS ATRT_EMP_ID
+				, MAX(A.CHRG_ITM_CD) AS CHRG_ITM_CD
+				, B.TAX_TP
+			FROM TBLIV_BILL_TGT_CUST B
+				, TBLIV_BILL_WRK A
+		 	WHERE 1=1
+		 	AND B.BILL_SEQ_NO = #{billSeqNo}
+			AND B.BILL_SEQ_NO = A.BILL_SEQ_NO  -- Ã»±¸ÀÏ·Ã¹øÈ£
+			AND A.SO_ID = A.SO_ID
+			GROUP BY A.BILL_SEQ_NO
+				, A.BILL_MM_TP
+				, A.SO_ID
+				, A.PROD_CMPS_ID
+				, A.SVC_CMPS_ID
+				, A.BILL_YYMM
+				, A.BIZ_CL
+				, A.BILL_CYCL
+				, A.BILL_DT
+				, B.PYM_ACNT_ID
+				, A.CUST_ID
+				, A.CTRT_ID
+				, A.CHRG_ITM_CD
+				, B.TAX_TP
+		) A LEFT OUTER JOIN
+		(
+			SELECT
+				SVC_RATE_ITM_TYP_CD AS CHRG_ITM_CD
+				, ATTR_VAL AS VAT_TP
+				, (
+					SELECT
+						SET_VAL
+					FROM TBLIV_BILL_STP
+					WHERE SO_ID = #{soId}
+					AND SET_ITM_ID  = '00021'
+					AND EFT_BGN_YYMM &lt;= #{billYymm}
+					AND EFT_END_YYMM &gt;= #{billYymm}
+				) AS VAT_RATE
+				, (
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '02'
+					AND USE_YN = 'Y') AS VCHRG_ITM_CD
+			FROM IFNBRM_SVC_RATE_ITM_ATTR_INFO
+			WHERE SO_ID = #{soId}
+			AND INACT_DT &gt;= #{billYymm}
+			AND ACT_DT &lt;= #{billYymm}
+			AND ATTR_CD = 'DF055'
+		) B1 ON A.CHRG_ITM_CD = B1.CHRG_ITM_CD
+		LEFT OUTER JOIN (
+			SELECT
+				SVC_RATE_ITM_TYP_CD AS CHRG_ITM_CD
+				, ATTR_VAL AS SVAT_TP
+				, (
+					SELECT SET_VAL
+					FROM TBLIV_BILL_STP
+					WHERE SO_ID = #{soId}
+					AND SET_ITM_ID = '00100'
+					AND EFT_BGN_YYMM &lt;= #{billYymm}
+					AND EFT_END_YYMM &gt;= #{billYymm}
+				) AS SVAT_RATE
+				, (
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '06'
+					AND USE_YN = 'Y') AS SCHRG_ITM_CD
+			FROM IFNBRM_SVC_RATE_ITM_ATTR_INFO
+			WHERE SO_ID = #{soId}
+			AND INACT_DT &gt;= #{billYymm}
+			AND ACT_DT &lt;= #{billYymm}
+			AND ATTR_CD = 'DF064'
+		) B2 ON A.CHRG_ITM_CD = B2.CHRG_ITM_CD
+		, IFNBRM_CUST_INFO C
+		WHERE A.SO_ID = C.SO_ID
+		AND A.PYM_ACNT_ID = C.PYM_ACNT_ID
+		AND A.CUST_ID = C.CUST_ID
+		ORDER BY
+			A.BILL_SEQ_NO
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.BILL_YYMM
+			, A.BIZ_CL
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.PYM_ACNT_ID
+			, C.CUST_TP
+			, C.BIZ_REG_NO
+			, C.CUST_NM
+			, C.BUSI_TP
+			, C.BUSI_CNDT
+			, C.TAX_TP
+			, C.ADDR_DTL
+			, C.ZIP_CD
+	</select>
+
+	<insert id="insertBillWrk">
+		INSERT INTO TBLIV_BILL_WRK
+		(
+			BILL_SEQ_NO
+			, USE_YYMM
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, CHRG_ITM_CD
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_CD
+			, SVC_CD
+			, BIZ_CL
+			, PROD_GRP
+			, SVC_GRP
+			, BILL_MM_TP
+			, SALE_TP
+			, USG_CNT
+			, USG_AMT
+			, ADJ_PRV_BILL_AMT
+			, ADJ_AMT
+			, BILL_AMT
+			, PAY_DUE_DT
+			, RCPT_AMT
+			, FULL_PAY_YN
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, WON_BILL_AMT
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, SALE_ITM_CD
+			, PREPAY_OCC_SEQ_NO
+			, PREPD_CTRT_ID
+			, REG_DATE
+			, CHG_DATE
+			, DEBT_PROC_YN
+		)
+		VALUES
+		(
+			#{billSeqNo}
+			, #{useYymm}
+			, #{prodCmpsId}
+			, #{svcCmpsId}
+			, #{chrgItmCd}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{soId}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{prodCd}
+			, #{svcCd}
+			, #{bizCl}
+			, #{prodGrp}
+			, #{svcGrp}
+			, #{billMmTp}
+			, #{saleTp}
+			, #{usgCnt}
+			, #{usgAmt}
+			, #{adjPrvBillAmt}
+			, #{adjAmt}
+			, #{billAmt}
+			, #{payDueDt}
+			, #{rcptAmt}
+			, #{fullPayYn}
+			, #{atrtCorpId}
+			, #{atrtEmpId}
+			, #{wonBillAmt}
+			, #{crncyCd}
+			, #{exrate}
+			, #{exrateAplyDt}
+			, #{saleItmCd}
+			, #{prepayOccSeqNo}
+			, #{prepdCtrtId}
+			, #{regDate}
+			, #{chgDate}
+			, #{debtProcYn}
+		)
+	</insert>
+	
+	<insert id="insertTaxBill">
+		INSERT INTO TBLIV_TAX_BILL
+		(
+			TAX_ISS_NO
+			, BILL_SEQ_NO
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SALE_DT
+			, TAX_BILL_ISS_DT
+			, TAX_BILL_WR_DT
+			, SO_ID
+			, PYM_ACNT_ID
+			, BIZ_CL
+			, BILL_MM_TP
+			, CUST_TP
+			, SPLY_BIZ_NO
+			, BIZ_REG_NO
+			, CUST_NM
+			, REP_NM
+			, BUSI_TP
+			, BUSI_CNDT
+			, TAX_TP
+			, ZIP_CD
+			, ADDR
+			, RMRK
+			, SPLY_AMT
+			, VAT
+			, SCT
+			, TBI_FLG
+			, TAX_DCLR_CL
+			, REG_DATE
+		)
+		VALUES
+		(
+			#{taxIssNo}
+			, #{billSeqNo}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{saleDt}
+			, #{taxBillIssDt}
+			, #{taxBillWrDt}
+			, #{soId}
+			, #{pymAcntId}
+			, #{bizCl}
+			, #{billMmTp}
+			, #{custTp}
+			, #{splyBizNo}
+			, #{bizRegNo}
+			, #{custNm}
+			, #{repNm}
+			, #{busiTp}
+			, #{busiCndt}
+			, #{taxTp}
+			, #{zipCd}
+			, #{addr}
+			, #{rmrk}
+			, #{splyAmt}
+			, #{vat}
+			, #{sct}
+			, #{tbiFlg}
+			, #{taxDclrCl}
+			, #{regDate}
+		)
+	</insert>
+	
+	<select id="getBillForTaxCalcFromSimulationBillByBillSeqNo" resultType="TaxTarget">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.BILL_YYMM
+			, A.USE_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.BIZ_CL
+			, CASE A.BIZ_CL WHEN 'I' THEN 'Internet Using Fee And Others'
+				WHEN 'A' THEN 'CATV Receiving Fee And Others'
+				WHEN 'D' THEN 'DTV Receiving Fee And Others'
+				ELSE 'Mobile Using Fee And Others' END AS RMRK
+			, A.PYM_ACNT_ID
+			, A.BILL_AMT
+			, A.GRP_ID
+			, A.PROD_GRP
+			, A.SVC_GRP
+			, A.PROD_CD
+			, A.SVC_CD
+			, A.CTRT_ID
+			, A.CUST_ID
+			, A.SALE_TP
+			, A.CRNCY_CD
+			, A.EXRATE_APLY_DT
+			, A.EXRATE
+			, A.PAY_DUE_DT
+			, A.ATRT_CORP_ID
+			, A.ATRT_EMP_ID
+			, A.CHRG_ITM_CD
+			, A.TAX_TP
+			, A.CLC_WRK_NO
+			, CASE WHEN B1.VAT_TP IS NULL THEN '0' ELSE B1.VAT_TP END AS VAT_TP
+			, CASE WHEN B1.VAT_RATE IS NULL THEN '0' ELSE B1.VAT_RATE END AS VAT_RATE
+			, B1.VCHRG_ITM_CD
+			, CASE WHEN B2.SVAT_TP IS NULL THEN '0' ELSE B2.SVAT_TP END AS SCT_TP
+			, CASE WHEN B2.SVAT_RATE IS NULL THEN '0' ELSE B2.SVAT_RATE END AS SCT_RATE
+			, B2.SCHRG_ITM_CD
+			, CASE WHEN C.CUST_TP IS NULL THEN ' ' ELSE C.CUST_TP END AS CUST_TP
+			, CASE WHEN C.BIZ_REG_NO IS NULL THEN ' ' ELSE C.BIZ_REG_NO END AS BIZ_REG_NO
+			, CASE WHEN C.CUST_NM IS NULL THEN ' ' ELSE C.CUST_NM END AS CUST_NM
+			, CASE WHEN C.BUSI_TP IS NULL THEN ' ' ELSE C.BUSI_TP END AS BUSI_TP
+			, CASE WHEN C.BUSI_CNDT IS NULL THEN ' ' ELSE C.BUSI_CNDT END AS BUSI_CNDT
+			, C.ADDR_DTL AS ADDR
+			, C.ZIP_CD AS ZIP_CD
+		FROM
+		(
+			SELECT
+				A.BILL_SEQ_NO
+				, A.BILL_MM_TP
+				, A.SO_ID
+				, A.PROD_CMPS_ID
+				, A.SVC_CMPS_ID
+				, A.BILL_YYMM
+				, MAX(A.USE_YYMM) AS USE_YYMM
+				, A.BILL_CYCL
+				, A.BILL_DT
+				, A.PYM_ACNT_ID
+				, A.BIZ_CL
+				, SUM(A.BILL_AMT) AS BILL_AMT
+				, MAX(A.GRP_ID) AS GRP_ID 
+				, MAX(A.PROD_GRP) AS PROD_GRP 
+				, MAX(A.SVC_GRP) AS SVC_GRP 
+				, MAX(A.PROD_CD) AS PROD_CD 
+				, MAX(A.SVC_CD) AS SVC_CD 
+				, A.CUST_ID
+				, A.CTRT_ID
+				, MAX(A.SALE_TP) AS SALE_TP
+				, MAX(A.CRNCY_CD) AS CRNCY_CD
+				, MAX(A.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+				, MAX(A.EXRATE) AS EXRATE
+				, MAX(A.PAY_DUE_DT) AS PAY_DUE_DT
+				, MAX(A.ATRT_CORP_ID) AS ATRT_CORP_ID
+				, MAX(A.ATRT_EMP_ID) AS ATRT_EMP_ID
+				, MAX(A.CHRG_ITM_CD) AS CHRG_ITM_CD
+				, B.TAX_TP
+				, MAX(A.CLC_WRK_NO) AS CLC_WRK_NO
+			FROM IFNBRM_CUST_INFO B
+				, TBLIV_SIMULATION_BILL A
+		 	WHERE 1=1
+		 	AND A.CLC_WRK_NO  = #{clcWrkNo}
+		 	AND A.SO_ID       = #{soId}
+		 	AND B.SO_ID       = A.SO_ID
+		 	AND B.PYM_ACNT_ID = A.PYM_ACNT_ID
+		 	AND B.CUST_ID = A.CUST_ID
+			GROUP BY A.BILL_SEQ_NO
+				, A.BILL_MM_TP
+				, A.SO_ID
+				, A.PROD_CMPS_ID
+				, A.SVC_CMPS_ID
+				, A.BILL_YYMM
+				, A.BIZ_CL
+				, A.BILL_CYCL
+				, A.BILL_DT
+				, A.PYM_ACNT_ID
+				, A.CUST_ID
+				, A.CTRT_ID
+				, A.CHRG_ITM_CD
+				, B.TAX_TP
+		) A LEFT OUTER JOIN
+		(
+			SELECT
+				SVC_RATE_ITM_TYP_CD AS CHRG_ITM_CD
+				, ATTR_VAL AS VAT_TP
+				, (
+					SELECT
+						SET_VAL
+					FROM TBLIV_BILL_STP
+					WHERE SO_ID = #{soId}
+					AND SET_ITM_ID  = '00021'
+					AND EFT_BGN_YYMM &lt;= #{billYymm}
+					AND EFT_END_YYMM &gt;= #{billYymm}
+				) AS VAT_RATE
+				, (
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '02'
+					AND USE_YN = 'Y') AS VCHRG_ITM_CD
+			FROM IFNBRM_SVC_RATE_ITM_ATTR_INFO
+			WHERE SO_ID = #{soId}
+			AND INACT_DT &gt;= #{billYymm}
+			AND ACT_DT &lt;= #{billYymm}
+			AND ATTR_CD = 'DF055'
+		) B1 ON A.CHRG_ITM_CD = B1.CHRG_ITM_CD
+		LEFT OUTER JOIN (
+			SELECT
+				SVC_RATE_ITM_TYP_CD AS CHRG_ITM_CD
+				, ATTR_VAL AS SVAT_TP
+				, (
+					SELECT SET_VAL
+					FROM TBLIV_BILL_STP
+					WHERE SO_ID = #{soId}
+					AND SET_ITM_ID = '00100'
+					AND EFT_BGN_YYMM &lt;= #{billYymm}
+					AND EFT_END_YYMM &gt;= #{billYymm}
+				) AS SVAT_RATE
+				, (
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '06'
+					AND USE_YN = 'Y') AS SCHRG_ITM_CD
+			FROM IFNBRM_SVC_RATE_ITM_ATTR_INFO
+			WHERE SO_ID = #{soId}
+			AND INACT_DT &gt;= #{billYymm}
+			AND ACT_DT &lt;= #{billYymm}
+			AND ATTR_CD = 'DF064'
+		) B2 ON A.CHRG_ITM_CD = B2.CHRG_ITM_CD
+		, IFNBRM_CUST_INFO C
+		WHERE A.SO_ID = C.SO_ID
+		AND A.PYM_ACNT_ID = C.PYM_ACNT_ID
+		AND A.CUST_ID = C.CUST_ID
+		ORDER BY
+			A.BILL_SEQ_NO
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.BILL_YYMM
+			, A.BIZ_CL
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.PYM_ACNT_ID
+			, C.CUST_TP
+			, C.BIZ_REG_NO
+			, C.CUST_NM
+			, C.BUSI_TP
+			, C.BUSI_CNDT
+			, C.TAX_TP
+			, C.ADDR_DTL
+			, C.ZIP_CD
+	</select>
+	
+	<select id="getNewTaxBill" resultType="TaxBill">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PYM_ACNT_ID
+			, A.BIZ_CL
+			, CASE WHEN C.CUST_TP IS NULL THEN ' ' ELSE C.CUST_TP END AS CUST_TP
+			, CASE WHEN C.BIZ_REG_NO IS NULL THEN ' ' ELSE C.BIZ_REG_NO END AS BIZ_REG_NO
+			, CASE WHEN C.CUST_NM IS NULL THEN ' ' ELSE C.CUST_NM END AS CUST_NM
+			, CASE WHEN C.CUST_NM IS NULL THEN ' ' ELSE C.CUST_NM END AS REP_NM
+			, CASE WHEN C.BUSI_TP IS NULL THEN ' ' ELSE C.BUSI_TP END AS BUSI_TP
+			, CASE WHEN C.BUSI_CNDT IS NULL THEN ' ' ELSE C.BUSI_CNDT END AS BUSI_CNDT
+			, CASE WHEN C.CUST_TP IS NULL THEN ' ' ELSE C.CUST_TP END AS CUST_TP
+			, CASE WHEN C.TAX_TP IS NULL THEN '1' ELSE C.TAX_TP END AS TAX_TP
+			, C.ZIP_CD
+			, A.SPLY_AMT
+			, B.VAT_AMT AS VAT
+			, B.SCT_AMT AS SCT
+		FROM
+		(
+			SELECT
+				BILL_SEQ_NO
+				, BILL_YYMM
+				, BILL_CYCL
+				, BILL_DT
+				, BILL_MM_TP
+				, SO_ID
+				, PYM_ACNT_ID
+				, BIZ_CL
+				, MAX(CUST_ID) AS CUST_ID
+				, SUM(BILL_AMT) AS SPLY_AMT
+			FROM TBLIV_BILL
+			WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND SO_ID = #{soId}
+			AND CHRG_ITM_CD NOT IN (
+				SELECT REF_CODE
+				FROM TSYCO_CODE_DETAIL
+				WHERE COMMON_GRP = 'BL00000'
+				AND (COMMON_CD = '02' OR COMMON_CD = '06')
+				AND USE_YN = 'Y'
+			)
+			GROUP BY BILL_SEQ_NO
+				, BILL_YYMM
+				, BILL_CYCL
+				, BILL_DT
+				, BILL_MM_TP
+				, SO_ID
+				, PYM_ACNT_ID
+				, BIZ_CL
+		) A
+		, (
+			SELECT
+				CASE WHEN B.BILL_AMT IS NULL THEN 0 ELSE B.BILL_AMT END AS VAT_AMT
+				, CASE WHEN C.BILL_AMT IS NULL THEN 0 ELSE C.BILL_AMT END AS SCT_AMT
+				, B.BILL_SEQ_NO
+				, B.SO_ID
+			FROM
+			(
+				SELECT
+					BILL_SEQ_NO
+					, SO_ID
+					, CHRG_ITM_CD
+					, BILL_AMT
+				FROM TBLIV_BILL_WRK
+				WHERE BILL_SEQ_NO = #{billSeqNo}
+				AND SO_ID = #{soId}
+				AND CHRG_ITM_CD = 
+				(
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '02'
+					AND USE_YN = 'Y'
+				)
+			) B
+			, (
+				SELECT
+					BILL_SEQ_NO
+					, CHRG_ITM_CD
+					, BILL_AMT
+				FROM
+				TBLIV_BILL_WRK
+				WHERE BILL_SEQ_NO = #{billSeqNo}
+				AND SO_ID = #{soId}
+				AND CHRG_ITM_CD = 
+				(
+					SELECT REF_CODE
+					FROM TSYCO_CODE_DETAIL
+					WHERE COMMON_GRP = 'BL00000'
+					AND COMMON_CD = '06'
+					AND USE_YN = 'Y'
+				)
+			) C
+			WHERE B.BILL_SEQ_NO = C.BILL_SEQ_NO
+		) B
+		, IFNBRM_CUST_INFO C
+		WHERE A.BILL_SEQ_NO = B.BILL_SEQ_NO
+		AND A.SO_ID = B.SO_ID
+		AND A.SO_ID = C.SO_ID
+		AND A.PYM_ACNT_ID = C.PYM_ACNT_ID
+		AND A.CUST_ID = C.CUST_ID
+	</select>
+	
+	<select id="getRoundingAdjSvcRateItmTypCd" resultType="TaxTarget">
+		SELECT SVC_RATE_ITM_TYP_CD
+		FROM IFNBRM_SVC_RATE_ITM_INFO
+		WHERE SO_ID = #{value}
+		AND INV_ITM_CD = 'IP002'
+	</select>
+
+</mapper>

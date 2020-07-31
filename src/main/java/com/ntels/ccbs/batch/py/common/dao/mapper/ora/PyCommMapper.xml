@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.py.common.dao.mapper.PyCommMapper">
+
+	<!-- 납부계정ID 조회 -->
+	<select id="getPymAcntCnt" resultType="int">
+		SELECT COUNT(*)
+		FROM IFNBRM_CUST_INFO
+		WHERE PYM_ACNT_ID = #{pymAcntId}
+	</select>
+
+	<select id="getExrateInfo" resultType="com.ntels.ccbs.batch.py.common.entity.ExrateInfo">
+		SELECT 
+			T2.CRNCY_CD
+		    , T2.EXRATE_APLY_DT
+		    , T2.EXRATE
+		FROM
+		(
+		    SELECT MAX(EXRATE_APLY_DT) AS EXRATE_APLY_DT
+		    FROM TBLIV_EXRATE_INFO
+		    WHERE CRNCY_CD = #{crncyCd}
+		    AND EXRATE_APLY_DT &lt;= #{exrateAplyDt}
+		) T1, TBLIV_EXRATE_INFO T2
+		WHERE T1.EXRATE_APLY_DT = T2.EXRATE_APLY_DT
+		    AND T2.CRNCY_CD = #{crncyCd}
+	</select>
+	
+	<insert id="insertAgncyPymInfo">
+		INSERT INTO TDNAC_AGNCY_PYM_INFO
+		(
+			PYM_DT
+			, ORG_ID
+			, SEQ_NO
+			, PYM_ITM_CD
+			, PYM_TGT_AMT
+			, PYM_AMT
+			, PYM_MTHD_CD
+			, CTRT_ID
+			, ACNT_ID
+			, PYM_SEQ_NO
+			, SALE_ITM_CD
+			, SALE_ACC_CL_CD
+			, REG_DT
+			, REG_ID
+			, CHG_DT
+			, CHG_ID
+		)
+		VALUES
+		(
+			#{acAgncyPymInfo.pymDt}
+			, #{acAgncyPymInfo.orgId}
+			, #{acAgncyPymInfo.seqNo}
+			, #{acAgncyPymInfo.pymItmCd}
+			, #{acAgncyPymInfo.pymTgtAmt}
+			, #{acAgncyPymInfo.pymAmt}
+			, #{acAgncyPymInfo.pymMthdCd}
+			, #{acAgncyPymInfo.ctrtId}
+			, #{acAgncyPymInfo.acntId}
+			, #{acAgncyPymInfo.pymSeqNo}
+			, #{acAgncyPymInfo.saleItmCd}
+			, #{acAgncyPymInfo.saleAccClCd}
+			, #{acAgncyPymInfo.regDt}
+			, #{acAgncyPymInfo.regId}
+			, #{acAgncyPymInfo.chgDt}
+			, #{acAgncyPymInfo.chgId}
+		)
+	</insert>
+	
+	<update id="updateLoanInfo">
+		UPDATE TDNDI_LOAN_INFO
+		SET LOAN_USE_AMT = LOAN_USE_AMT + #{amt} 
+			,LOAN_AVL_AMT = LOAN_AVL_AMT - #{amt}
+		WHERE ORG_ID = #{orgId}
+			AND LOAN_KND_CD = '20'
+	</update>
+
+</mapper>

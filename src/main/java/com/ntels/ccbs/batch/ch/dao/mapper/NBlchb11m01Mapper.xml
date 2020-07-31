@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.dao.mapper.NBlchb11m01Mapper">
+    <select id = "listChargeHist"  resultType="NBlchb11m01">
+        SELECT SO_ID,
+               CTRT_ID,
+               BILL_YYMM,
+               'N'           AS HOT_BILL_YN,
+               BILL_CYCL     AS MULTI_CYCL,
+               #{pSeq}       AS MULTI_SEQ,
+               MIN(ACT_DT)   AS USE_ST_DATE,
+               MAX(INACT_DT) AS USE_ED_DATE,
+               '1'           AS PROCESS_STAT,
+               #{today}      AS BILL_PROCESS_DT
+        FROM   TBLCH_CHRG_TEMP
+        WHERE  SO_ID = #{soId}
+        AND    CLC_WRK_NO = #{clcWrkNo}
+        AND    P_SEQ = #{pSeq}
+        GROUP BY SO_ID, CTRT_ID, BILL_YYMM, BILL_CYCL
+    </select>
+
+    <insert id = "saveChargeHist" parameterType = "NBlchb11m01">
+		INSERT INTO TBLCH_MULTI_CHRG_HIST 
+		    (SO_ID, CTRT_ID, BILL_YYMM, HOT_BILL_YN, MULTI_CYCL
+		    ,MULTI_SEQ, USE_ST_DATE, USE_ED_DATE, PROCESS_STAT, BILL_PROCESS_DT, REG_DATE)
+		VALUES 
+		    (#{soId}, #{ctrtId}, #{billYymm}, #{hotBillYn}, #{multiCycl}
+		    ,#{multiSeq}, #{useStDate}, #{useEdDate}, #{processStat}, #{billProcessDt}, #{regDate}) 
+		ON DUPLICATE KEY UPDATE 
+		BILL_YYMM = #{billYymm}
+	  	,HOT_BILL_YN = #{hotBillYn}
+	  	,MULTI_CYCL = #{multiCycl}
+	  	,MULTI_SEQ = #{multiSeq}
+	  	,USE_ST_DATE = #{useStDate}
+	 	,USE_ED_DATE = #{useEdDate}
+	  	,PROCESS_STAT = #{processStat}
+	  	,BILL_PROCESS_DT = #{billProcessDt}
+	  	,REG_DATE = #{regDate}
+    </insert>   
+          
+    <insert id = "saveChargeHist1" parameterType = "Multi">
+			INSERT INTO TBLCH_MULTI_CHRG_HIST
+			(SO_ID, CTRT_ID, BILL_YYMM, HOT_BILL_YN, MULTI_CYCL, MULTI_SEQ, USE_ST_DATE, USE_ED_DATE, PROCESS_STAT, BILL_PROCESS_DT, REG_DATE) 
+			SELECT  
+				TEMP.SO_ID
+				, TEMP.CTRT_ID
+				, TEMP.BILL_YYMM
+				, TEMP.HOT_BILL_YN
+				, TEMP.MULTI_CYCL
+				, TEMP.MULTI_SEQ
+				, TEMP.USE_ST_DATE
+				, TEMP.USE_ED_DATE
+				, TEMP.PROCESS_STAT
+				, TEMP. BILL_PROCESS_DT 
+				, #{regDate}
+			FROM 
+			(SELECT 
+				SO_ID, CTRT_ID, BILL_YYMM, 'N' AS HOT_BILL_YN, BILL_CYCL AS MULTI_CYCL, #{pSeq} AS MULTI_SEQ, 
+				MIN(ACT_DT) AS USE_ST_DATE, MAX(INACT_DT) AS USE_ED_DATE, '9' AS PROCESS_STAT, #{today} AS BILL_PROCESS_DT 
+			FROM TBLCH_CHRG_TEMP
+			WHERE SO_ID = #{soId}
+			AND CLC_WRK_NO  = #{clcWrkNo}
+			AND P_SEQ = #{pSeq}
+			GROUP BY SO_ID, CTRT_ID, BILL_YYMM, BILL_CYCL) TEMP, TBLCH_MULTI_CHRG_HIST HIST
+			WHERE HIST.SO_ID = TEMP.SO_ID 
+			AND HIST.CTRT_ID = TEMP.CTRT_ID
+    </insert>         
+
+</mapper>

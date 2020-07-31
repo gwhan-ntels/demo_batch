@@ -1,0 +1,672 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m10Mapper">
+
+	<select id="getBillCustInfo" resultType="BillCust">
+		SELECT
+			Y.BILL_SEQ_NO AS BILL_SEQ_NO											-- 청구일련번호
+			, Y.PROD_CMPS_ID AS PROD_CMPS_ID										-- 상품구성ID
+			, Y.SVC_CMPS_ID AS SVC_CMPS_ID											-- 서비스구성ID
+			, Y.BILL_YYMM AS BILL_YYMM												-- 청구년월
+			, Y.BILL_CYCL AS BILL_CYCL												-- 청구주기
+			, Y.BILL_DT AS BILL_DT													-- 청구일자
+			, Y.SO_ID AS SO_ID														-- 계열사ID
+			, Y.BILL_MM_TP AS BILL_MM_TP											-- 당/후납
+			, Y.GRP_ID AS GRP_ID													-- 그룹ID
+			, Y.PYM_ACNT_ID AS PYM_ACNT_ID											-- 납부계정ID
+			, Y.CUST_ID AS CUST_ID													-- 고객ID
+			, Y.CTRT_ID AS CTRT_ID													-- 계약ID
+			, Y.PROD_CD AS PROD_CD													-- 상품코드
+			, Y.SVC_CD AS SVC_CD													-- 서비스코드
+			, Y.SVC_GRP AS SVC_GRP													-- 서비스군
+			, Y.ATRT_CORP_ID AS ATRT_CORP_ID										-- 유치업체ID
+			, Y.ATRT_EMP_ID AS ATRT_EMP_ID											-- 유치사원ID
+			, Y.TAX_TP AS TAX_TP													-- 과세구분
+			, Y.CUST_TP AS CUST_TP													-- 과세구분
+			, Y.CRNCY_CD AS CRNCY_CD												-- 화폐코드
+			, Y.EXRATE AS EXRATE													-- 환율
+			, Y.EXRATE_APLY_DT AS EXRATE_APLY_DT									-- 환율적용일자
+			, Y.PAY_DUE_DT AS PAY_DUE_DT											-- 납기일자
+			, Y.BILL_MDM_GIRO_YN AS BILL_MDM_GIRO_YN								-- 청구매체코드(지로)
+			, Y.BILL_MDM_EML_YN AS BILL_MDM_EML_YN									-- 청구매체코드(이메일)
+			, Y.BILL_MDM_SMS_YN AS BILL_MDM_SMS_YN									-- 청구매체코드(SMS)
+			, Y.BILL_MDM_FAX_YN AS BILL_MDM_FAX_YN									-- 청구매체코드(팩스)
+			, Y.PYM_MTHD AS PAY_MTHD												-- 납부방법
+			, Y.SML_BS_AMT															-- 소액여부
+			, Y.ZIP_CD AS ZIP_CD
+			, Y.BILL_ADDR AS BILL_ADDR
+			, X.BILL_AMT AS BILL_AMT
+			, Y.USE_STRT_DT AS USE_STRT_DT
+			, Y.USE_END_DT AS USE_END_DT
+			, TRIM(Y.BILL_SEQ_NO)||TRIM(Y.PROD_CMPS_ID)||TRIM(Y.SVC_CMPS_ID) AS DTL_SKIP
+		FROM
+		(
+			SELECT X.*
+			, B.CUST_TP
+			, B.TAX_TP
+			, B.BILL_MDM_GIRO_YN
+			, B.BILL_MDM_EML_YN
+			, B.BILL_MDM_SMS_YN
+			, 'N' AS BILL_MDM_FAX_YN
+			, B.PYM_MTHD
+			, CASE WHEN (SELECT SET_VAL FROM TBLIV_BILL_STP
+				WHERE SO_ID = X.SO_ID
+				AND SET_ITM_ID =
+					CASE B.PYM_MTHD WHEN '01' THEN '00052'
+						WHEN '02' THEN '00053'
+						WHEN '03' THEN '00053'
+						WHEN '04' THEN '00051' END) IS NULL THEN '0'
+				ELSE
+				(SELECT SET_VAL FROM TBLIV_BILL_STP
+						WHERE SO_ID = X.SO_ID
+						AND SET_ITM_ID =
+							CASE B.PYM_MTHD WHEN '01' THEN '00052'
+								WHEN '02' THEN '00053'
+								WHEN '03' THEN '00053'
+								WHEN '04' THEN '00051' END) END AS SML_BS_AMT
+			, B.ZIP_CD
+			, B.BASE_ADDR||B.ADDR_DTL AS BILL_ADDR
+			FROM
+			(
+				SELECT
+					A.BILL_SEQ_NO
+					, A.PROD_CMPS_ID AS PROD_CMPS_ID
+					, A.SVC_CMPS_ID AS SVC_CMPS_ID
+					, A.BILL_YYMM AS BILL_YYMM
+					, A.BILL_CYCL AS BILL_CYCL
+					, A.BILL_DT AS BILL_DT
+					, A.SO_ID AS SO_ID
+					, A.BILL_MM_TP AS BILL_MM_TP
+					, A.PYM_ACNT_ID AS PYM_ACNT_ID
+					, A.CUST_ID AS CUST_ID
+					, A.CTRT_ID AS CTRT_ID
+					, A.CRNCY_CD AS CRNCY_CD
+					, A.EXRATE AS EXRATE
+					, MAX(A.GRP_ID) AS GRP_ID
+					, MAX(A.PROD_CD) AS PROD_CD
+					, MAX(A.SVC_CD) AS SVC_CD
+					, MAX(A.SVC_GRP) AS SVC_GRP
+					, MAX(A.ATRT_CORP_ID) AS ATRT_CORP_ID
+					, MAX(A.ATRT_EMP_ID) AS ATRT_EMP_ID
+					, MAX(A.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+					, MAX(A.PAY_DUE_DT) AS PAY_DUE_DT
+					, MIN(B.ACT_DT) AS USE_STRT_DT
+					, MIN(B.INACT_DT) AS USE_END_DT
+				FROM TBLIV_BILL_WRK A
+					, TBLCH_SVC_CMPS_MT B
+					, TBLCH_MULTI_SEQ C
+				WHERE 1=1
+				AND C.SO_ID = #{soId}
+				AND C.GUBUN = '2'
+				AND C.P_SEQ = #{pSeq} 
+				AND A.BILL_SEQ_NO LIKE #{billSeqNo}||'%'
+				AND A.BILL_YYMM = #{billYymm}
+				AND A.BILL_CYCL = #{billCycl}
+				AND A.SO_ID = #{soId}
+				AND B.SO_ID = A.SO_ID
+				AND B.PROD_CMPS_ID = A.PROD_CMPS_ID
+				AND B.SVC_CMPS_ID = A.SVC_CMPS_ID
+				AND B.CTRT_ID = A.CTRT_ID
+				AND A.PYM_ACNT_ID &gt;= C.STRT_NO
+				AND A.PYM_ACNT_ID &lt;= C.END_NO
+		    	GROUP BY A.BILL_SEQ_NO
+					, A.PROD_CMPS_ID
+					, A.SVC_CMPS_ID
+					, A.BILL_YYMM
+					, A.BILL_CYCL
+					, A.BILL_DT
+					, A.SO_ID
+					, A.BILL_MM_TP
+					, A.PYM_ACNT_ID
+					, A.CTRT_ID
+					, A.CRNCY_CD
+					, A.EXRATE
+					, A.CUST_ID
+					, B.ACT_DT
+					, B.INACT_DT
+			) X
+			, IFNBRM_CUST_INFO B
+			WHERE 1=1
+			AND B.SO_ID = #{soId}
+			AND B.SO_ID = X.SO_ID
+			AND B.CUST_ID = X.CUST_ID
+			AND B.PYM_ACNT_ID = X.PYM_ACNT_ID
+		) Y
+		, (
+			SELECT
+				XA.BILL_SEQ_NO,
+				NVL(SUM(XA.BILL_AMT),0) AS BILL_AMT
+				FROM TBLIV_BILL_WRK XA
+		  	WHERE 1=1
+		  	AND XA.BILL_SEQ_NO LIKE #{billSeqNo}||'%'
+		  	AND XA.BILL_YYMM = #{billYymm}
+		  	AND XA.BILL_CYCL = #{billCycl}
+			AND XA.SO_ID = #{soId}
+			GROUP BY XA.BILL_SEQ_NO
+		) X
+		WHERE Y.BILL_SEQ_NO = X.BILL_SEQ_NO
+		ORDER BY Y.BILL_SEQ_NO
+			, Y.PROD_CMPS_ID
+			, Y.SVC_CMPS_ID
+	</select>
+	
+	<select id="getBillCustInfoMapper" resultType="BillCust">
+		SELECT
+			Y.BILL_SEQ_NO AS BILL_SEQ_NO											-- 청구일련번호
+			, Y.PROD_CMPS_ID AS PROD_CMPS_ID										-- 상품구성ID
+			, Y.SVC_CMPS_ID AS SVC_CMPS_ID											-- 서비스구성ID
+			, Y.BILL_YYMM AS BILL_YYMM												-- 청구년월
+			, Y.BILL_CYCL AS BILL_CYCL												-- 청구주기
+			, Y.BILL_DT AS BILL_DT													-- 청구일자
+			, Y.SO_ID AS SO_ID														-- 계열사ID
+			, Y.BILL_MM_TP AS BILL_MM_TP											-- 당/후납
+			, Y.GRP_ID AS GRP_ID													-- 그룹ID
+			, Y.PYM_ACNT_ID AS PYM_ACNT_ID											-- 납부계정ID
+			, Y.CUST_ID AS CUST_ID													-- 고객ID
+			, Y.CTRT_ID AS CTRT_ID													-- 계약ID
+			, Y.PROD_CD AS PROD_CD													-- 상품코드
+			, Y.SVC_CD AS SVC_CD													-- 서비스코드
+			, Y.SVC_GRP AS SVC_GRP													-- 서비스군
+			, Y.ATRT_CORP_ID AS ATRT_CORP_ID										-- 유치업체ID
+			, Y.ATRT_EMP_ID AS ATRT_EMP_ID											-- 유치사원ID
+			, Y.TAX_TP AS TAX_TP													-- 과세구분
+			, Y.CUST_TP AS CUST_TP													-- 과세구분
+			, Y.CRNCY_CD AS CRNCY_CD												-- 화폐코드
+			, Y.EXRATE AS EXRATE													-- 환율
+			, Y.EXRATE_APLY_DT AS EXRATE_APLY_DT									-- 환율적용일자
+			, Y.PAY_DUE_DT AS PAY_DUE_DT											-- 납기일자
+			, Y.BILL_MDM_GIRO_YN AS BILL_MDM_GIRO_YN								-- 청구매체코드(지로)
+			, Y.BILL_MDM_EML_YN AS BILL_MDM_EML_YN									-- 청구매체코드(이메일)
+			, Y.BILL_MDM_SMS_YN AS BILL_MDM_SMS_YN									-- 청구매체코드(SMS)
+			, Y.BILL_MDM_FAX_YN AS BILL_MDM_FAX_YN									-- 청구매체코드(팩스)
+			, Y.PYM_MTHD AS PYM_MTHD												-- 납부방법
+			, Y.SML_BS_AMT															-- 소액여부
+			, Y.ZIP_CD AS ZIP_CD
+			, Y.BILL_ADDR AS BILL_ADDR
+			, X.BILL_AMT AS BILL_AMT
+			, Y.USE_STRT_DT AS USE_STRT_DT
+			, Y.USE_END_DT AS USE_END_DT
+			, TRIM(Y.BILL_SEQ_NO)||TRIM(Y.PROD_CMPS_ID)||TRIM(Y.SVC_CMPS_ID) AS DTL_SKIP
+		FROM
+		(
+			SELECT X.*
+			, B.CUST_TP
+			, B.TAX_TP
+			, B.BILL_MDM_GIRO_YN
+			, B.BILL_MDM_EML_YN
+			, B.BILL_MDM_SMS_YN
+			, 'N' AS BILL_MDM_FAX_YN
+			, B.PYM_MTHD
+			, CASE WHEN (SELECT SET_VAL FROM TBLIV_BILL_STP
+				WHERE SO_ID = X.SO_ID
+				AND SET_ITM_ID =
+					CASE B.PYM_MTHD WHEN '01' THEN '00052'
+						WHEN '02' THEN '00053'
+						WHEN '03' THEN '00053'
+						WHEN '04' THEN '00051' END) IS NULL THEN '0'
+				ELSE
+				(SELECT SET_VAL FROM TBLIV_BILL_STP
+						WHERE SO_ID = X.SO_ID
+						AND SET_ITM_ID =
+							CASE B.PYM_MTHD WHEN '01' THEN '00052'
+								WHEN '02' THEN '00053'
+								WHEN '03' THEN '00053'
+								WHEN '04' THEN '00051' END) END AS SML_BS_AMT
+			, B.ZIP_CD
+			, B.BASE_ADDR||B.ADDR_DTL AS BILL_ADDR
+			FROM
+			(
+				SELECT
+					A.BILL_SEQ_NO
+					, A.PROD_CMPS_ID AS PROD_CMPS_ID
+					, A.SVC_CMPS_ID AS SVC_CMPS_ID
+					, A.BILL_YYMM AS BILL_YYMM
+					, A.BILL_CYCL AS BILL_CYCL
+					, A.BILL_DT AS BILL_DT
+					, A.SO_ID AS SO_ID
+					, A.BILL_MM_TP AS BILL_MM_TP
+					, A.PYM_ACNT_ID AS PYM_ACNT_ID
+					, A.CUST_ID AS CUST_ID
+					, A.CTRT_ID AS CTRT_ID
+					, A.CRNCY_CD AS CRNCY_CD
+					, A.EXRATE AS EXRATE
+					, MAX(A.GRP_ID) AS GRP_ID
+					, MAX(A.PROD_CD) AS PROD_CD
+					, MAX(A.SVC_CD) AS SVC_CD
+					, MAX(A.SVC_GRP) AS SVC_GRP
+					, MAX(A.ATRT_CORP_ID) AS ATRT_CORP_ID
+					, MAX(A.ATRT_EMP_ID) AS ATRT_EMP_ID
+					, MAX(A.EXRATE_APLY_DT) AS EXRATE_APLY_DT
+					, MAX(A.PAY_DUE_DT) AS PAY_DUE_DT
+					, MIN(B.ACT_DT) AS USE_STRT_DT
+					, MIN(B.INACT_DT) AS USE_END_DT
+				FROM TBLIV_BILL_WRK A
+					, TBLCH_SVC_CMPS_MT B
+				WHERE 1=1
+				AND A.BILL_SEQ_NO LIKE #{billCust.billSeqNo}||'%'
+				AND A.BILL_YYMM = #{billCust.billYymm}
+				AND A.BILL_CYCL = #{billCust.billCycl}
+				AND A.SO_ID = #{billCust.soId}
+				AND B.SO_ID = A.SO_ID
+				AND B.PROD_CMPS_ID = A.PROD_CMPS_ID
+				AND B.SVC_CMPS_ID = A.SVC_CMPS_ID
+				AND B.CTRT_ID = A.CTRT_ID
+		    	GROUP BY A.BILL_SEQ_NO
+					, A.PROD_CMPS_ID
+					, A.SVC_CMPS_ID
+					, A.BILL_YYMM
+					, A.BILL_CYCL
+					, A.BILL_DT
+					, A.SO_ID
+					, A.BILL_MM_TP
+					, A.PYM_ACNT_ID
+					, A.CTRT_ID
+					, A.CRNCY_CD
+					, A.EXRATE
+					, A.CUST_ID
+					, B.ACT_DT
+					, B.INACT_DT
+			) X
+			, IFNBRM_CUST_INFO B
+			WHERE 1=1
+			AND B.SO_ID = '00'
+			AND B.SO_ID = X.SO_ID
+			AND B.CUST_ID = X.CUST_ID
+			AND B.PYM_ACNT_ID = X.PYM_ACNT_ID
+		) Y
+		, (
+			SELECT
+				XA.BILL_SEQ_NO,
+				NVL(SUM(XA.BILL_AMT),0) AS BILL_AMT
+				FROM TBLIV_BILL_WRK XA
+		  	WHERE 1=1
+		  	AND XA.BILL_SEQ_NO LIKE #{billCust.billSeqNo}||'%'
+		  	AND XA.BILL_YYMM = #{billCust.billYymm}
+		  	AND XA.BILL_CYCL = #{billCust.billCycl}
+			AND XA.SO_ID = #{billCust.soId}
+			GROUP BY XA.BILL_SEQ_NO
+		) X
+		WHERE Y.BILL_SEQ_NO = X.BILL_SEQ_NO
+		ORDER BY Y.BILL_SEQ_NO
+			, Y.PROD_CMPS_ID
+			, Y.SVC_CMPS_ID
+	</select>
+	
+	<select id="getBillCustInfoByBillSeqNo" resultType="BillCust">
+		SELECT
+			Y.BILL_SEQ_NO AS BILL_SEQ_NO											-- 청구일련번호
+			, Y.PROD_CMPS_ID AS PROD_CMPS_ID										-- 상품구성ID
+			, Y.SVC_CMPS_ID AS SVC_CMPS_ID											-- 서비스구성ID
+			, Y.BILL_YYMM AS BILL_YYMM												-- 청구년월
+			, Y.BILL_CYCL AS BILL_CYCL												-- 청구주기
+			, Y.BILL_DT AS BILL_DT													-- 청구일자
+			, Y.SO_ID AS SO_ID														-- 계열사ID
+			, Y.BILL_MM_TP AS BILL_MM_TP											-- 당/후납
+			, Y.GRP_ID AS GRP_ID													-- 그룹ID
+			, Y.PYM_ACNT_ID AS PYM_ACNT_ID											-- 납부계정ID
+			, Y.CUST_ID AS CUST_ID													-- 고객ID
+			, Y.CTRT_ID AS CTRT_ID													-- 계약ID
+			, Y.PROD_CD AS PROD_CD													-- 상품코드
+			, Y.SVC_CD AS SVC_CD													-- 서비스코드
+			, Y.SVC_GRP AS SVC_GRP													-- 서비스군
+			, Y.ATRT_CORP_ID AS ATRT_CORP_ID										-- 유치업체ID
+			, Y.ATRT_EMP_ID AS ATRT_EMP_ID											-- 유치사원ID
+			, Y.TAX_TP AS TAX_TP													-- 과세구분
+			, Y.CUST_TP AS CUST_TP													-- 과세구분
+			, Y.CRNCY_CD AS CRNCY_CD												-- 화폐코드
+			, Y.EXRATE AS EXRATE													-- 환율
+			, Y.EXRATE_APLY_DT AS EXRATE_APLY_DT									-- 환율적용일자
+			, Y.PAY_DUE_DT AS PAY_DUE_DT											-- 납기일자
+			, Y.BILL_MDM_GIRO_YN AS BILL_MDM_GIRO_YN								-- 청구매체코드(지로)
+			, Y.BILL_MDM_EML_YN AS BILL_MDM_EML_YN									-- 청구매체코드(이메일)
+			, Y.BILL_MDM_SMS_YN AS BILL_MDM_SMS_YN									-- 청구매체코드(SMS)
+			, Y.BILL_MDM_FAX_YN AS BILL_MDM_FAX_YN									-- 청구매체코드(팩스)
+			, Y.PYM_MTHD AS PYM_MTHD												-- 납부방법
+			, CASE WHEN Z.SET_VAL IS NULL THEN 0 ELSE CAST(Z.SET_VAL AS INT) END AS SML_BS_AMT 	-- 소액여부
+			, Y.ZIP_CD AS ZIP_CD
+			, Y.BILL_ADDR AS BILL_ADDR
+			, X.BILL_AMT AS BILL_AMT
+			, Y.USE_STRT_DT AS USE_STRT_DT
+			, Y.USE_END_DT AS USE_END_DT
+			, TRIM(Y.BILL_SEQ_NO)||TRIM(Y.PROD_CMPS_ID)||TRIM(Y.SVC_CMPS_ID) AS DTL_SKIP
+		FROM 
+		(
+			SELECT
+				A.BILL_SEQ_NO														-- 청구일련번호
+				, A.PROD_CMPS_ID													-- 상품구성ID
+				, A.SVC_CMPS_ID														-- 서비스구성ID
+				, A.BILL_YYMM														-- 청구년월
+				, A.BILL_CYCL														-- 청구주기
+				, A.BILL_DT															-- 청구일자
+				, A.SO_ID															-- 계열사ID
+				, A.BILL_MM_TP														-- 당/후납
+				, MAX(A.GRP_ID) AS GRP_ID											-- 그룹ID
+				, A.PYM_ACNT_ID														-- 납부계정ID
+				, B.CUST_ID															-- 고객ID
+				, A.CTRT_ID															-- 계약ID
+				, MAX(A.PROD_CD) AS PROD_CD											-- 상품코드
+				, MAX(A.SVC_CD) AS SVC_CD											-- 서비스코드
+				, MAX(A.SVC_GRP) AS SVC_GRP											-- 서비스군
+				, MAX(A.ATRT_CORP_ID) AS ATRT_CORP_ID								-- 유치업체ID
+				, MAX(A.ATRT_EMP_ID) AS ATRT_EMP_ID									-- 유치사원ID
+				, CASE WHEN C.TAX_TP IS NULL THEN '1' ELSE C.TAX_TP END AS TAX_TP 	-- 과세구분 -->MVNO수정 NULL이 입력되는경우가 있음.
+				, C.CUST_TP
+				, A.CRNCY_CD                                    					-- 화폐코드
+				, A.EXRATE                                      					-- 환율
+				, MAX(A.EXRATE_APLY_DT) AS EXRATE_APLY_DT   						-- 환율적용일자
+				, MAX(A.PAY_DUE_DT) AS PAY_DUE_DT       							-- 납기일자
+				, CASE WHEN C.PYM_MTHD &lt;&gt; '02' THEN C.BILL_MDM_GIRO_YN
+				WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN C.BILL_MDM_GIRO_YN
+				ELSE'Y'
+				END AS BILL_MDM_GIRO_YN
+				, CASE WHEN C.PYM_MTHD &lt;&gt; '02' THEN C.BILL_MDM_EML_YN
+				WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN C.BILL_MDM_EML_YN
+				ELSE'Y'
+				END AS BILL_MDM_EML_YN
+				, CASE WHEN C.PYM_MTHD &lt;&gt; '02' THEN C.BILL_MDM_SMS_YN
+				WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN C.BILL_MDM_SMS_YN
+				ELSE'Y'
+				END AS BILL_MDM_SMS_YN
+				,'N' AS BILL_MDM_FAX_YN												-- 청구매체코드(팩스)   -- MVNO수정
+				, CASE WHEN
+				CASE P.PYM_MTHD WHEN '02' THEN
+				CASE WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN '02' ELSE '01' END
+				ELSE C.PYM_MTHD END IS NULL THEN ' '
+				ELSE CASE P.PYM_MTHD WHEN '02' THEN
+				CASE WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN '02' ELSE '01' END
+				ELSE C.PYM_MTHD END
+				END AS PYM_MTHD
+				,CASE WHEN C.IMP_ZIP IS NULL THEN C.ZIP_CD ELSE C.IMP_ZIP END AS ZIP_CD
+				,C.NADDR_DTL AS BILL_ADDR
+				,CASE WHEN SUBSTR(E.RATE_STRT_DT,1,6) = #{useYymm} THEN E.RATE_STRT_DT ELSE #{beforeUseStrtDt} END AS USE_STRT_DT
+				, E.TERM_DT AS USE_END_DT
+			FROM TBLIV_BILL_WRK A  													-- 청구내역        TBL
+				, TCMCT_CTRT_INFO B 												-- 계약
+				, IFNBRM_CUST_INFO C 												-- 납부계정정보    TBL
+				LEFT JOIN TCMCU_PYM_ATMT_APPL_INFO  F ON C.PYM_ACNT_ID = F.PYM_ACNT_ID AND C.SO_ID = F.SO_ID AND F.MSTR_FL = 'Y'
+				, TCMCT_SVC_CMPS_INFO E 											-- 서비스구성정보 TBL
+			WHERE
+				A.BILL_SEQ_NO = #{billSeqNo}
+				AND A.SO_ID = #{soId}
+				AND B.SO_ID = C.SO_ID
+				AND A.CTRT_ID = B.CTRT_ID
+				AND A.SO_ID = B.SO_ID
+				AND A.SVC_CMPS_ID = E.SVC_CMPS_ID
+				AND B.INACT_DTTM = '99991231235959'
+				AND E.INACT_DTTM = '99991231235959'
+				AND A.SO_ID = C.SO_ID
+				AND A.PYM_ACNT_ID = C.PYM_ACNT_ID 									-- 납부계정ID
+				AND A.CUST_ID = C.CUST_ID 											-- 고객ID
+			GROUP BY A.BILL_SEQ_NO 													-- 청구일련번호
+				, A.PROD_CMPS_ID 													-- 상품구성ID
+				, A.SVC_CMPS_ID 													-- 서비스구성ID
+				, A.BILL_YYMM 														-- 청구년월
+				, A.BILL_CYCL 														-- 청구주기
+				, A.BILL_DT 														-- 청구일자
+				, A.SO_ID 															-- 계열사ID
+				, A.BILL_MM_TP 														--
+				, A.PYM_ACNT_ID 													-- 납부계정ID
+				, B.CUST_ID 														-- 고객ID
+				, A.CTRT_ID 														-- 계약ID
+				, A.CRNCY_CD 														-- 화폐코드
+				, A.EXRATE 															-- 환율
+				, CASE WHEN C.PYM_MTHD &lt;&gt; '02' THEN C.BILL_MDM_GIRO_YN
+				WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN C.BILL_MDM_GIRO_YN
+				ELSE'Y'
+				END
+				, CASE WHEN C.PYM_MTHD &lt;&gt; '02' THEN C.BILL_MDM_EML_YN
+				WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN C.BILL_MDM_EML_YN
+				ELSE'Y'
+				END
+				, CASE WHEN C.PYM_MTHD &lt;&gt; '02' THEN C.BILL_MDM_SMS_YN
+				WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN C.BILL_MDM_SMS_YN
+				ELSE'Y'
+				END
+				, 'N'
+				, CASE WHEN
+				CASE P.PYM_MTHD WHEN '02' THEN
+				CASE WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN '02' ELSE '01' END
+				ELSE C.PYM_MTHD END IS NULL THEN ' '
+				ELSE CASE P.PYM_MTHD WHEN '02' THEN
+				CASE WHEN CASE WHEN F.ATMT_PROC_CD IN ('62', '40') THEN '30' ELSE F.CONF_FLG END = '30' THEN '02' ELSE '01' END
+				ELSE C.PYM_MTHD END
+				END
+				, C.TAX_TP                      -- 과세구분
+				, C.CUST_TP
+				, CASE WHEN C.IMP_ZIP IS NULL THEN C.ZIP_CD ELSE C.IMP_ZIP END
+				, C.NADDR_DTL
+				, CASE WHEN SUBSTR(E.RATE_STRT_DT,1,6) = #{useYymm} THEN E.RATE_STRT_DT ELSE #{beforeUseStrtDt} END
+				, CASE WHEN SUBSTR(E.TERM_DT,1,6) = #{useYymm} THEN E.TERM_DT ELSE #{beforeUseEndDt} END
+		) Y
+		RIGHT JOIN TBLIV_BILL_STP Z ON Z.SO_ID = Y.SO_ID 
+			AND Z.SET_ITM_ID = CASE Y.PYM_MTHD WHEN '01' THEN '00052' WHEN '02' THEN '00053' WHEN '03' THEN '00053' WHEN '04' THEN '00051' END
+		,(
+			SELECT 
+				XA.BILL_SEQ_NO
+				, CASE WHEN SUM(XA.BILL_AMT) IS NULL THEN 0 ELSE SUM(XA.BILL_AMT) END AS BILL_AMT
+			FROM TBLIV_BILL_WRK XA
+			WHERE
+				XA.BILL_SEQ_NO = #{billSeqNo}
+				AND XA.SO_ID = #{soId}
+			GROUP BY XA.BILL_SEQ_NO
+		) X
+		WHERE Y.BILL_SEQ_NO = X.BILL_SEQ_NO
+		ORDER BY Y.BILL_SEQ_NO
+			, Y.PROD_CMPS_ID
+			, Y.SVC_CMPS_ID
+	</select>
+	
+	<select id="getBillTgtSvcCmpsTargetInfo" resultType="BillCust">
+		SELECT
+			DISTINCT A.BILL_SEQ_NO AS BILL_SEQ_NO
+			, A.PROD_CMPS_ID AS PROD_CMPS_ID
+			, A.SVC_CMPS_ID AS SVC_CMPS_ID
+			, A.SO_ID AS SO_ID
+			, A.GRP_ID AS GRP_ID
+			, A.PYM_ACNT_ID AS PYM_ACNT_ID
+			, A.CUST_ID AS CUST_ID
+			, A.CTRT_ID AS CTRT_ID
+			, A.PROD_CD AS PROD_CD
+			, A.SVC_CD AS SVC_CD
+			, A.SVC_GRP AS SVC_GRP
+			, A.ATRT_CORP_ID AS ATRT_CORP_ID
+			, A.ATRT_EMP_ID AS ATRT_EMP_ID
+			, B.ACT_DT AS USE_STRT_DT
+			, B.INACT_DT AS USE_END_DT
+			, A.BILL_YYMM
+		FROM 
+		(
+			SELECT DISTINCT A.*
+			FROM TBLIV_BILL_WRK A
+				, TBLCH_MULTI_SEQ B
+			WHERE 1 = 1 
+			AND A.SO_ID = #{soId}
+			AND B.SO_ID = #{soId}
+			AND B.GUBUN = '2'
+			AND B.P_SEQ = #{pSeq}
+			AND A.PYM_ACNT_ID &gt;= B.STRT_NO
+			AND A.PYM_ACNT_ID &lt;= B.END_NO
+			AND NOT EXISTS 
+			(
+				SELECT 1
+				FROM TBLIV_BILL_TGT_SVC_CMPS  B
+				WHERE B.BILL_SEQ_NO = A.BILL_SEQ_NO
+				AND B.PROD_CMPS_ID = A.PROD_CMPS_ID
+				AND B.SVC_CMPS_ID = A.SVC_CMPS_ID
+				AND B.SO_ID = A.SO_ID
+			)
+		) A
+		, TBLCH_SVC_CMPS_MT B
+		WHERE A.CTRT_ID = B.CTRT_ID
+			AND A.SO_ID = B.SO_ID
+			AND A.SVC_CMPS_ID = B.SVC_CMPS_ID
+	</select>
+	
+	<insert id="insertBillCust">
+		INSERT INTO TBLIV_BILL_TGT_CUST
+		(
+			BILL_SEQ_NO
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, PYM_ACNT_ID
+			, ZIP_CD
+			, BILL_ADDR
+			, BILL_MDM_JIRO_YN
+			, BILL_MDM_EML_YN
+			, BILL_MDM_SMS_YN
+			, BILL_MDM_FAX_YN
+			, PAY_MTHD
+			, TAX_TP
+			, PAY_DUE_DT
+			, SMRY
+			, BILL_FL_CRT_YN
+			, LST_RE_ISS_SEQ
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, REG_DATE
+			, SML_AMT_YN
+			, BILL_CL
+			, BILL_EXPT_YN
+			, CHGR_ID
+			, CHG_DATE
+			, SO_ID
+		)
+		VALUES
+		(
+			, #{billSeqNo}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{pymAcntId}
+			, #{zipCd}
+			, #{billAddr}
+			, #{billMdmJiroYn}
+			, #{billMdmEmlYn}
+			, #{billMdmSmsYn}
+			, #{billMdmFaxYn}
+			, #{payMthd}
+			, #{taxTp}
+			, #{payDueDt}
+			, #{smry}
+			, #{billFlCrtYn}
+			, #{lstReIssSeq}
+			, #{crncyCd}
+			, #{exrate}
+			, #{exrateAplyDt}
+			, #{regDate}
+			, #{smlAmtYn}
+			, #{billCl}
+			, #{billExptYn}
+			, #{chgrId}
+			, #{chgDate}
+			, #{soId}
+		)
+	</insert>
+	
+	<insert id="insertBillCustDetail">
+		INSERT INTO TBLIV_BILL_TGT_SVC_CMPS
+		(
+			BILL_SEQ_NO
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_CD
+			, SVC_CD
+			, SVC_GRP
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, REG_DATE
+			, USE_STRT_DT
+			, USE_END_DT
+			, BILL_YYMM
+		)
+		VALUES
+		(
+			#{billSeqNo}
+			, #{prodCmpsId}
+			, #{svcCmpsId}
+			, #{soId}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{prodCd}
+			, #{svcCd}
+			, #{svcGrp}
+			, #{atrtCorpId}
+			, #{atrtEmpId}
+			, #{regDate}
+			, #{useStrtDt}
+			, #{useEndDt}
+			, #{billYymm}
+		)
+	</insert>
+	
+	<insert id="insertBillTgtSvcCmps">
+		INSERT INTO TBLIV_BILL_TGT_SVC_CMPS
+		(
+			BILL_SEQ_NO
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_CD
+			, SVC_CD
+			, SVC_GRP
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, REG_DATE
+			, USE_STRT_DT
+			, USE_END_DT
+			, BILL_YYMM
+		)
+		VALUES
+		(
+			, #{billSeqNo}
+			, #{prodCmpsId}
+			, #{svcCmpsId}
+			, #{soId}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{prodCd}
+			, #{svcCd}
+			, #{svcGrp}
+			, #{atrtCorpId}
+			, #{atrtEmpId}
+			, #{regDate}
+			, #{useStrtDt}
+			, #{useEndDt}
+			, #{billYymm}
+		)
+	</insert>
+	
+	<update id="updateBillTgtCust">
+		UPDATE TBLIV_BILL_TGT_CUST SET
+			BILL_MDM_JIRO_YN = 'Y'
+			, BILL_MDM_SMS_YN = 'N'
+		WHERE A.BILL_YYMM = #{billYymm}
+		AND A.BILL_CYCL = '01'
+		AND A.SO_ID = #{soId}
+		AND A.PYM_ACNT_ID IN 
+		(
+			SELECT DISTINCT A.PYM_ACNT_ID
+			FROM TBLIV_BILL_TGT_CUST A
+			WHERE A.BILL_YYMM = #{billYymm}
+			AND A.SO_ID = #{soId}
+		)
+	</update>
+
+</mapper>

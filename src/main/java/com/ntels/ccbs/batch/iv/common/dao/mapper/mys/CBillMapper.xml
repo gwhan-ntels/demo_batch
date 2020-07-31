@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.common.dao.mapper.CBillMapper">
+	
+    <insert id = "saveInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+      INSERT INTO TBLIV_BILL (
+            EXRATE,
+            EXRATE_APLY_DT,
+            SALE_ITM_CD,
+            PREPAY_OCC_SEQ_NO,
+            PREPD_CTRT_ID,
+            REG_DATE,
+            CHG_DATE,
+            DEBT_PROC_YN,
+            BILL_SEQ_NO,
+            USE_YYMM,
+            PROD_CMPS_ID,
+            SVC_CMPS_ID,
+            CHRG_ITM_CD,
+            BILL_YYMM,
+            BILL_CYCL,
+            BILL_DT,
+            SO_ID,
+            GRP_ID,
+            PYM_ACNT_ID,
+            CUST_ID,
+            CTRT_ID,
+            PROD_CD,
+            SVC_CD,
+            BIZ_CL,
+            PROD_GRP,
+            SVC_GRP,
+            BILL_MM_TP,
+            SALE_TP,
+            USG_CNT,
+            USG_AMT,
+            ADJ_PRV_BILL_AMT,
+            ADJ_AMT,
+            BILL_AMT,
+            PAY_DUE_DT,
+            RCPT_AMT,
+            FULL_PAY_YN,
+            ATRT_CORP_ID,
+            ATRT_EMP_ID,
+            WON_BILL_AMT,
+            CRNCY_CD  )
+            VALUES 
+            (    
+               #{exrate},
+               #{exrateAplyDt},
+               #{saleItmCd},
+               #{prepayOccSeqNo},
+               #{prepdCtrtId},
+               #{regDate},
+               #{chgDate},
+               #{debtProcYn},
+               #{billSeqNo},
+               #{useYymm},
+               #{prodCmpsId},
+               #{svcCmpsId},
+               #{chrgItmCd},
+               #{billYymm},
+               #{billCycl},
+               #{billDt},
+               #{soId},
+               #{grpId},
+               #{pymAcntId},
+               #{custId},
+               #{ctrtId},
+               #{prodCd},
+               #{svcCd},
+               #{bizCl},
+               #{prodGrp},
+               #{svcGrp},
+               #{billMmTp},
+               #{saleTp},
+               #{usgCnt},
+               #{usgAmt},
+               #{adjPrvBillAmt},
+               #{adjAmt},
+               #{billAmt},
+               #{payDueDt},
+               #{rcptAmt},
+               #{fullPayYn},
+               #{atrtCorpId},
+               #{atrtEmpId},
+               #{wonBillAmt},
+               #{crncyCd}
+            )
+
+    </insert>
+    
+    <update id = "updateInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+             
+    </update>
+    
+     <delete id = "deleteInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+              DELETE FROM TBLIV_BILL  A         
+              WHERE BILL_YYMM = #{billYymm}
+               AND CTRT_ID    = #{ctrtId}
+               AND SO_ID      = #{soId}
+               AND BILL_SEQ_NO = #{billSeqNo}
+    </delete>
+             
+</mapper>

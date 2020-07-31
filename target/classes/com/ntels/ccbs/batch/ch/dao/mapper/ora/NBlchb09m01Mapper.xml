@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.dao.mapper.NBlchb09m01Mapper">
+    <select id = "listCharge"  resultType="NBlchb09m01">
+        SELECT A.THRWY_CHRG_ID, /* 일회성 업데이트용 */
+               #{clcWrkNo}            AS CLC_WRK_NO,
+               #{billYymm}            AS BILL_YYMM,
+               #{billCycl}            AS BILL_CYCL,
+               SUBSTR(A.REQ_DT, 1, 6) AS USE_YYMM,
+               A.SVC_CMPS_ID,
+               C.RATE_ITM_CD,
+               A.SO_ID,
+               '0000000000'           AS GRP_ID,
+               B.PYM_ACNT_ID,
+               B.CUST_ID,
+               A.CTRT_ID,
+               A.PROD_CMPS_ID,
+               A.OCC_AMT              AS USE_AMT,
+               '1'                    AS USE_QTY_UT,
+               '1'                    AS USE_QTY,
+               '1'                    AS USE_CNT,
+               'MYR'                  AS CRNCY_CD,               
+               #{pSeq}                AS P_SEQ
+        FROM   TBLIV_THRWY_CHRG_INFO A,
+               IFNBRM_CTRT_INFO B,
+               IFNBRM_RATE_ITM_INFO C
+        WHERE  A.SO_ID        = #{soId}
+        AND    A.REQ_DT       LIKE to_char(add_months(to_date(#{billYymm}, 'yyyymm'), -1), 'yyyymm') || '%'
+        AND    A.MSTR_FL      = 'Y'
+        AND    A.CTRT_ID      = B.CTRT_ID
+        AND    A.BILL_YYMM    IS NULL
+        AND    A.SVC_CMPS_ID  = B.SVC_CMPS_ID
+        AND    A.PROD_CMPS_ID = B.PROD_CMPS_ID
+        AND    A.PROD_CD      = C.PROD_CD
+        AND    C.CHRG_CTGRY   = 'N'
+        AND    C.RATE_LOCAT   = 'B'
+        AND    B.INACT_DTTM   = '99991231235959'
+        AND    A.CTRT_ID BETWEEN #{strtNo} AND #{endNo}
+        UNION  ALL
+        SELECT A.THRWY_CHRG_ID, /* 일회성 업데이트용 */
+               #{clcWrkNo}            AS CLC_WRK_NO,
+               #{billYymm}            AS BILL_YYMM,
+               #{billCycl}            AS BILL_CYCL,
+               SUBSTR(A.REQ_DT, 1, 6) AS USE_YYMM,
+               A.SVC_CMPS_ID,
+               C.RATE_ITM_CD,
+               A.SO_ID,
+               '0000000000'           AS GRP_ID,
+               B.PYM_ACNT_ID,
+               B.CUST_ID,
+               A.CTRT_ID,
+               A.PROD_CMPS_ID,
+               -1*A.DC_AMT            AS USE_AMT,
+               '1'                    AS USE_QTY_UT,
+               '1'                    AS USE_QTY,
+               '1'                    AS USE_CNT,
+               'MYR'                  AS CRNCY_CD,             
+               #{pSeq}                AS P_SEQ
+        FROM   TBLIV_THRWY_CHRG_INFO A,
+               IFNBRM_CTRT_INFO B,
+               IFNBRM_RATE_ITM_INFO C
+        WHERE  A.SO_ID        = #{soId}
+        AND    A.REQ_DT       LIKE to_char(add_months(to_date(#{billYymm}, 'yyyymm'), -1), 'yyyymm') || '%'
+        AND    A.MSTR_FL      = 'Y'
+        AND    A.CTRT_ID      = B.CTRT_ID
+        AND    A.BILL_YYMM    IS NULL
+        AND    A.SVC_CMPS_ID  = B.SVC_CMPS_ID
+        AND    A.PROD_CMPS_ID = B.PROD_CMPS_ID
+        AND    A.PROD_CD      = C.PROD_CD
+        AND    C.CHRG_CTGRY   = 'D'
+        AND    C.RATE_LOCAT   = 'B'
+        AND    B.INACT_DTTM   = '99991231235959'
+        AND    A.CTRT_ID BETWEEN #{strtNo} AND #{endNo}
+        ORDER  BY THRWY_CHRG_ID, SVC_CMPS_ID, RATE_ITM_CD
+    </select>
+
+    <insert id = "saveCharge"  parameterType="NBlchb09m01">
+        INSERT INTO TBLCH_CHRG
+            (CLC_WRK_NO, BILL_YYMM, BILL_CYCL, USE_YYMM, SVC_CMPS_ID
+            ,RATE_ITM_CD, SO_ID, GRP_ID, PYM_ACNT_ID, CUST_ID
+            ,CTRT_ID, PROD_CMPS_ID, USE_AMT, USE_QTY_UT, USE_QTY
+            ,USE_CNT, CRNCY_CD, REG_DATE, VAT)
+        VALUES
+            (#{clcWrkNo}, #{billYymm}, #{billCycl}, #{useYymm}, #{svcCmpsId}
+            ,#{rateItmCd}, #{soId}, #{grpId}, #{pymAcntId}, #{custId}
+            ,#{ctrtId}, #{prodCmpsId}, #{useAmt}, #{useQtyUt}, #{useQty}
+            ,#{useCnt}, #{crncyCd}, #{regDate}, #{vat})
+    </insert>
+    
+    
+
+    <update id = "updateThrwy"  parameterType="NBlchb09m01">
+        UPDATE TBLIV_THRWY_CHRG_INFO
+        SET    BILL_YYMM  = #{billYymm}
+              ,CLC_WRK_NO = #{clcWrkNo}
+        WHERE  THRWY_CHRG_ID = #{thrwyChrgId}
+    </update>
+    
+    <insert id = "saveSvcCmpsMt" parameterType="NBlchb09m01">
+        MERGE  INTO TBLCH_SVC_CMPS_MT A
+        USING (
+               SELECT #{clcWrkNo} AS CLC_WRK_NO, SO_ID, #{pSeq} AS P_SEQ, #{billYymm} AS BILL_YYMM, #{billCycl} AS BILL_CYCL
+                     ,#{useYymm}  AS USE_YYMM, CTRT_ID, CUST_ID, PYM_ACNT_ID, SUBSTR(ACT_DTTM, 1, 8) AS ACT_DT
+                     ,SUBSTR(INACT_DTTM, 1, 8) AS INACT_DT, RATE_STRT_DT, TERM_DT, CTRT_STAT, PROD_CD
+                     ,PROD_CMPS_ID, SVC_CMPS_ID, SVC_STS_CD, SVC_TEL_NO, #{regDate} AS REG_DATE
+                     ,FCTR_CD1, FCTR_VAL1, FCTR_CD2, FCTR_VAL2, FCTR_CD3, FCTR_VAL3, FCTR_CD4, FCTR_VAL4, FCTR_CD5, FCTR_VAL5
+                     ,FCTR_CD6, FCTR_VAL6, FCTR_CD7, FCTR_VAL7, FCTR_CD8, FCTR_VAL8, FCTR_CD9, FCTR_VAL9
+                     ,SVC_CD, SVC_GRP, PROD_GRP, ORG_ID, USR_ID, MONTHLY_NEGO_RATE, PROD_CNT, PROC_RATE, PROM_CNT
+               FROM   IFNBRM_CTRT_INFO 
+               WHERE  1=1
+               AND    SO_ID        = #{soId}
+               AND    SVC_CMPS_ID  = #{svcCmpsId}
+               AND    PROD_CMPS_ID = #{prodCmpsId}
+               AND    CTRT_ID      = #{ctrtId}
+               AND    INACT_DTTM   = '99991231235959'
+               AND    PYM_ACNT_ID  = #{pymAcntId}
+              ) B
+        ON    (
+                      A.CLC_WRK_NO   = B.CLC_WRK_NO
+               AND    A.SO_ID        = B.SO_ID
+               AND    A.BILL_YYMM    = B.BILL_YYMM
+               AND    A.BILL_CYCL    = B.BILL_CYCL
+               AND    A.USE_YYMM     = B.USE_YYMM
+               AND    A.SVC_CMPS_ID  = B.SVC_CMPS_ID
+               AND    A.PROD_CMPS_ID = B.PROD_CMPS_ID
+               AND    A.PYM_ACNT_ID  = B.PYM_ACNT_ID
+               AND    A.CUST_ID      = B.CUST_ID
+               AND    A.CTRT_ID      = B.CTRT_ID
+              )
+        WHEN   NOT MATCHED THEN
+        INSERT (
+                CLC_WRK_NO, SO_ID, P_SEQ, BILL_YYMM, BILL_CYCL
+               ,USE_YYMM, CTRT_ID, CUST_ID, PYM_ACNT_ID, ACT_DT
+               ,INACT_DT, RATE_STRT_DT, TERM_DT, CTRT_STAT, PROD_CD
+               ,PROD_CMPS_ID, SVC_CMPS_ID, SVC_STS_CD, SVC_TEL_NO, REG_DATE
+               ,FCTR_CD1, FCTR_VAL1, FCTR_CD2, FCTR_VAL2, FCTR_CD3, FCTR_VAL3, FCTR_CD4, FCTR_VAL4, FCTR_CD5, FCTR_VAL5
+               ,FCTR_CD6, FCTR_VAL6, FCTR_CD7, FCTR_VAL7, FCTR_CD8, FCTR_VAL8, FCTR_CD9, FCTR_VAL9
+               ,SVC_CD, SVC_GRP, PROD_GRP, ORG_ID, USR_ID, MONTHLY_NEGO_RATE, PROD_CNT, PROC_RATE, PROM_CNT
+               )
+       VALUES  (
+                B.CLC_WRK_NO, B.SO_ID, B.P_SEQ, B.BILL_YYMM, B.BILL_CYCL
+               ,B.USE_YYMM, B.CTRT_ID, B.CUST_ID, B.PYM_ACNT_ID, B.ACT_DT
+               ,B.INACT_DT, B.RATE_STRT_DT, B.TERM_DT, B.CTRT_STAT, B.PROD_CD
+               ,B.PROD_CMPS_ID, B.SVC_CMPS_ID, B.SVC_STS_CD, B.SVC_TEL_NO, B.REG_DATE
+               ,B.FCTR_CD1, B.FCTR_VAL1, B.FCTR_CD2, B.FCTR_VAL2, B.FCTR_CD3, B.FCTR_VAL3, B.FCTR_CD4, B.FCTR_VAL4, B.FCTR_CD5, B.FCTR_VAL5
+               ,B.FCTR_CD6, B.FCTR_VAL6, B.FCTR_CD7, B.FCTR_VAL7, B.FCTR_CD8, B.FCTR_VAL8, B.FCTR_CD9, B.FCTR_VAL9
+               ,B.SVC_CD, B.SVC_GRP, B.PROD_GRP, B.ORG_ID, B.USR_ID, B.MONTHLY_NEGO_RATE, B.PROD_CNT, B.PROC_RATE, B.PROM_CNT
+               )
+    </insert> 
+</mapper>

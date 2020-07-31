@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.py.dao.mapper.NBlpyc01m02Mapper">
+
+<!-- 	<select id="getDepositList" resultType="deposit">
+    	SELECT
+		     A.DPST_SEQ_NO AS DPST_SEQ_NO
+		     , A.BILL_SEQ_NO AS BILL_SEQ_NO
+		     , A.TRANS_DT AS TRANS_DT
+		     , A.DPST_PROC_DT AS DPST_PROC_DT
+		     , A.SO_ID AS SO_ID
+		     , A.GRP_ID AS GRP_ID
+		     , A.PYM_ACNT_ID AS PYM_ACNT_ID
+		     , A.CUST_ID AS CUST_ID
+		     , A.CTRT_ID AS CTRT_ID
+		     , A.DPST_DT AS DPST_DT
+		     , A.DPST_TP AS DPST_TP
+		     , A.DPST_CL AS DPST_CL
+		     , A.DPST_TP_SEQ_NO AS DPST_TP_SEQ_NO
+		     , A.PAY_CORP_TP AS PAY_CORP_TP
+		     , A.PAY_CORP_CD AS PAY_CORP_CD
+		     , A.ACNT_CARD_NO AS ACNT_CARD_NO
+		     , A.DPST_AMT AS DPST_AMT
+		     , A.DPST_BNK_ACNT_CD AS DPST_BNK_ACNT_CD
+		     , A.FEE_AMT AS FEE_AMT
+		     , A.PAY_PROC_YN AS PAY_PROC_YN
+		     , A.PAY_PROC_DT AS PAY_PROC_DT
+		     , A.AMBG_TGT_YN AS AMBG_TGT_YN
+		     , A.WON_DPST_AMT AS WON_DPST_AMT
+		     , A.CRNCY_CD AS CRNCY_CD
+		     , A.EXRATE AS EXRATE
+		     , A.EXRATE_APLY_DT AS EXRATE_APLY_DT
+		     , A.CNCL_YN AS CNCL_YN
+		     , A.PYM_ACNT_ID AS CHECK_PYM_ACNT_ID
+		     , CASE A.DPST_CL 
+		          WHEN '01' THEN D.BILL_YYMM
+		          WHEN '02' THEN E.BILL_YYMM
+		          WHEN '04' THEN '20' || SUBSTR(A.BILL_SEQ_NO, 1,4)
+              WHEN '05' THEN G.BILL_YYMM END AS BILL_YYMM
+		FROM TBLPY_DPST A
+		     LEFT OUTER JOIN TBLPY_JIRO_WTDRAW_RSLT D ON A.DPST_TP_SEQ_NO = D.JIRO_WTDRAW_SEQ_NO
+		     LEFT OUTER JOIN TBLPY_ATMT_WTDRAW_REQ_RSLT E ON A.DPST_TP_SEQ_NO = E.ATMT_WTDRAW_SEQ_NO
+		     LEFT OUTER JOIN TBLPY_CDTCD_WTDRAW_REQ_RSLT G ON A.DPST_TP_SEQ_NO = G.CARD_WTDRAW_SEQ_NO
+         , IFNBRM_CUST_INFO B
+		WHERE A.PAY_PROC_YN = 'N'
+		     AND A.AMBG_TGT_YN = 'N'
+		     AND A.CNCL_YN = 'N'
+		     AND A.PAY_CNCL_YN = 'N'
+		     AND A.DPST_TP = '1'
+		     AND A.PYM_ACNT_ID = B.PYM_ACNT_ID
+		     AND A.DPST_CL NOT IN ('30','04')
+	</select> -->
+	
+	<select id="getDepositList" resultType="deposit">
+		SELECT
+		     A.BILL_SEQ_NO AS BILL_SEQ_NO
+		     , A.BILL_YYMM AS BILL_YYMM
+		     , A.BILL_CYCL AS BILL_CYCL
+		     , A.BILL_DT AS BILL_DT
+		     , A.PYM_ACNT_ID AS PYM_ACNT_ID
+		     , B.DPST_PROC_DT AS DPST_PROC_DT
+		     , B.DPST_DT AS DPST_DT
+		     , B.DPST_CL AS DPST_CL
+		     , B.DPST_AMT AS DPST_AMT
+		     , A.BILL_AMT AS BILL_AMT
+		     , A.RCPT_AMT AS RCPT_AMT
+		     , B.DPST_SEQ_NO AS DPST_SEQ_NO
+		     , A.CRNCY_CD AS CRNCY_CD
+		     , A.EXRATE AS EXRATE
+		     , A.EXRATE_APLY_DT AS EXRATE_APLY_DT
+		     , A.SO_ID AS SO_ID
+		FROM TBLIV_BILL_MAST A
+		     , TBLPY_DPST B
+		     , TBLCH_MULTI_SEQ C
+		WHERE C.SO_ID = #{soId}
+		AND C.GUBUN = '2'
+		AND C.P_SEQ = #{pSeq} 
+		AND A.BILL_YYMM = #{billYymm}
+		AND A.SO_ID = #{soId}
+		AND B.BILL_SEQ_NO = A.BILL_SEQ_NO
+		AND A.PYM_ACNT_ID &gt;= C.STRT_NO
+		AND A.PYM_ACNT_ID &lt;= C.END_NO
+	</select>
+	
+	<insert id="insertRcpt">
+		
+	</insert>
+
+</mapper>

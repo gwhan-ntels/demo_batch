@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m11Mapper">
+
+	<select id="getBillInfoForUnpayTarget" resultType="CBillComm">
+		SELECT
+			A.PYM_ACNT_ID AS PYM_ACNT_ID				-- 납부계정ID
+			, A.CTRT_ID AS CTRT_ID						-- 계약ID
+			, A.SVC_CMPS_ID AS SVC_CMPS_ID				-- 서비스구성ID
+			, A.BILL_YYMM AS BILL_YYMM					-- 청구년월
+			, A.BILL_CYCL AS BILL_CYCL					-- 청구주기
+			, A.BILL_DT AS BILL_DT						-- 청구일자
+			, A.SO_ID AS SO_ID							-- 계열사ID
+			, A.BILL_SEQ_NO AS BILL_SEQ_NO				-- 청구일련번호
+			, A.BILL_MM_TP AS BILL_MM_TP				-- 당후납
+			, MAX(A.CRNCY_CD) AS CRNCY_CD				-- 화폐코드
+			, MAX(A.EXRATE_APLY_DT) AS EXRATE_APLY_DT	-- 환율적용일자
+			, MAX(A.EXRATE) AS EXRATE					-- 환율
+			, SUM(A.BILL_AMT) AS BILL_AMT				-- 청구금액
+			, SUM(A.RCPT_AMT) AS RCPT_AMT				-- 수납금액
+		FROM TBLIV_BILL A								-- 청구내역 TBL
+			, TBLIV_BILL_TGT_CUST C
+		WHERE A.BILL_YYMM &lt; #{billYymm}			-- 청구년월
+			AND A.SO_ID = #{soId}
+			AND A.PAY_DUE_DT &lt; #{payDueDt}
+			AND A.FULL_PAY_YN = 'N'
+			AND (A.DEBT_PROC_YN != 'C' OR A.DEBT_PROC_YN IS NULL)
+			AND A.BILL_SEQ_NO = C.BILL_SEQ_NO
+			AND A.SO_ID = C.SO_ID
+			AND C.PAY_MTHD != '05'						-- 05.KT합산청구
+		GROUP BY A.SVC_CMPS_ID
+			, A.CTRT_ID
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.BILL_SEQ_NO
+			, A.BILL_MM_TP
+			, A.SO_ID
+			, A.PYM_ACNT_ID
+		HAVING SUM(A.BILL_AMT - A.RCPT_AMT) &gt; 0
+	</select>
+
+	<select id="getBillTargetCust" resultType="BillCust">
+		SELECT
+			O.THS_BILL_SEQ_NO AS BILL_SEQ_NO
+			, P.PYM_ACNT_ID
+			, P.ZIP_CD
+			, P.BILL_ADDR
+			, P.BILL_MDM_JIRO_YN
+			, P.BILL_MDM_EML_YN
+			, P.BILL_MDM_SMS_YN
+			, P.BILL_MDM_FAX_YN
+			, P.PAY_MTHD
+			, P.TAX_TP
+			, P.SMRY
+			, P.LST_RE_ISS_SEQ
+			, P.CRNCY_CD
+			, P.EXRATE
+			, P.EXRATE_APLY_DT
+			, P.BILL_CL
+			, CASE WHEN C.PYM_ACNT_ID = O.PYM_ACNT_ID THEN 'Y' ELSE 'N' END AS BILL_EXPT_YN
+			, P.CHGR_ID
+			, P.SO_ID
+		FROM
+		(
+			SELECT
+				A.THS_BILL_SEQ_NO AS THS_BILL_SEQ_NO
+				, MAX(A.BILL_SEQ_NO) AS TGT_BILL_SEQ_NO
+				, MAX(A.PYM_ACNT_ID) AS PYM_ACNT_ID
+			FROM TBLUP_UPYM_OBJ A
+			WHERE A.UPYM_CRT_YYMM = #{billYymm}
+				AND A.SO_ID = #{soId}
+				AND NOT EXISTS
+				(
+					SELECT 1
+					FROM TBLIV_BILL_TGT_CUST
+					WHERE BILL_YYMM = #{billYymm}
+					AND BILL_CYCL = '01'
+					AND SO_ID = #{soId}
+					AND BILL_SEQ_NO = A.THS_BILL_SEQ_NO
+					AND SO_ID = A.SO_ID
+				)
+			GROUP BY A.THS_BILL_SEQ_NO
+		) O LEFT JOIN 
+		(
+			SELECT DISTINCT
+				A.PYM_ACNT_ID AS PYM_ACNT_ID
+			FROM IFNBRM_CTRT_INFO  A
+			WHERE A.INACT_DTTM = '99991231235959'
+				AND A.SO_ID = #{soId}
+				AND A.CTRT_STAT IN ('50','90')
+				AND SUBSTR(A.TERM_DT,1,6) &lt; #{before2Yymm}
+				AND NOT EXISTS
+				(
+					SELECT 1
+					FROM TCMCT_CTRT_INFO
+					WHERE A.PYM_ACNT_ID = PYM_ACNT_ID
+						AND INACT_DTTM = '99991231235959'
+						AND SO_ID = #{soId}
+						AND SUBSTR(TERM_DT,1,6) &gt;= #{before2Yymm})
+						AND NOT EXISTS
+						(
+							SELECT 1
+							FROM TBLIV_BILL_TGT_CUST
+							WHERE BILL_YYMM = #{billYymm}
+								AND BILL_CYCL = '01'
+								AND SO_ID = #{soId}
+								AND PYM_ACNT_ID = A.PYM_ACNT_ID
+						)
+		) C ON O.PYM_ACNT_ID = C.PYM_ACNT_ID
+		, TBLIV_BILL_TGT_CUST P
+		WHERE O.TGT_BILL_SEQ_NO = P.BILL_SEQ_NO
+			AND P.SO_ID = #{soId}
+	</select>
+	
+	<!-- 당월 청구내역이 없고 미납내역만 존재하는 데이터를 검색한다. -->
+	<select id="getBillTargetServiceComposition" resultType="BillCust">
+		SELECT
+			*
+		FROM
+		(
+			SELECT 
+				O.THS_BILL_SEQ_NO AS BILL_SEQ_NO
+				, P.PROD_CMPS_ID AS PROD_CMPS_ID
+				, P.SVC_CMPS_ID AS SVC_CMPS_ID
+				, P.SO_ID AS SO_ID
+				, P.GRP_ID AS GRP_ID
+				, P.PYM_ACNT_ID AS PYM_ACNT_ID
+				, P.CUST_ID AS CUST_ID
+				, P.CTRT_ID AS CTRT_ID
+				, P.PROD_CD AS PROD_CD
+				, P.SVC_CD AS SVC_CD
+				, P.SVC_GRP AS SVC_GRP
+				, P.ATRT_CORP_ID AS ATRT_CORP_ID
+				, P.ATRT_EMP_ID AS ATRT_EMP_ID
+				, P.USE_STRT_DT AS USE_STRT_DT
+				, P.USE_END_DT AS USE_END_DT
+			FROM
+			(
+				SELECT
+					A.THS_BILL_SEQ_NO
+					, MAX(A.BILL_SEQ_NO) TGT_BILL_SEQ_NO
+				FROM TBLUP_UPYM_OBJ  A
+				WHERE A.UPYM_CRT_YYMM = #{billYymm}  -- 청구년월
+					AND A.SO_ID = #{soId}
+					AND NOT EXISTS 
+					(
+						SELECT 1
+						FROM TBLIV_BILL_TGT_CUST
+						WHERE BILL_YYMM = #{billYymm}  -- 청구년월
+							AND SO_ID = #{soId}
+							AND BILL_CYCL = '01'
+							AND BILL_SEQ_NO = A.THS_BILL_SEQ_NO
+							AND SO_ID = A.SO_ID
+					)
+				GROUP BY A.THS_BILL_SEQ_NO
+			) O
+			, TBLIV_BILL_TGT_SVC_CMPS P
+			WHERE O.TGT_BILL_SEQ_NO = P.BILL_SEQ_NO
+				AND P.SO_ID = #{soId}
+		) A
+		WHERE NOT EXISTS 
+		(
+			SELECT 1
+			FROM TBLIV_BILL_TGT_SVC_CMPS
+			WHERE BILL_SEQ_NO = A.BILL_SEQ_NO
+				AND SVC_CMPS_ID = A.SVC_CMPS_ID
+				AND PROD_CMPS_ID = A.PROD_CMPS_ID
+				AND SO_ID = A.SO_ID
+		)
+	</select>
+
+</mapper>

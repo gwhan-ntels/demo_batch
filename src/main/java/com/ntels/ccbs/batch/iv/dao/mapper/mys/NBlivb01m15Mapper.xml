@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m15Mapper">
+
+	<select id="getOverpayBillAplyList" resultType="OverpayBillAply">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.PREPAY_OCC_SEQ_NO
+			, A.SO_ID
+			, A.BILL_MM_TP
+			, A.BILL_APLY_AMT
+			, A.PREPAY_BAL
+		FROM TBLIV_OVERPAY_BILL_APLY A
+			, TBLCH_MULTI_SEQ B
+		WHERE 1 = 1
+		AND B.SO_ID = #{soId}
+		AND B.GUBUN = '2'
+		AND B.P_SEQ = #{pSeq} 
+		AND A.BILL_YYMM = #{billYymm}
+		AND A.BILL_CYCL = #{billCycl}
+		AND A.SO_ID = #{soId}
+		AND A.PAY_PROC_YN = 'N'
+		AND A.PYM_ACNT_ID &gt;= B.STRT_NO
+		AND A.PYM_ACNT_ID &lt;= B.END_NO
+		ORDER BY A.BILL_SEQ_NO
+			, A.PREPAY_OCC_SEQ_NO
+	</select>
+	
+	<select id="getBillList"  resultType="CBillComm">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.CHRG_ITM_CD
+			, A.BILL_AMT
+			, A.RCPT_AMT
+			, A.FULL_PAY_YN
+			, A.GRP_ID
+			, A.PYM_ACNT_ID
+			, A.CUST_ID
+			, A.CTRT_ID
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.SO_ID
+			, A.BILL_MM_TP
+			, A.USE_YYMM
+			, A.CRNCY_CD
+			, A.EXRATE
+			, A.EXRATE_APLY_DT
+			, B.CHRG_CTGRY
+			, A.PROD_GRP
+		FROM TBLIV_BILL A
+			, IFNBRM_SVC_RATE_ITM_INFO B
+		WHERE A.BILL_SEQ_NO = #{billSeqNo}
+		AND A.SO_ID = #{soId}
+		AND A.CHRG_ITM_CD = B.SVC_RATE_ITM_TYP_CD
+		ORDER BY A.BILL_SEQ_NO
+		, CASE B.CHRG_CTGRY WHEN 'R' THEN 1 WHEN 'U' THEN 2 WHEN 'N' THEN 3 ELSE 9 END
+	</select>
+	
+	<update id="updateBill">
+		UPDATE TBLIV_BILL SET
+			RCPT_AMT = RCPT_AMT + #{rcptAmt}
+			, FULL_PAY_YN =  CASE WHEN RCPT_AMT + #{rcptAmt} = BILL_AMT THEN 'Y' ELSE 'N' END
+			, CHG_DATE = #{chgDate}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND PROD_CMPS_ID = #{prodCmpsId}
+		AND SVC_CMPS_ID = #{svcCmpsId}
+		AND CHRG_ITM_CD = #{chrgItmCd}
+		AND FULL_PAY_YN = 'N'
+	</update>
+	
+	<update id="updateBillMast">
+		UPDATE TBLIV_BILL_MAST SET
+			RCPT_AMT = RCPT_AMT + #{rcptAmt}
+			, UNPAY_AMT = UNPAY_AMT - #{rcptAmt}
+			, FULL_PAY_YN =  CASE WHEN RCPT_AMT + #{rcptAmt} = BILL_AMT THEN 'Y' ELSE 'N' END
+			, CHG_DATE = #{chgDate}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+	</update>
+	
+	<select id="getSmlAmtYn" resultType="String">
+		SELECT
+			CASE WHEN BILL_AMT > SET_VAL THEN 'N' ELSE 'Y' END  AS SML_AMT_YN
+		FROM
+		(
+			SELECT
+				X.BILL_AMT
+				, Z.SET_VAL
+			FROM
+			(
+				SELECT
+					A.BILL_SEQ_NO
+					, B.PYM_MTHD
+					, A.SO_ID
+					, CASE WHEN SUM(A.BILL_AMT) - SUM(A.RCPT_AMT) IS NULL THEN 0 ELSE SUM(A.BILL_AMT) - SUM(A.RCPT_AMT) END  AS BILL_AMT
+				FROM TBLIV_BILL A
+					, IFNBRM_CUST_INFO B
+				WHERE A.BILL_SEQ_NO = #{bill.billSeqNo}
+				AND A.SO_ID = #{bill.soId}
+				AND A.SO_ID = B.SO_ID
+				AND A.PYM_ACNT_ID = B.PYM_ACNT_ID
+				AND A.CUST_ID = B.CUST_ID
+				GROUP BY A.BILL_SEQ_NO
+					, B.PYM_MTHD
+					,A.SO_ID
+			) X LEFT OUTER JOIN TBLIV_BILL_STP Z ON
+			Z.SET_ITM_ID = 
+			CASE X.PYM_MTHD WHEN '01' THEN '00052'
+			WHEN '02' THEN '00053' WHEN '03' THEN '00054'
+			WHEN '04' THEN '00051' END
+			AND Z.SO_ID = X.SO_ID
+		)
+	</select>
+	
+	<update id="updateSmlAmtYn">
+		UPDATE TBLIV_BILL_TGT_CUST SET
+			SML_AMT_YN = #{smlAmtYn}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND SO_ID = #{soId}
+	</update>
+	
+	<update id="updateOverpayBillAply">
+		UPDATE TBLIV_OVERPAY_BILL_APLY SET
+		  PAY_PROC_YN = 'Y'
+		  , PAY_PROC_DT = #{payProcDt}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+		AND SO_ID = #{soId}
+		AND BILL_MM_TP = #{billMmTp}
+		AND PREPAY_OCC_SEQ_NO = #{prepayOccSeqNo}
+	</update>
+	
+	<update id="updatePrepayOcc">
+		UPDATE TBLPY_PREPAY_OCC SET
+			PREPAY_PROC_STAT = '3'
+			, PREPAY_TRANS_AMT = CASE WHEN PREPAY_TRANS_AMT IS NULL THEN 0 ELSE PREPAY_TRANS_AMT END
+									+ #{prepayTransAmt}
+			, PREPAY_BAL = PREPAY_OCC_AMT - (CASE WHEN PREPAY_TRANS_AMT IS NULL THEN 0 ELSE PREPAY_TRANS_AMT END + #{prepayTransAmt})
+			, TRANS_CMPL_YN = 
+				CASE WHEN PREPAY_OCC_AMT - (CASE WHEN PREPAY_TRANS_AMT IS NULL THEN 0 ELSE PREPAY_TRANS_AMT END + #{prepayTransAmt})
+				= 0 THEN 'Y' ELSE 'N' END
+			, CHGR_ID = CASE WHEN #{chgrId} IS NULL THEN 'SYSTEM' ELSE #{chgrId} END
+			, CHG_DATE = #{chgDate}
+		WHERE PREPAY_OCC_SEQ_NO = #{prepayOccSeqNo}
+	</update>
+        
+</mapper>

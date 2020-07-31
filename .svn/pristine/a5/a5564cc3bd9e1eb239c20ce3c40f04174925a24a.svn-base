@@ -1,0 +1,22 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+	</head>
+	<body>
+		<div>
+			<span>Mail sender  : <em>${template.sender}</em></span>
+		</div>
+		<div>
+			<span>Mail subject : <em>${template.subject}</em></span>
+		</div>
+		<div>
+			<span>Mail to      : <em>${template.to}</em></span>
+		</div>
+		<div>
+			<span>Mail fileName: <em>${template.fileName}</em></span>
+		</div>
+		<div>
+			<span>Mail sendDate: <em>${template.sendDate}</em></span>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m12Mapper">
+
+	<select id="getPrepayCtrtContents" resultType="PrepayBillAply">
+		SELECT DISTINCT
+			A.BILL_SEQ_NO AS BILL_SEQ_NO 				-- 청구일련번호
+			, B.PREPD_CTRT_ID AS PREPD_CTRT_ID 			-- 선납계약ID 
+			, A.BILL_YYMM AS BILL_YYMM 					-- 청구년월
+			, A.BILL_CYCL AS BILL_CYCL 					-- 청구주기
+			, A.BILL_DT AS BILL_DT 						-- 청구일자
+			, A.SO_ID AS SO_ID 							-- 계열사ID
+			, A.BILL_MM_TP AS BILL_MM_TP				-- 당후납구분
+			, MAX(A.GRP_ID) AS GRP_ID 					-- 단체ID
+			, A.PYM_ACNT_ID AS PYM_ACNT_ID				-- 납부계정ID
+			, B.PREPD_CTRT_DT AS PREPD_CTRT_DT			-- 선납계약일자
+			, B.CUST_ID AS CUST_ID						-- 고객ID
+			, B.CTRT_ID AS CTRT_ID						-- 계약ID
+			, CASE WHEN B.PREPD_CL IS NULL THEN '20' ELSE B.PREPD_CL END AS PREPD_CL -- 선납적용방법
+			, B.PREPD_BAL AS PREPD_BAL                  -- 선납금잔액
+			, B.MTH_BILL_AMT AS MTH_BILL_AMT            -- 월청구금액
+			, CASE WHEN B.APLY_MTH_CNT IS NULL THEN 12 ELSE B.APLY_MTH_CNT END AS APLY_MTH_CNT -- 적용개월수
+			, B.MPD_RATE AS MPD_RATE 					-- 월선납할인율
+			, CASE WHEN CASE WHEN B.APLY_DGR IS NULL THEN 0 ELSE B.APLY_DGR END = 0 THEN B.FRST_MPAT_AMT ELSE B.MPAT_AMT END
+			, SUM(A.BILL_AMT-A.RCPT_AMT) AS SUM_AMT		-- 청구번호별 Sum
+		FROM TCMBL_PREPAY_CTRT B     -- 선납계약 TBL
+			, TBLIV_BILL_WRK A     -- 청구내역 TBL
+			, IFNBRM_SVC_RATE_ITM_INFO  D,
+		, (
+			SELECT
+				T1.BILL_SEQ_NO
+				, T1.CUST_ID
+				, T1.CTRT_ID
+				, SUM(T1.BILL_AMT) TOT_BILL_AMT
+			FROM TCMBL_PREPAY_CTRT T2
+				, TBLIV_BILL_WRK T1
+				, IFNBRM_SVC_RATE_ITM_INFO T3
+			WHERE T2.FULL_PAY_YN = 'Y'  -- 완납여부
+				AND T2.RFND_STAT_CD != '2'  -- 환불예외
+				AND T2.SO_ID = #{soId}
+				AND T2.PREPD_BAL - T2.RFND_AMT &gt; 0
+				AND (T2.PREPD_CTRT_END_RESN_CD = '00' OR T2.PREPD_CTRT_END_RESN_CD IS NULL)
+				AND T2.CTRT_ID = CASE T2.PREPD_APLY_CL WHEN '1' THEN T1.CTRT_ID WHEN '2' THEN T2.CTRT_ID END
+				AND T2.CUST_ID = T1.CUST_ID
+				AND T2.SO_ID = T1.SO_ID
+				AND T1.BILL_YYMM = #{billYymm}
+				AND T1.BILL_CYCL = #{billCycl}
+				AND T1.BILL_DT = #{billDt}
+				AND T1.CHRG_ITM_CD NOT IN ( SELECT REF_CODE 
+				                            FROM TSYCO_CODE_DETAIL 
+				                            WHERE COMMON_GRP = 'BL00000'  AND COMMON_CD = '05' AND USE_YN = 'Y' ) -- 선수금 요금 항목 제외  'SR005 - SR00000264'
+				AND T1.CHRG_ITM_CD = T3.SVC_RATE_ITM_TYP_CD
+				AND T3.CHRG_CTGRY != 'N'
+			GROUP BY T1.BILL_SEQ_NO
+				, T1.CUST_ID
+				, T1.CTRT_ID
+		) C
+		WHERE B.FULL_PAY_YN   = 'Y'  -- 완납여부
+			AND B.RFND_STAT_CD != '2'  -- 환불예외
+			AND B.SO_ID = #{soId}
+			AND B.PREPD_BAL - B.RFND_AMT &gt; 0
+			AND (B.PREPD_CTRT_END_RESN_CD = '00' OR B.PREPD_CTRT_END_RESN_CD IS NULL)
+			AND B.CTRT_ID = CASE B.PREPD_APLY_CL WHEN '1' THEN A.CTRT_ID WHEN '2' THEN B.CTRT_ID END
+			AND B.CUST_ID = A.CUST_ID
+			AND B.SO_ID = A.SO_ID
+			AND A.BILL_YYMM = #{billYymm}
+			AND A.BILL_CYCL = #{billCycl}
+			AND A.BILL_DT = #{billDt}
+			AND A.CHRG_ITM_CD = D.SVC_RATE_ITM_TYP_CD
+			AND D.CHRG_CTGRY != 'N'
+			AND A.CHRG_ITM_CD != 'SR00000264'
+			AND A.BILL_SEQ_NO = C.BILL_SEQ_NO
+			AND A.CTRT_ID = C.CTRT_ID
+			AND A.CUST_ID = C.CUST_ID
+			AND C.TOT_BILL_AMT &gt; 0
+		GROUP BY A.BILL_SEQ_NO       -- 청구일련번호
+			, B.PREPD_CTRT_ID     -- 선납계약ID 
+			, A.BILL_YYMM         -- 청구년월
+			, A.BILL_CYCL         -- 청구주기
+			, A.BILL_DT           -- 청구일자
+			, A.SO_ID             -- 계열사ID
+			, A.BILL_MM_TP        -- 당후납 구분
+			, A.PYM_ACNT_ID       -- 납부계정ID
+			, B.PREPD_CTRT_DT     -- 선납계약일자
+			, B.CUST_ID           -- 고객ID
+			, B.CTRT_ID           -- 계약ID
+			, B.PREPD_CL          -- 선납적용방법
+			, B.PREPD_BAL         -- 선납금잔액
+			, B.MTH_BILL_AMT      -- 월청구금액
+			, B.APLY_MTH_CNT      -- 적용개월수
+			, B.MPD_RATE          -- 월선납할인율
+			, CASE WHEN CASE WHEN B.APLY_DGR IS NULL THEN 0 ELSE B.APLY_DGR END = 0 THEN B.FRST_MPAT_AMT ELSE B.MPAT_AMT END
+		HAVING SUM(A.BILL_AMT - A.RCPT_AMT) &gt; 0
+		ORDER BY A.PYM_ACNT_ID
+			, B.CTRT_ID
+			, B.PREPD_CTRT_DT DESC
+	</select>
+	
+	<select id="getNoPayProceedPrepayBillAply" resultType="PrepayBillAply">
+		SELECT
+			BILL_SEQ_NO
+			,SO_ID
+			,BILL_MM_TP
+			,PREPD_CTRT_ID
+			,BILL_YYMM
+			,CUST_ID
+			,CTRT_ID
+			,PREPD_APLY_AMT
+			,PREPD_DC_AMT
+		FROM TBLIV_PREPAY_BILL_APLY
+		WHERE BILL_YYMM = #{billYymm}
+			AND BILL_CYCL = #{billCycl}
+			AND PAY_PROC_YN = 'N'
+			AND BILL_SEQ_NO = #{billSeqNo}
+			AND PREPD_CTRT_ID = #{prepdCtrtId}
+			AND SO_ID = #{soId}
+		ORDER BY BILL_SEQ_NO,
+			PREPD_CTRT_ID DESC
+	</select>
+	
+	<select id="getRemainRcptAmtFromBillWrk" resultType="double">
+		SELECT
+			SUM(BILL_AMT) - SUM(RCPT_AMT)
+		FROM TBLIV_BILL_WRK
+		WHERE BILL_SEQ_NO = #{bill.billSeqNo}
+		<if test="bill.custId != null">
+			AND CUST_ID = #{bill.custId}
+		</if>
+		<if test="bill.ctrtId != null">
+			AND CTRT_ID = #{bill.ctrtId}
+		</if>
+		<if test="bill.pymAcntId != null">
+			AND PYM_ACNT_ID = #{bill.pymAcntId}
+		</if>
+			AND SO_ID = #{soId}
+	</select>
+	
+	<select id="getBillWrkInfoForPrepayByCtrt" resultType="CBillComm">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.CHRG_ITM_CD
+			, A.BILL_AMT
+			, A.RCPT_AMT
+			, A.FULL_PAY_YN
+			, A.GRP_ID
+			, A.PYM_ACNT_ID
+			, A.CUST_ID
+			, A.CTRT_ID
+			, A.BILL_MM_TP
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.SO_ID
+			, A.USE_YYMM
+			, A.CRNCY_CD
+			, A.EXRATE
+			, A.EXRATE_APLY_DT
+			, B.CHRG_CTGRY
+			, A.PROD_GRP
+		FROM TBLIV_BILL_WRK A
+			,TP_SVC_RATE_ITM_TYP B
+		WHERE A.BILL_SEQ_NO = #{billSeqNo}
+		AND A.SO_ID = #{soId}
+		AND A.CHRG_ITM_CD = B.SVC_RATE_ITM_TYP_CD
+		AND B.CHRG_CTGRY  != 'N'
+		AND A.CHRG_ITM_CD != 'SR001'
+		AND A.CTRT_ID = #{ctrtId}
+		ORDER BY A.BILL_SEQ_NO
+			, CASE B.CHRG_CTGRY WHEN 'R' THEN 1
+				WHEN 'U' THEN 2
+				WHEN 'N' THEN 3
+				ELSE 9 END
+	</select>
+	
+	
+	<select id="getBillWrkInfoForPrepayByCust" resultType="CBillComm">
+		SELECT
+			A.BILL_SEQ_NO
+			, A.PROD_CMPS_ID
+			, A.SVC_CMPS_ID
+			, A.CHRG_ITM_CD
+			, A.BILL_AMT
+			, A.RCPT_AMT
+			, A.FULL_PAY_YN
+			, A.GRP_ID
+			, A.PYM_ACNT_ID
+			, A.CUST_ID
+			, A.CTRT_ID
+			, A.BILL_MM_TP
+			, A.BILL_YYMM
+			, A.BILL_CYCL
+			, A.BILL_DT
+			, A.SO_ID
+			, A.USE_YYMM
+			, A.CRNCY_CD
+			, A.EXRATE
+			, A.EXRATE_APLY_DT
+			, B.CHRG_CTGRY
+			, A.PROD_GRP
+		FROM TBLIV_BILL_WRK A
+			,TP_SVC_RATE_ITM_TYP B
+		WHERE A.BILL_SEQ_NO = #{billSeqNo}
+		AND A.SO_ID = #{soId}
+		AND A.CHRG_ITM_CD = B.SVC_RATE_ITM_TYP_CD
+		AND B.CHRG_CTGRY  != 'N'
+		AND A.CHRG_ITM_CD != 'SR001'
+		AND A.CUST_ID = #{custId}
+		ORDER BY A.BILL_SEQ_NO
+			, CASE B.CHRG_CTGRY WHEN 'R' THEN 1
+				WHEN 'U' THEN 2
+				WHEN 'N' THEN 3
+				ELSE 9 END
+	</select>
+	
+	<update id="updateBillWrkRcptAmt">
+		UPDATE TBLIV_BILL_WRK SET
+			RCPT_AMT = RCPT_AMT + #{rcptAmt},
+			, FULL_PAY_YN = CASE WHEN RCPT_AMT + #{rcptAmt} = BILL_AMT THEN 'Y' ELSE 'N' END
+			, CHG_DATE = #{chgDate}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND USE_YYMM = #{useYymm}			
+			AND PROD_CMPS_ID = #{prodCmpsId}
+			AND SVC_CMPS_ID = #{svcCmpsId}
+			AND CHRG_ITM_CD = #{chrgItmCd}
+			AND SO_ID = #{soId}
+			AND FULL_PAY_YN  = 'N'
+	</update>
+	
+	<insert id="insertPrepayBillAply">
+		INSERT INTO TBLIV_PREPAY_BILL_APLY
+		(
+			BILL_SEQ_NO
+			, SO_ID
+			, BILL_MM_TP
+			, PREPD_CTRT_ID
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PREPD_APLY_AMT
+			, PREPD_DC_AMT
+			, PAY_PROC_YN
+			, PAY_PROC_DT
+			, CNCL_YN
+			, REG_DATE
+			, CRT_DTTM
+		)
+		VALUES
+		(
+			, #{billSeqNo}
+			, #{soId}
+			, #{billMmTp}
+			, #{prepdCtrtId}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{prepdAplyAmt}
+			, #{prepdDcAmt}
+			, #{payProcYn}
+			, #{payProcDt}
+			, #{cnclYn}
+			, #{regDate}
+			, #{crtDttm}
+		)
+	</insert>
+	
+	<update id="updatePrepayBillAplyPayProc">
+		UPDATE TBLIV_PREPAY_BILL_APLY SET
+			PAY_PROC_YN = 'Y',
+			, PAY_PROC_DT = #{payProcDt}
+		WHERE BILL_SEQ_NO = #{billSeqNo}
+			AND SO_ID = #{soId}
+			AND BILL_MM_TP = #{billMmTp}
+			AND PREPD_CTRT_ID = #{prepdCtrtId}
+	</update>
+	
+	<update id="updatePrepayCtrt">
+		UPDATE TCMBL_PREPAY_CTRT SET
+			PREPD_APLY_AMT = PREPD_APLY_AMT + #{prepdAplyAmt}
+			, PREPD_DC_AMT = PREPD_DC_AMT + #{prepdDcAmt}
+			, PREPD_BAL = 
+				CASE WHEN PREPD_CTRT_AMT - (PREPD_APLY_AMT + #{prepdAplyAmt}) &lt;= 0 THEN 0
+				WHEN PREPD_CTRT_AMT - (PREPD_APLY_AMT + #{prepdAplyAmt}) &gt; 0 THEN
+					PREPD_CTRT_AMT - (PREPD_APLY_AMT + #{prepdAplyAmt}) END
+			, APLY_DGR = CASE WHEN APLY_DGR IS NULL THEN 0 ELSE APLY_DGR END + 1
+			, CHG_DATE = #{chgDate}
+		WHERE PREPD_CTRT_ID = #{prepdCtrtId}
+		AND SO_ID = #{soId}
+	</update>
+
+</mapper>

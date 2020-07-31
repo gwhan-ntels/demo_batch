@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m18Mapper">
+	
+	<delete id="deletePrevData">
+		DELETE FROM TBLIV_BILL_INVOICE
+		WHERE BILL_YYMM = #{billYymm}
+		AND SO_ID = #{soId}
+		AND BILL_CYCL = #{billCycl}
+	</delete>
+	
+	<select id="getBillInvoiceInfo" resultType="billInvoice">
+      SELECT 
+        CUST.PYM_ACNT_ID
+        , CASE WHEN CUST.USE_ACNT_NM_YN = 'Y' THEN CUST.ACNT_NM ELSE CUST.CUST_NM END AS CUST_NM
+        , CUST.PZIP_CD AS ZIP_CD
+        , CUST.PBASE_ADDR AS BASE_ADDR
+        , CUST.PADDR_DTL AS ADDR_DTL
+        , CUST.CITY
+        , CUST.STATE_NM
+        , CUST.PMTEL_NO AS MTEL_NO
+        , CUST.PTEL_NO AS TEL_NO
+        , CUST.PEML AS EML
+        , CUST.BILL_MDM_SMS_YN
+        , CUST.BILL_MDM_GIRO_YN
+        , CUST.BILL_MDM_EML_YN
+        , CASE WHEN MAST.BILL_AMT IS NULL THEN 0 ELSE MAST.BILL_AMT END AS TOT_BILL_AMT
+        , CASE WHEN MAST.ADJ_AMT IS NULL THEN 0 ELSE MAST.ADJ_AMT END AS ADJ_AMT
+        , CASE WHEN MAST.RCPT_AMT IS NULL THEN 0 ELSE MAST.RCPT_AMT END AS RCPT_AMT
+        , PROD.PROD_CD
+        , PROD.PROD_NM
+        , BILL.CHRG_ITM_CD
+        , SVC.SVC_RATE_ITM_TYP_NM
+        , BILL.BILL_SEQ_NO
+        , BILL.BILL_YYMM
+        , BILL.BILL_CYCL
+        , BILL.SO_ID
+        , BILL.PAY_DUE_DT
+        , MT.PROD_CNT AS USG_CNT
+        , BILL.USG_AMT
+        , BILL.BILL_AMT
+        , CASE WHEN BILL.UNPAY_AMT IS NULL THEN 0 ELSE BILL.UNPAY_AMT END AS UNPAY_AMT
+        , CASE WHEN PREPAY.PREPAY_BAL IS NULL THEN 0 ELSE PREPAY.PREPAY_BAL END AS PREPAY_BAL
+        , MT.ACT_DT AS USE_STRT_DT
+        , MT.INACT_DT AS USE_END_DT
+        , BILL.CRNCY_CD
+        , MT.PROM_CNT
+        , SVC.DISP_PRI_NO
+      FROM IFNBRM_CUST_INFO CUST
+      LEFT OUTER JOIN (
+        SELECT
+          PYM_ACNT_ID
+          , SUM(PREPAY_BAL) AS PREPAY_BAL
+        FROM TBLPY_PREPAY_OCC
+        GROUP BY PYM_ACNT_ID
+      ) PREPAY ON PREPAY.PYM_ACNT_ID = CUST.PYM_ACNT_ID
+      , (
+        SELECT
+          BILL.BILL_SEQ_NO
+          , BILL.BILL_YYMM
+          , BILL.BILL_CYCL
+          , BILL.SO_ID
+          , MAX(BILL.PAY_DUE_DT) AS PAY_DUE_DT
+          , BILL.CHRG_ITM_CD
+          , BILL.PYM_ACNT_ID
+          , BILL.CUST_ID
+          , SUM(BILL.USG_CNT) AS USG_CNT
+          , SUM(BILL.USG_AMT) AS USG_AMT
+          , SUM(BILL.BILL_AMT) AS BILL_AMT
+          , MAX(BILL.USE_YYMM) AS USE_YYMM
+          , MAX(BILL.PROD_CD) AS PROD_CD
+          , MAX(BILL.CRNCY_CD) AS CRNCY_CD
+          , PROD_CMPS_ID
+          , SVC_CMPS_ID
+          , (
+            SELECT
+            SUM(UNPAY_AMT)
+            FROM TBLIV_BILL_MAST
+            WHERE PYM_ACNT_ID = BILL.PYM_ACNT_ID
+            AND BILL_YYMM &lt; #{billYymm}
+          ) AS UNPAY_AMT
+        FROM TBLIV_BILL BILL
+        WHERE BILL.SO_ID = #{soId}
+        AND BILL.BILL_YYMM = #{billYymm}
+        AND BILL.BILL_CYCL = #{billCycl}
+        GROUP BY
+          BILL.BILL_SEQ_NO
+          , BILL.BILL_MM_TP
+          , BILL.SO_ID
+          , BILL.PROD_CMPS_ID
+          , BILL.SVC_CMPS_ID
+          , BILL.BILL_YYMM
+          , BILL.BILL_CYCL
+          , BILL.BILL_DT
+          , BILL.PYM_ACNT_ID
+          , BILL.CUST_ID
+          , BILL.CTRT_ID
+          , BILL.CHRG_ITM_CD
+      ) BILL
+      LEFT OUTER JOIN (
+        SELECT
+          BILL_SEQ_NO
+          , SUM(RCPT_AMT) AS RCPT_AMT
+          , SUM(ADJ_AMT) AS ADJ_AMT
+          , SUM(BILL_AMT) AS BILL_AMT
+        FROM TBLIV_BILL
+        WHERE BILL_YYMM = #{billYymm}
+        AND SO_ID = #{soId}
+        GROUP BY BILL_SEQ_NO
+      ) MAST ON MAST.BILL_SEQ_NO = BILL.BILL_SEQ_NO
+      LEFT OUTER JOIN IFNBRM_PROD_INFO PROD ON PROD.PROD_CD = BILL.PROD_CD
+      LEFT OUTER JOIN IFNBRM_SVC_RATE_ITM_INFO SVC ON SVC.SVC_RATE_ITM_TYP_CD = BILL.CHRG_ITM_CD
+      LEFT OUTER JOIN (
+        SELECT
+          MAX(ACT_DT) ACT_DT
+          , MAX(INACT_DT) INACT_DT
+          , MAX(PROD_CNT) PROD_CNT
+          , PYM_ACNT_ID
+          , PROD_CD
+          , PROD_CMPS_ID
+          , SVC_CMPS_ID
+          , MAX(PROM_CNT) PROM_CNT
+        FROM TBLCH_SVC_CMPS_MT
+        WHERE BILL_YYMM = #{billYymm}
+        AND SO_ID = #{soId}
+        AND BILL_CYCL = #{billCycl}
+        GROUP BY PYM_ACNT_ID
+        , PROD_CD
+        , PROD_CMPS_ID
+        , SVC_CMPS_ID
+      ) MT ON MT.PYM_ACNT_ID = BILL.PYM_ACNT_ID
+      AND MT.PROD_CMPS_ID = BILL.PROD_CMPS_ID
+      AND MT.SVC_CMPS_ID = BILL.SVC_CMPS_ID
+      WHERE CUST.PYM_ACNT_ID = BILL.PYM_ACNT_ID
+      AND CUST.CUST_ID = BILL.CUST_ID
+      AND CUST.SO_ID = BILL.SO_ID
+      AND BILL.BILL_YYMM = #{billYymm}
+      AND BILL.SO_ID = #{soId}
+      AND BILL.BILL_CYCL = #{billCycl}
+      ORDER BY BILL.BILL_SEQ_NO, BILL.PROD_CD, SVC.DISP_PRI_NO
+	</select>
+	
+	<insert id="insertBillInvoice">
+		INSERT INTO TBLIV_BILL_INVOICE (
+		  BILL_SEQ_NO
+		  , BILL_YYMM
+		  , BILL_CYCL
+		  , SO_ID
+		  , PYM_ACNT_ID
+		  , PAY_DUE_DT
+		  , CUST_NM
+		  , ZIP_CD
+		  , BASE_ADDR
+		  , ADDR_DTL
+		  , CITY
+		  , STATE_NM
+		  , MTEL_NO
+		  , TEL_NO
+		  , EML
+		  , BILL_MDM_SMS_YN
+		  , BILL_MDM_GIRO_YN
+		  , BILL_MDM_EML_YN
+		  , TOT_BILL_AMT
+		  , ADJ_AMT
+		  , RCPT_AMT
+		  , PREPAY_BAL
+		  , PROD_CD
+		  , PROD_NM
+		  , CHRG_ITM_CD
+		  , SVC_RATE_ITM_TYP_NM
+		  , USG_CNT
+		  , USG_AMT
+		  , BILL_AMT
+		  , UNPAY_AMT
+		  , USE_STRT_DT
+		  , USE_END_DT
+		  , CRNCY_CD
+		  , PROM_CNT
+		  , DISP_PRI_NO
+		)
+		VALUES
+		(
+		  #{billSeqNo}
+		  , #{billYymm}
+		  , #{billCycl}
+		  , #{soId}
+		  , #{pymAcntId}
+		  , #{payDueDt}
+		  , #{custNm}
+		  , #{zipCd}
+		  , #{baseAddr}
+		  , #{addrDtl}
+		  , #{city}
+		  , #{stateNm}
+		  , #{mtelNo}
+		  , #{telNo}
+		  , #{eml}
+		  , #{billMdmSmsYn}
+		  , #{billMdmGiroYn}
+		  , #{billMdmEmlYn}
+		  , #{totBillAmt}
+		  , #{adjAmt}
+		  , #{rcptAmt}
+		  , #{prepayBal}
+		  , #{prodCd}
+		  , #{prodNm}
+		  , #{chrgItmCd}
+		  , #{svcRateItmTypNm}
+		  , #{usgCnt}
+		  , #{usgAmt}
+		  , #{billAmt}
+		  , #{unpayAmt}
+		  , #{useStrtDt}
+		  , #{useEndDt}
+		  , #{crncyCd}
+		  , #{promCnt}
+		  , #{dispPriNo}
+		)
+	</insert>
+	
+	<select id="getBillInvoiceListForPrint" resultType="billInvoice">
+		SELECT
+		  BILL_SEQ_NO
+		  , BILL_YYMM
+		  , BILL_CYCL
+		  , PYM_ACNT_ID
+		  , PAY_DUE_DT
+		  , CUST_NM
+		  , ACNT_NM
+		  , ZIP_CD
+		  , BASE_ADDR
+		  , ADDR_DTL
+		  , CITY
+		  , STATE_NM
+		  , MTEL_NO
+		  , TEL_NO
+		  , EML
+		  , BILL_MDM_SMS_YN
+		  , BILL_MDM_GIRO_YN
+		  , BILL_MDM_EML_YN
+		  , TOT_BILL_AMT
+		  , ADJ_AMT
+		  , RCPT_AMT
+		  , PREPAY_BAL
+		  , PROD_CD
+		  , PROD_NM
+		  , CHRG_ITM_CD
+		  , SVC_RATE_ITM_TYP_NM
+		  , USG_CNT
+		  , USG_AMT
+		  , BILL_AMT
+		  , UNPAY_AMT
+		  , USE_STRT_DT
+		  , USE_END_DT
+		  , CRNCY_CD
+		  , PROM_CNT
+		FROM TBLIV_BILL_INVOICE
+		WHERE BILL_YYMM = #{billYymm}
+		AND SO_ID = #{soId}
+		AND BILL_CYCL = #{billCycl}
+		ORDER BY BILL_SEQ_NO, PROD_CD, DISP_PRI_NO
+	</select>
+	
+	<select id="getBillInvoiceListForEml" resultType="billInvoice">
+		SELECT
+			BILL_SEQ_NO
+			, BILL_YYMM
+			, PYM_ACNT_ID
+			, EML
+			, BILL_MDM_EML_YN
+			, MAX(TOT_BILL_AMT) AS TOT_BILL_AMT
+		FROM TBLIV_BILL_INVOICE
+		WHERE BILL_YYMM = #{billYymm}
+		AND SO_ID = #{soId}
+		AND BILL_CYCL = #{billCycl}
+		GROUP BY BILL_SEQ_NO
+		, BILL_YYMM
+		, PYM_ACNT_ID
+		, EML
+		, BILL_MDM_EML_YN
+	</select>
+
+</mapper>

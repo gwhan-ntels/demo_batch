@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ntels.ccbs.batch.ch.dao.mapper.NBlchb01m01Mapper">
+	<select id="listNBlchb01m01"  resultType="NBlchb01m01">
+        SELECT #{clcWrkNo} AS CLC_WRK_NO,
+               #{soId} AS SO_ID,
+               #{pSeq} AS P_SEQ,
+               #{billYymm} AS BILL_YYMM,
+               #{billCycl} AS BILL_CYCL,
+               SUBSTR(#{startDate},1,6) AS USE_YYMM,
+               A.CTRT_ID,
+               A.CUST_ID,
+               A.PYM_ACNT_ID,
+               SUBSTR(A.ACT_DTTM, 1, 8) AS ACT_DT,
+               SUBSTR(A.INACT_DTTM, 1, 8) AS INACT_DT,
+               A.RATE_STRT_DT,
+               A.TERM_DT,
+               A.CTRT_STAT,
+               A.PROD_CD,
+               A.PROD_CMPS_ID,
+               A.SVC_CMPS_ID,
+               A.SVC_STS_CD,
+               A.SVC_TEL_NO,
+               NOW() AS REG_DATE,
+               A.FCTR_CD1,
+               A.FCTR_VAL1,
+               A.FCTR_CD2,
+               A.FCTR_VAL2,
+               A.FCTR_CD3,
+               A.FCTR_VAL3,
+               A.FCTR_CD4,
+               A.FCTR_VAL4,
+               A.FCTR_CD5,
+               A.FCTR_VAL5,
+               A.FCTR_CD6,
+               A.FCTR_VAL6,
+               A.FCTR_CD7,
+               A.FCTR_VAL7,
+               A.FCTR_CD8,
+               A.FCTR_VAL8,
+               A.FCTR_CD9,
+               A.FCTR_VAL9,
+               A.FCTR_CD10,
+               A.FCTR_VAL10,
+               A.FCTR_CD11,
+               A.FCTR_VAL11,
+               A.FCTR_CD12,
+               A.FCTR_VAL12,
+               A.FCTR_CD13,
+               A.FCTR_VAL13,
+               A.FCTR_CD14,
+               A.FCTR_VAL14,
+               A.FCTR_CD15,
+               A.FCTR_VAL15,
+               A.FCTR_CD16,
+               A.FCTR_VAL16,
+               A.FCTR_CD17,
+               A.FCTR_VAL17,
+               A.FCTR_CD18,
+               A.FCTR_VAL18,
+               A.FCTR_CD19,
+               A.FCTR_VAL19,
+               A.SVC_CD,
+               A.SVC_GRP,
+               A.PROD_GRP,
+               A.ORG_ID,
+               A.USR_ID,
+               A.MONTHLY_NEGO_RATE,
+               A.PROD_CNT,
+               A.PROC_RATE,
+               A.PROM_CNT,
+               (CASE WHEN B.USE_ED_DATE IS NULL THEN SUBSTR(A.ACT_DTTM, 1, 8) ELSE B.USE_ED_DATE END) AS USE_ED_DATE
+        FROM   IFNBRM_CTRT_INFO A
+               LEFT OUTER JOIN TBLCH_MULTI_CHRG_HIST B
+               ON A.CTRT_ID = B.CTRT_ID
+        WHERE  A.SO_ID = #{soId}
+        AND    SUBSTR(A.ACT_DTTM,1,8) &lt;= #{endDate}
+        AND    SUBSTR(A.INACT_DTTM,1,8) &gt; (CASE WHEN B.USE_ED_DATE IS NULL THEN A.RATE_STRT_DT                      /* Hist 존재X면 모든 내역을 추출 (전월, 당월 내역 생성) */
+                                                   ELSE CASE WHEN (A.TERM_DT - B.USE_ED_DATE) &lt; 0 THEN A.TERM_DT    /* 현재 상태가 유지(inact=99991231)되는 당월 내역을 추출 (해지포함, 나머지 변경내역은 04JobLauncher 생성) */
+                                                             ELSE B.USE_ED_DATE                                         
+                                                        END
+                                              END)
+        AND    A.CTRT_STAT NOT IN  ('90', '50')        /* 해지, 직권해지된 내역은 삭제 */
+        AND    SUBSTR(A.ACT_DTTM,1,8) &lt;&gt; SUBSTR(A.INACT_DTTM,1,8)
+        AND    A.CTRT_ID BETWEEN #{strtNo} AND #{endNo}
+        ORDER BY A.CTRT_ID, A.SVC_CMPS_ID, A.ACT_DTTM DESC
+	</select>
+        <!-- AND    A.TERM_DT &gt;= #{startDate}  (위험성 있음. 만일 201701월에 가입 이후 20170201 해지 함. 요금 계산은 0204일날 배치 수행한다고 하면 어떻게 될까  )-->
+        <!-- AND    (CASE WHEN B.USE_ED_DATE IS NULL THEN #{endDate} ELSE B.USE_ED_DATE END) &lt;= #{endDate} -->
+
+    <insert id = "saveNBlchb01m01"  parameterType="NBlchb01m01">
+        INSERT INTO TBLCH_SVC_CMPS_MT
+            (CLC_WRK_NO, SO_ID, P_SEQ, BILL_YYMM, BILL_CYCL
+            ,USE_YYMM, CTRT_ID, CUST_ID, PYM_ACNT_ID, ACT_DT
+            ,INACT_DT, RATE_STRT_DT, TERM_DT, CTRT_STAT, PROD_CD
+            ,PROD_CMPS_ID, SVC_CMPS_ID, SVC_STS_CD, SVC_TEL_NO, REG_DATE
+            ,FCTR_CD1, FCTR_VAL1, FCTR_CD2, FCTR_VAL2, FCTR_CD3, FCTR_VAL3, FCTR_CD4, FCTR_VAL4, FCTR_CD5, FCTR_VAL5
+            ,FCTR_CD6, FCTR_VAL6, FCTR_CD7, FCTR_VAL7, FCTR_CD8, FCTR_VAL8, FCTR_CD9, FCTR_VAL9
+            ,FCTR_CD10, FCTR_VAL10, FCTR_CD11, FCTR_VAL11, FCTR_CD12, FCTR_VAL12, FCTR_CD13, FCTR_VAL13, FCTR_CD14, FCTR_VAL14
+			,FCTR_CD15, FCTR_VAL15, FCTR_CD16, FCTR_VAL16, FCTR_CD17, FCTR_VAL17, FCTR_CD18, FCTR_VAL18,FCTR_CD19, FCTR_VAL19
+            ,SVC_CD, SVC_GRP, PROD_GRP, ORG_ID, USR_ID, MONTHLY_NEGO_RATE, PROD_CNT, PROC_RATE, PROM_CNT)
+        VALUES
+            (#{clcWrkNo}, #{soId}, #{pSeq}, #{billYymm}, #{billCycl}
+            ,#{useYymm}, #{ctrtId}, #{custId}, #{pymAcntId}, #{actDt}
+            ,#{inactDt}, #{rateStrtDt}, #{termDt}, #{ctrtStat}, #{prodCd}
+            ,#{prodCmpsId}, #{svcCmpsId}, #{svcStsCd}, #{svcTelNo}, #{regDate}
+            ,#{fctrCd1}, #{fctrVal1}, #{fctrCd2}, #{fctrVal2}, #{fctrCd3}, #{fctrVal3}, #{fctrCd4}, #{fctrVal4}, #{fctrCd5}, #{fctrVal5}
+            ,#{fctrCd6}, #{fctrVal6}, #{fctrCd7}, #{fctrVal7}, #{fctrCd8}, #{fctrVal8}, #{fctrCd9}, #{fctrVal9}
+ 			,#{fctrCd10}, #{fctrVal10},#{fctrCd11}, #{fctrVal11},#{fctrCd12}, #{fctrVal12},#{fctrCd13}, #{fctrVal13},#{fctrCd14}, #{fctrVal14}
+			,#{fctrCd15}, #{fctrVal15},#{fctrCd16}, #{fctrVal16},#{fctrCd17}, #{fctrVal17},#{fctrCd18}, #{fctrVal18},#{fctrCd19}, #{fctrVal19}				  
+            ,#{svcCd}, #{svcGrp}, #{prodGrp}, #{orgId}, #{usrId}, #{monthlyNegoRate}, #{prodCnt}, #{procRate}, #{promCnt})
+    </insert>         
+</mapper>

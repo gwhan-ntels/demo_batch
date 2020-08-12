@@ -49,8 +49,8 @@ public class NBlivb01m04Writer01 implements ItemWriter<CBillComm> {
 	List<Object> Objectlist = new ArrayList<Object>();
 
 	public void write(List<? extends CBillComm> items) throws Exception {
-
 		Objectlist.clear();
+
 		if (i == 0) {
 			clslog.writeLog("[Write Start :" + CUtil.utilGetDateTime(4));
 		}
@@ -59,17 +59,17 @@ public class NBlivb01m04Writer01 implements ItemWriter<CBillComm> {
 			i++;
 			j++;
 
-			list.setBillSeqNo(commonService.getBillSeqNo(list.getBillYymm(), list.getBillCycl(),
-					list.getBillDt().substring(6, 8), list.getPymAcntId(), "00"));
+			list.setBillSeqNo(commonService.getBillSeqNo(list.getBillYymm(), list.getBillCycl(), list.getBillDt().substring(6, 8), list.getPymAcntId(), "00"));
 			list.setTimeInfo();
 			Objectlist.add(list);
 		}
+
 		clsService.saveJdbcDirect(Objectlist);
+
 		if (i == 10000) {
 			clslog.writeLog("[" + j + ":" + CUtil.utilGetDateTime(4));
 			i = 0;
 		}
 
 	}
-
 }

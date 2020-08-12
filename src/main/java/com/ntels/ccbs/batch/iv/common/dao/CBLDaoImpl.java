@@ -60,7 +60,7 @@ public class CBLDaoImpl extends LazyLoadingDao  implements CBLDao {
 	 * @return
 	 */
 	@Override
-	public List<String> getSetLoc(BillCyclStp billCyclStp) {
+	public List<BillCyclStp> getSetLoc(BillCyclStp billCyclStp) {
 		return getList(dbKind,"getSetLoc", BillCyclStp.class, billCyclStp);
 		//return cblMapper.getSetLoc(billCyclStp);
 	}
@@ -90,7 +90,6 @@ public class CBLDaoImpl extends LazyLoadingDao  implements CBLDao {
 		return getList(dbKind,"getStpSetVal", BillStp.class, billCyclStp);
 		//return cblMapper.getStpSetVal(billCyclStp);
 	}
-	
 	
 	/**
 	 * 

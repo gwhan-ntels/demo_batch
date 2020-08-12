@@ -21,15 +21,15 @@
 
 	<!-- Batch 설정 -->
 	<!-- Job 선언 jobid = batch-sample-2-tasklet -->
-	<batch:job id="batch-nBlivb01m10-tasklet" >
+	<batch:job id="batch-nBlivb01m10-tasklet">
 		<batch:step id="step1">
 			<!-- Tasklet 처리 타입 -->
-			<batch:tasklet ref="nBlivb01m10Tasklet01"  />
-			<batch:next on="COMPLETED" to="step2"/>
+			<batch:tasklet ref="nBlivb01m10Tasklet01" />
+			<batch:next on="COMPLETED" to="step2" />
 		</batch:step>
 		<batch:step id="step2">
 			<!-- Tasklet 처리 타입 -->
-			<batch:tasklet ref="nBlivb01m10Tasklet02"  />
+			<batch:tasklet ref="nBlivb01m10Tasklet02" />
 		</batch:step>
 	</batch:job>
 </beans>

@@ -207,7 +207,7 @@
                 DECODE(A.SPLT_PYM_TP,'3',TO_CHAR(B.ITLLMT_VAL),
                        A.CHRG_CTGRY) AS CHRG_CTGRY,       -- 요금유형
                 DECODE(A.SPLT_PYM_TP,'4',TO_CHAR(B.ITLLMT_VAL),
-                       A.CHRG_ITM_CD) AS CHRG_ITM_CD,      -- 분리요금항목코드
+                       A.CHRG_ITM_CD) AS SPLT_CHRG_ITM_CD,      -- 분리요금항목코드
                 A.ATRT_CORP_ID,             -- 유치업체ID
                 A.ATRT_EMP_ID,              -- 유치사원ID
                 A.WON_BILL_AMT,             -- 원화청구금액
@@ -251,7 +251,10 @@
             AND B.CTRT_ID                 = A.CTRT_ID           --  계약 ID
             AND C.SO_ID                   = #{soId}
             AND C.PYM_ACNT_ID             = B.PYM_ACNT_ID       --  납부계정ID
-            AND A.CUST_ID = C.CUST_ID
+            
+            /*  수정 필요 - 2020.08.07  
+                 AND A.CUST_ID = C.CUST_ID -> 삭제 
+            */
             AND A.CTRT_ID     = DECODE(A.SPLT_PYM_TP,'1',B.CTRT_ID,'2',B.CTRT_ID,
                                        A.CTRT_ID )              -- 분할납부기준이 금액/요율일때
             AND A.CHRG_CTGRY  = DECODE(A.SPLT_PYM_TP,'3',TO_CHAR(B.ITLLMT_VAL),

@@ -226,8 +226,10 @@ public class BillWork extends MultiSeq {
 	private String adjNo;
 	/* 테이블 컬럼 외 데이터 필드 끝 */
 
+	private Double adjApplAmt;
+
 	private String inptMenuId;
-	
+
 	public String getBillSeqNo() {
 		return billSeqNo;
 	}
@@ -610,6 +612,14 @@ public class BillWork extends MultiSeq {
 
 	public void setInptMenuId(String inptMenuId) {
 		this.inptMenuId = inptMenuId;
+	}
+
+	public Double getAdjApplAmt() {
+		return adjApplAmt;
+	}
+
+	public void setAdjApplAmt(Double adjApplAmt) {
+		this.adjApplAmt = adjApplAmt;
 	}
 
 }

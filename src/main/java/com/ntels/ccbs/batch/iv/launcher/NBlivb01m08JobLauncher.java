@@ -36,7 +36,7 @@ public class NBlivb01m08JobLauncher {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-		CommonJobExecuter jobLauncher = new CommonJobExecuter("spring/batch-AplyAdjBill-tasklet.xml");
+		CommonJobExecuter jobLauncher = new CommonJobExecuter("spring/batch-nBlivb01m08-tasklet.xml");
 		jobLauncher.executeJob(args);
 
 	}

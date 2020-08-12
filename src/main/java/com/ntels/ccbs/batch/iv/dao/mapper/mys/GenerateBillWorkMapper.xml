@@ -4,7 +4,7 @@
  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ntels.ccbs.batch.iv.dao.mapper.GenerateBillWorkMapper">
 
-	<!-- 청구전 요금 조정 대상 조회 쿼리 -->
+	<!-- 청구전 요금 조정 대상 조회 쿼리 자사매출 -->
 	<select id="getAdjInfoBeforeBillList" resultType="billWork">
 		SELECT /* INDEX(A IX_TBLIV_CHRG_ADJ_APLY_06) */
 		       A.ADJ_NO
@@ -47,7 +47,7 @@
 		     , TBLCH_MULTI_SEQ Z1
 		WHERE  A.HOPE_APLY_YYMM  = #{billYymm} 
 		AND    A.DCSN_PROC_STAT  IN ('03')       
-		AND    Z.COMMON_GRP      =  'BL00024'  /* BL00043 2020.07.30 HAN */
+		AND    Z.COMMON_GRP      =  'BL00043'
 		AND    Z.USE_YN          = 'Y'
 		AND    A.ADJ_RESN_CD     = Z.COMMON_CD
 		AND    B.ADJ_NO          = A.ADJ_NO      -- 조정번호
@@ -124,11 +124,6 @@
 	</update>
 	
 	
-	
-	
-	
-	
-	
 	<select id="getAdjInfoAfterBillList" resultType="billWork">
     SELECT /* INDEX(A IX_TBLIV_CHRG_ADJ_APLY_06) */
            A.ADJ_NO
@@ -137,9 +132,9 @@
          , B.PROD_CMPS_ID
          , B.SVC_CMPS_ID
          , B.CHRG_ITM_CD
-         , #{billYymm} AS BILL_YYMM
-         , #{billCycl} AS BILL_CYCL
-         , #{billDt} AS BILL_DT
+         , #{billYymm}           AS BILL_YYMM
+         , #{billCycl}           AS BILL_CYCL
+         , #{billDt}             AS BILL_DT
          , B.SO_ID
          , B.GRP_ID
          , A.PYM_ACNT_ID
@@ -150,17 +145,17 @@
          , NULL BIZ_CL
          , J.PROD_GRP
          , J.SVC_GRP
-         , J.USE_MM_TYP BILL_MM_TP
+         , J.USE_MM_TYP          AS BILL_MM_TP
          , '01' SALE_TP
-         , #{payDueDt} AS PAY_DUE_DT
-         , 'N'  FULL_PAY_YN
+         , #{payDueDt}           AS PAY_DUE_DT
+         , 'N'                   AS FULL_PAY_YN
          , CASE WHEN MAX(C.ORG_ID) IS NULL THEN 'CCBS' ELSE MAX(C.ORG_ID) END AS ATRT_CORP_ID
-         , CASE WHEN MAX(C.USR_ID) IS NULL THEN ' ' ELSE MAX(C.USR_ID) END AS ATRT_EMP_ID
+         , CASE WHEN MAX(C.USR_ID) IS NULL THEN ' '    ELSE MAX(C.USR_ID) END AS ATRT_EMP_ID
          , B.CRNCY_CD
-         , MAX(B.EXRATE) AS EXRATE
+         , MAX(B.EXRATE)         AS EXRATE
          , MAX(B.EXRATE_APLY_DT) AS EXRATE_APLY_DT
          , 'N'  DEBT_PROC_YN
-         , SUM(B.ADJ_APPL_AMT) AS ADJ_APPL_AMT
+         , SUM(B.ADJ_APPL_AMT)   AS ADJ_APPL_AMT
          , 'NBliv01m08' CHGR_ID
     FROM   TBLIV_CHRG_ADJ_APLY A
          , TBLIV_CHRG_ADJ_APLY_DTL B
@@ -169,28 +164,28 @@
          , TSYCO_CODE_DETAIL Z
          , TBLCH_MULTI_SEQ Z1
     WHERE  A.HOPE_APLY_YYMM &lt;= #{billYymm}
-    AND    A.DCSN_PROC_STAT IN ('03','12')
-    AND    B.ADJ_NO = A.ADJ_NO
-    AND    B.ADJ_APPL_AMT != 0
-    AND    A.ADJ_PT = '1'
-    AND    B.SO_ID = #{soId}
-    AND    C.CTRT_ID = B.CTRT_ID
-    AND    C.SO_ID = B.SO_ID
-    AND    C.INACT_DTTM LIKE '9999123123595%'
-    AND    C.PROD_CMPS_ID = B.PROD_CMPS_ID
-    AND    C.SVC_CMPS_ID = B.SVC_CMPS_ID
-    AND    J.SO_ID = C.SO_ID
-    AND    J.PROD_CD = C.PROD_CD
-    AND    J.ACT_DT &lt;= CASE A.ADJ_PT WHEN '2' THEN B.USE_YYMM ELSE #{billYymm} END || '01'
-    AND    J.INACT_DT &gt;= CASE A.ADJ_PT WHEN '2' THEN B.USE_YYMM ELSE #{billYymm} END || '01'
-    AND    Z.COMMON_GRP =  'BL00024'
-    AND    Z.USE_YN = 'Y'
-    AND    A.ADJ_RESN_CD = Z.COMMON_CD
-    AND    Z1.SO_ID = #{soId}
-    AND    Z1.GUBUN = '2'
-    AND    Z1.P_SEQ = #{pSeq}
-    AND    A.PYM_ACNT_ID  &gt;= Z1.STRT_NO
-    AND    A.PYM_ACNT_ID  &lt;= Z1.END_NO
+    AND    A.DCSN_PROC_STAT  IN ('03','12')
+    AND    B.ADJ_NO          = A.ADJ_NO
+    AND    B.ADJ_APPL_AMT   != 0
+    AND    A.ADJ_PT          = '1'
+    AND    B.SO_ID           = #{soId}
+    AND    C.CTRT_ID         = B.CTRT_ID
+    AND    C.SO_ID           = B.SO_ID
+    AND    C.INACT_DTTM      LIKE '9999123123595%'
+    AND    C.PROD_CMPS_ID    = B.PROD_CMPS_ID
+    AND    C.SVC_CMPS_ID     = B.SVC_CMPS_ID
+    AND    J.SO_ID           = C.SO_ID
+    AND    J.PROD_CD         = C.PROD_CD
+    AND    J.ACT_DT         &lt;= CONCAT(CASE A.ADJ_PT WHEN '2' THEN B.USE_YYMM ELSE #{billYymm} END, '01')
+    AND    J.INACT_DT       &gt;= CONCAT(CASE A.ADJ_PT WHEN '2' THEN B.USE_YYMM ELSE #{billYymm} END, '01')
+    AND    Z.COMMON_GRP      = 'BL00024'
+    AND    Z.USE_YN          = 'Y'
+    AND    A.ADJ_RESN_CD     = Z.COMMON_CD
+    AND    Z1.SO_ID          = #{soId}
+    AND    Z1.GUBUN          = '2'
+    AND    Z1.P_SEQ          = #{pSeq}
+    AND    A.PYM_ACNT_ID    &gt;= Z1.STRT_NO
+    AND    A.PYM_ACNT_ID    &lt;= Z1.END_NO
     GROUP  BY A.ADJ_NO
             , A.ADJ_PT
             , B.USE_YYMM
@@ -210,7 +205,6 @@
             , B.CRNCY_CD
 	</select>
 	
-	
 	<select id="getBillWorkForAdj">
 		SELECT P.USE_YYMM
 		     , P.WON_BILL_AMT
@@ -225,8 +219,119 @@
 		AND    P.PROD_CMPS_ID = #{prodCmpsId}
 		AND    P.SVC_CMPS_ID = #{svcCmpsId}
 		AND    P.CHRG_ITM_CD = #{chrgItmCd}
-		AND    ROWNUM = 1
+		LIMIT  1
 	</select>
+	
+	<insert id="insertBillWork">
+		INSERT INTO TBLIV_BILL_WRK
+		(
+			BILL_SEQ_NO
+			, USE_YYMM
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, CHRG_ITM_CD
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_CD
+			, SVC_CD
+			, BIZ_CL
+			, PROD_GRP
+			, SVC_GRP
+			, BILL_MM_TP
+			, SALE_TP
+			, USG_CNT
+			, USG_AMT
+			, ADJ_PRV_BILL_AMT
+			, ADJ_AMT
+			, BILL_AMT
+			, PAY_DUE_DT
+			, RCPT_AMT
+			, FULL_PAY_YN
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, WON_BILL_AMT
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, SALE_ITM_CD
+			, PREPAY_OCC_SEQ_NO
+			, PREPD_CTRT_ID
+			, INPT_MENU_ID
+			, REGR_ID
+			, REG_DATE
+			, CHGR_ID
+			, CHG_DATE
+			, DEBT_PROC_YN
+		)
+		VALUES
+		(
+			#{billSeqNo}
+			, #{useYymm}
+			, #{prodCmpsId}
+			, #{svcCmpsId}
+			, #{chrgItmCd}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{soId}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{prodCd}
+			, #{svcCd}
+			, #{bizCl}
+			, #{prodGrp}
+			, #{svcGrp}
+			, #{billMmTp}
+			, #{saleTp}
+			, 0
+			, 0
+			, 0
+			, #{adjApplAmt}
+			, #{adjApplAmt}
+			, #{payDueDt}
+			, 0
+			, #{fullPayYn}
+			, #{atrtCorpId}
+			, #{atrtEmpId}
+			, #{wonBillAmt}
+			, #{crncyCd}
+			, #{exrate}
+			, #{exrateAplyDt}
+			, #{saleItmCd}
+			, #{prepayOccSeqNo}
+			, #{prepdCtrtId}
+			, #{inptMenuId}
+			, #{regrId}
+			, now()
+			, #{chgrId}
+			, now()
+			, #{debtProcYn}
+		)
+	</insert>
+
+	<update id="updateAdjAfterBill">
+    UPDATE TBLIV_BILL_WRK
+    SET    BILL_AMT     = BILL_AMT     + #{adjApplAmt}
+         , ADJ_AMT      = ADJ_AMT      + #{adjApplAmt}
+         , WON_BILL_AMT = WON_BILL_AMT + #{adjApplAmt}
+         , INPT_MENU_ID = #{inptMenuId}
+         , CHGR_ID      = #{chgrId}
+         , CHG_DATE     = #{chgDate}
+    WHERE  BILL_SEQ_NO  = #{billSeqNo}
+    AND    USE_YYMM     = #{useYymm}
+    AND    PROD_CMPS_ID = #{prodCmpsId}
+    AND    SVC_CMPS_ID  = #{svcCmpsId}
+    AND    CHRG_ITM_CD  = #{chrgItmCd}
+    AND    SO_ID        = #{soId}
+	</update>
 	
 	
 	
@@ -416,95 +521,6 @@
           ) A
 	</select>
 	
-	<insert id="insertBillWork">
-		INSERT INTO TBLIV_BILL_WRK
-		(
-			BILL_SEQ_NO
-			, USE_YYMM
-			, PROD_CMPS_ID
-			, SVC_CMPS_ID
-			, CHRG_ITM_CD
-			, BILL_YYMM
-			, BILL_CYCL
-			, BILL_DT
-			, SO_ID
-			, GRP_ID
-			, PYM_ACNT_ID
-			, CUST_ID
-			, CTRT_ID
-			, PROD_CD
-			, SVC_CD
-			, BIZ_CL
-			, PROD_GRP
-			, SVC_GRP
-			, BILL_MM_TP
-			, SALE_TP
-			, USG_CNT
-			, USG_AMT
-			, ADJ_PRV_BILL_AMT
-			, ADJ_AMT
-			, BILL_AMT
-			, PAY_DUE_DT
-			, RCPT_AMT
-			, FULL_PAY_YN
-			, ATRT_CORP_ID
-			, ATRT_EMP_ID
-			, WON_BILL_AMT
-			, CRNCY_CD
-			, EXRATE
-			, EXRATE_APLY_DT
-			, SALE_ITM_CD
-			, PREPAY_OCC_SEQ_NO
-			, PREPD_CTRT_ID
-			, REG_DATE
-			, CHG_DATE
-			, DEBT_PROC_YN
-		)
-		VALUES
-		(
-			#{billSeqNo}
-			, #{useYymm}
-			, #{prodCmpsId}
-			, #{svcCmpsId}
-			, #{chrgItmCd}
-			, #{billYymm}
-			, #{billCycl}
-			, #{billDt}
-			, #{soId}
-			, #{grpId}
-			, #{pymAcntId}
-			, #{custId}
-			, #{ctrtId}
-			, #{prodCd}
-			, #{svcCd}
-			, #{bizCl}
-			, #{prodGrp}
-			, #{svcGrp}
-			, #{billMmTp}
-			, #{saleTp}
-			, #{usgQty}
-			, #{usgAmt}
-			, #{adjPrvBillAmt}
-			, #{adjAmt}
-			, #{billAmt}
-			, #{payDueDt}
-			, #{rcptAmt}
-			, #{fullPayYn}
-			, #{atrtCorpId}
-			, #{atrtEmpId}
-			, #{wonBillAmt}
-			, #{crncyCd}
-			, #{exrate}
-			, #{exrateAplyDt}
-			, #{saleItmCd}
-			, #{prepayOccSeqNo}
-			, #{prepdCtrtId}
-			, now()
-			, now()
-			, #{debtProcYn}
-		)
-	</insert>
-	
 	<!-- 자동이체 할인 적용 대상 리스트 조회 -->
 	<select id="getAutoTransferDiscountInfoList" resultType="billWork">
 		SELECT
@@ -626,19 +642,101 @@
 	
 
 	
-	<update id="updateAdjAfterBill">
-		UPDATE TBLIV_BILL_WRK SET
-		    BILL_AMT = BILL_AMT + #{adjApplAmt}
-		    ,ADJ_AMT = ADJ_AMT + #{adjApplAmt}
-		    ,WON_BILL_AMT = WON_BILL_AMT + #{adjApplAmt}
-		    ,CHG_DATE = #{chgDate}
-		WHERE BILL_SEQ_NO  = #{billSeqNo}
-		AND USE_YYMM     = #{useYymm}
-		AND PROD_CMPS_ID = #{prodCmpsId}
-		AND SVC_CMPS_ID  = #{svcCmpsId}
-		AND CHRG_ITM_CD  = #{chrgItmCd}
-		AND SO_ID        = #{soId}
-	</update>
+	<insert id="insertBillWork_org">
+		INSERT INTO TBLIV_BILL_WRK
+		(
+			BILL_SEQ_NO
+			, USE_YYMM
+			, PROD_CMPS_ID
+			, SVC_CMPS_ID
+			, CHRG_ITM_CD
+			, BILL_YYMM
+			, BILL_CYCL
+			, BILL_DT
+			, SO_ID
+			, GRP_ID
+			, PYM_ACNT_ID
+			, CUST_ID
+			, CTRT_ID
+			, PROD_CD
+			, SVC_CD
+			, BIZ_CL
+			, PROD_GRP
+			, SVC_GRP
+			, BILL_MM_TP
+			, SALE_TP
+			, USG_CNT
+			, USG_AMT
+			, ADJ_PRV_BILL_AMT
+			, ADJ_AMT
+			, BILL_AMT
+			, PAY_DUE_DT
+			, RCPT_AMT
+			, FULL_PAY_YN
+			, ATRT_CORP_ID
+			, ATRT_EMP_ID
+			, WON_BILL_AMT
+			, CRNCY_CD
+			, EXRATE
+			, EXRATE_APLY_DT
+			, SALE_ITM_CD
+			, PREPAY_OCC_SEQ_NO
+			, PREPD_CTRT_ID
+			, INPT_MENU_ID
+			, REGR_ID
+			, REG_DATE
+			, CHGR_ID
+			, CHG_DATE
+			, DEBT_PROC_YN
+		)
+		VALUES
+		(
+			#{billSeqNo}
+			, #{useYymm}
+			, #{prodCmpsId}
+			, #{svcCmpsId}
+			, #{chrgItmCd}
+			, #{billYymm}
+			, #{billCycl}
+			, #{billDt}
+			, #{soId}
+			, #{grpId}
+			, #{pymAcntId}
+			, #{custId}
+			, #{ctrtId}
+			, #{prodCd}
+			, #{svcCd}
+			, #{bizCl}
+			, #{prodGrp}
+			, #{svcGrp}
+			, #{billMmTp}
+			, #{saleTp}
+			, #{usgQty}
+			, #{usgAmt}
+			, #{adjPrvBillAmt}
+			, #{adjAmt}
+			, #{billAmt}
+			, #{payDueDt}
+			, #{rcptAmt}
+			, #{fullPayYn}
+			, #{atrtCorpId}
+			, #{atrtEmpId}
+			, #{wonBillAmt}
+			, #{crncyCd}
+			, #{exrate}
+			, #{exrateAplyDt}
+			, #{saleItmCd}
+			, #{prepayOccSeqNo}
+			, #{prepdCtrtId}
+			, #{inptMenuId}
+			, #{regrId}
+			, now()
+			, #{chgrId}
+			, now()
+			, #{debtProcYn}
+		)
+	</insert>
+	
 	
 	
 </mapper>

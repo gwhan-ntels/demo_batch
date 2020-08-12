@@ -1,12 +1,11 @@
 package com.ntels.ccbs.batch.iv.dao;
 
-
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Repository;
 
 import com.ntels.ccbs.batch.common.LazyLoader;
 import com.ntels.ccbs.batch.common.dao.LazyLoadingDao;
@@ -33,59 +32,47 @@ import com.ntels.ccbs.batch.iv.dao.mapper.NBlivb01m04Mapper;
  * </PRE>
  */
 @Component
-public class NBlivb01m04DaoImpl extends LazyLoadingDao  implements NBlivb01m04Dao {
+public class NBlivb01m04DaoImpl extends LazyLoadingDao implements NBlivb01m04Dao {
 
-	/** NBliv03m01Mapper Autowired.  */
 	@Autowired
-	private NBlivb01m04Mapper clsMapper;
-
-	
-	/* (non-Javadoc)
-	 * @see com.ntels.ccbs.batch.ch.standard.dao.StandardChargeDao#listStandardChargeDirect(java.sql.Connection, com.ntels.ccbs.batch.common.entity.Common, java.util.Map)
-	 */
+	private NBlivb01m04Mapper nBlivb01m04Mapper;
 
 	@Override
-	protected String getMapperPath() 
-	{
+	protected String getMapperPath() {
 		return "com/ntels/ccbs/batch/iv/dao/mapper";
 	}
-	
+
 	@Override
-	protected String getMapperName()
-	{
+	protected String getMapperName() {
 		return "NBlivb01m04Mapper";
 	}
-	
-	@Value("${dbms.kind}")
-	String dbKind;	
-	
+
 	@Override
-	public LazyLoader<CBillComm> listInfoDirect( Common comm ) 
-	{
-	    return getLazyLoader(dbKind,"listInfo", CBillComm.class, comm);
-	}	
-	
-	@Override
-	public LazyLoader<CBillComm> listDivInfoDirect( Common comm )
-	{
-		 return getLazyLoader(dbKind,"listDivInfo", CBillComm.class, comm);
+	public LazyLoader<CBillComm> listInfoDirect(Common comm) {
+		return getLazyLoader("listInfo", CBillComm.class, comm);
 	}
-	
+
 	@Override
-    public int saveInfoDirect(List<Object> obj)
-	{
+	public LazyLoader<CBillComm> listDivInfoDirect(Common comm) {
+		return getLazyLoader("listDivInfo", CBillComm.class, comm);
+	}
+
+	@Override
+	public int saveInfoDirect(List<Object> obj) {
 		return insert("saveInfo", new CBillComm(), obj);
 	}
-  
+
 	@Override
-    public int saveDivInfoDirect(List<Object> obj)
-	{
+	public int saveDivInfoDirect(List<Object> obj) {
 		return insert("saveDivInfo", new CBillComm(), obj);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.ntels.ccbs.batch.iv.dao.NBlivb01m04Dao#saveInfoDirect(java.util.List)
-	 */
-	
+	public int deleteInfoDirect(List<Object> obj) {
+		return delete("deleteInfo", CBillComm.class, obj);
+	}
+
+	public int saveWrkDirect(List<Object> obj) {
+		return insert("saveWrkDirect", CBillComm.class, obj);
+	}
 	
 }

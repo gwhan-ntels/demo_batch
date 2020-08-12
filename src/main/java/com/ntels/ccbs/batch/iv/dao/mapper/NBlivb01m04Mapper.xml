@@ -50,8 +50,8 @@
            AND    USE_YN = 'Y'
           ) B                        -- 분리납부정보 TBL
          ,(SELECT CTRT_ID
-                  PYM_ACNT_ID
-                  MAX(ITLLMT_VAL)  AS ITLLMT_VAL  -- 에러방지를 위하여 임시로 처리함
+                 , PYM_ACNT_ID
+                 , MAX(ITLLMT_VAL)  AS ITLLMT_VAL  -- 에러방지를 위하여 임시로 처리함
            FROM   TCMBL_ITLLMT_PYM_INFO_DTL
            GROUP  BY CTRT_ID
                    , PYM_ACNT_ID
@@ -131,8 +131,8 @@
            AND    USE_YN = 'Y'
           ) B                  -- 분리납부정보 TBL
          ,(SELECT CTRT_ID
-                  PYM_ACNT_ID
-                  MAX(ITLLMT_VAL)  AS ITLLMT_VAL  -- 에러방지를 위하여 임시로 처리함
+                 , PYM_ACNT_ID
+                 , MAX(ITLLMT_VAL)  AS ITLLMT_VAL  -- 에러방지를 위하여 임시로 처리함
            FROM   TCMBL_ITLLMT_PYM_INFO_DTL
            GROUP  BY CTRT_ID
                    , PYM_ACNT_ID
@@ -245,18 +245,25 @@
         #{exrateAplyDt},
         #{regDate}
     )
-   
-
     </insert>
 
+    <delete id = "deleteInfo"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+        DELETE FROM TBLIV_BILL_WRK
+        WHERE  BILL_YYMM = #{billYymm}
+        AND    CTRT_ID   = #{ctrtId}
+        AND    SO_ID     = #{soId}
+    </delete>
   	
 
     
 	<select id="listDivInfo"  resultType="CBillComm"> 
+	select * 
+	from  (
              SELECT 
-				CASE WHEN A.SPLT_PYM_TP = '2' THEN B.CTRT_ID||A.USE_YYMM||A.PROD_CMPS_ID||A.SVC_CMPS_ID||A.CHRG_ITM_CD||B.PYM_ACNT_ID
-                ELSE  B.CTRT_ID||A.USE_YYMM||B.PYM_ACNT_ID END FETCH_ORDER,
-                B.CTRT_ID,                                        -- 계약ID
+				CASE WHEN A.SPLT_PYM_TP = '2' THEN CONCAT(B.CTRT_ID, A.USE_YYMM, A.PROD_CMPS_ID, A.SVC_CMPS_ID, A.CHRG_ITM_CD, B.PYM_ACNT_ID)
+                     ELSE CONCAT(B.CTRT_ID, A.USE_YYMM, B.PYM_ACNT_ID) 
+                END  FETCH_ORDER,
+                /* B.CTRT_ID,                                        -- 계약ID */
                 B.PYM_ACNT_ID AS TO_PYM_ACNT_ID,                  -- 분리 납부 계정ID
                 A.BILL_SEQ_NO,                                    -- 청구일련번호
                 A.USE_YYMM,                                       -- 사용년월
@@ -289,7 +296,7 @@
                 CASE WHEN A.SPLT_PYM_TP = '3' THEN B.ITLLMT_VAL
                 ELSE A.CHRG_CTGRY END CHRG_CTGRY,       -- 요금유형
                 CASE WHEN A.SPLT_PYM_TP = '4' THEN B.ITLLMT_VAL
-                ELSE A.CHRG_ITM_CD END CHRG_ITM_CD,      -- 분리요금항목코드
+                ELSE A.CHRG_ITM_CD END SPLT_CHRG_ITM_CD,      -- 분리요금항목코드
                 A.ATRT_CORP_ID,             -- 유치업체ID
                 A.ATRT_EMP_ID,              -- 유치사원ID
                 A.WON_BILL_AMT,             -- 원화청구금액
@@ -305,9 +312,7 @@
                    AND  C2.CTRT_ID = C1.CTRT_ID
                    AND  SUBSTR(C1.INACT_DTTM,1,6) >= '999912'
                    AND  C2.SPLT_PYM_TP IN ( '1','2') ) AS TO_ITLMT_VAL,       --
-                B.CTRT_ID||
-                A.USE_YYMM||
-                A.CHRG_ITM_CD  AS DIVI_KEY  -- 계약ID||요금항목코드
+                CONCAT(B.CTRT_ID, A.USE_YYMM, A.CHRG_ITM_CD)  AS DIVI_KEY  -- 계약ID||요금항목코드
            FROM TBLIV_SPLT_PYM             A,  -- 분리납부내역 TBL
                 (SELECT CTRT_ID,
                         PYM_ACNT_ID,
@@ -325,27 +330,118 @@
             AND Z.SO_ID                    = #{soId}    
             AND Z.GUBUN          		  = '2'
 		    AND Z.P_SEQ          		  = #{pSeq}
+            AND A.PYM_ACNT_ID            &gt;= Z.STRT_NO
+            AND A.PYM_ACNT_ID            &lt;= Z.END_NO
 		    AND A.BILL_YYMM               = #{billYymm}        --  청구년월
             AND A.BILL_CYCL               = #{billCycl}       --  청구주기
             AND A.BILL_DT                 = #{billDt}         --  청구일자
             AND A.SO_ID                   = #{soId}
-            AND SUBSTR(B.INACT_DTTM,1,8) &gt;= #{billYymm}||'01'  -- 효력종료일자
             AND B.CTRT_ID                 = A.CTRT_ID           --  계약 ID
+            AND SUBSTR(B.INACT_DTTM,1,8) &gt;= CONCAT(#{billYymm}, '01')  -- 효력종료일자
             AND C.SO_ID                   = #{soId}
             AND C.PYM_ACNT_ID             = B.PYM_ACNT_ID       --  납부계정ID
-            AND A.CUST_ID = C.CUST_ID
+            
+            /*  수정 필요 - 2020.08.07  
+                 AND A.CUST_ID = C.CUST_ID -> 삭제 
+            */
+            
             AND A.CTRT_ID     =(CASE WHEN A.SPLT_PYM_TP = '1' THEN B.CTRT_ID WHEN A.SPLT_PYM_TP = '1' THEN B.CTRT_ID ELSE A.CTRT_ID END) -- 분할납부기준이 금액/요율일때
             AND A.CHRG_CTGRY  = (CASE WHEN A.SPLT_PYM_TP = '3' THEN B.ITLLMT_VAL ELSE A.CHRG_CTGRY END)  -- 분할납부기준이 요금영역일때
             AND A.CHRG_ITM_CD = (CASE WHEN A.SPLT_PYM_TP = '4' THEN B.ITLLMT_VAL ELSE A.CHRG_ITM_CD END)  -- 분할납부기준이 요금항목일때
             AND C.PYM_ACNT_ID  &gt;= Z.STRT_NO
-		    AND C.PYM_ACNT_ID  &lt;= Z.END_NO 		
-          ORDER BY 2
+		    AND C.PYM_ACNT_ID  &lt;= Z.END_NO 	
+          ) a 	
+          ORDER BY ctrt_id
                                         
 	</select>
     
+	    <insert id = "saveWrkDirect"  parameterType="com.ntels.ccbs.batch.iv.common.entity.CBillComm">
+          INSERT INTO TBLIV_BILL_WRK(
+            BILL_SEQ_NO,
+            USE_YYMM,
+            PROD_CMPS_ID,
+            SVC_CMPS_ID,
+            CHRG_ITM_CD,
+            BILL_YYMM,
+            BILL_CYCL,
+            BILL_DT,
+            SO_ID,
+            GRP_ID,
+            PYM_ACNT_ID,
+            CUST_ID,
+            CTRT_ID,
+            PROD_CD,
+            SVC_CD,
+            BIZ_CL,
+            PROD_GRP,
+            SVC_GRP,
+            BILL_MM_TP,
+            SALE_TP,
+            USG_CNT,
+            USG_AMT,
+            ADJ_PRV_BILL_AMT,
+            ADJ_AMT,
+            BILL_AMT,
+            PAY_DUE_DT,
+            RCPT_AMT,
+            FULL_PAY_YN,
+            ATRT_CORP_ID,
+            ATRT_EMP_ID,
+            WON_BILL_AMT,
+            CRNCY_CD,
+            EXRATE,
+            EXRATE_APLY_DT,
+            SALE_ITM_CD,
+            PREPAY_OCC_SEQ_NO,
+            PREPD_CTRT_ID,
+            REG_DATE,
+            CHG_DATE,
+            DEBT_PROC_YN) VALUES (
+            #{billSeqNo},
+            #{useYymm},
+            #{prodCmpsId},
+            #{svcCmpsId},
+            #{chrgItmCd},
+            #{billYymm},
+            #{billCycl},
+            #{billDt},
+            #{soId},
+            #{grpId},
+            #{pymAcntId},
+            #{custId},
+            #{ctrtId},
+            #{prodCd},
+            #{svcCd},
+            #{bizCl},
+            #{prodGrp},
+            #{svcGrp},
+            #{billMmTp},
+            #{saleTp},
+            #{usgCnt},
+            #{usgAmt},
+            #{adjPrvBillAmt},
+            #{adjAmt},
+            #{billAmt},
+            #{payDueDt},
+            #{rcptAmt},
+            #{fullPayYn},
+            #{atrtCorpId},
+            #{atrtEmpId},
+            #{wonBillAmt},
+            #{crncyCd},
+            #{exrate},
+            #{exrateAplyDt},
+            #{saleItmCd},
+            #{prepayOccSeqNo},
+            #{prepdCtrtId},
+            #{regDate},
+            #{chgDate},
+            #{debtProcYn})
+
+    </insert>   
     
     <insert id = "saveDivInfo"  parameterType="CBillComm">
-     INSERT INTO TBLIV_SPLT_PYM_PROC_RSLT  -- 납부계정처리결과 TBL      
+     INSERT INTO TBLIV_SPLT_PYM_PROC_RSLT  -- 납부계정처리결과 TBLhan 1111 
             (                                                       
               BILL_SEQ_NO,                  -- // 청구일련번호        
               USE_YYMM,                     -- // 사용년월            

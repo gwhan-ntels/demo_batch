@@ -4,14 +4,18 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-import com.ntels.ccbs.batch.common.entity.Common;
-import com.ntels.ccbs.batch.iv.common.entity.CBillComm;
+import com.ntels.ccbs.batch.iv.common.entity.BillWork;
 
 @Component
 public interface NBlivb01m08Mapper {
+	List<BillWork> getAdjInfoBeforeBillList(BillWork billWork);
 
-	public List<CBillComm> listAdjInfo(Common comm);
-	public List<CBillComm> listOplInfo(Common comm);
-	public int saveInfo(CBillComm obj);
+	List<BillWork> getAdjInfoAfterBillList(BillWork billWork);
+	BillWork getBillWorkForAdj(BillWork billWork);
+	int insertBillWork(BillWork billWork);
+	
+
+//	List<BillWork> getChInfoListForBillWork(BillWork billWork);
+//	List<BillWork> getAutoTransferDiscountInfoList(BillWork billWork);
 
 }

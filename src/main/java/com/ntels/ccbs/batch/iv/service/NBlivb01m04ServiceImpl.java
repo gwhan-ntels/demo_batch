@@ -1,18 +1,12 @@
 package com.ntels.ccbs.batch.iv.service;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.sql.DataSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.ntels.ccbs.batch.common.LazyLoader;
@@ -21,7 +15,6 @@ import com.ntels.ccbs.batch.common.service.ClogService;
 import com.ntels.ccbs.batch.iv.common.entity.CBillComm;
 import com.ntels.ccbs.batch.iv.common.service.CBillWrkService;
 import com.ntels.ccbs.batch.iv.dao.NBlivb01m04Dao;
-
 
 /**
  * 공통 코드 Service.
@@ -43,76 +36,59 @@ public class NBlivb01m04ServiceImpl implements NBlivb01m04Service {
 
 	/** logger. */
 	Logger l = LoggerFactory.getLogger(this.getClass());
-	
-	/** NBliv04m01Dao Autowired.  */
+
+	/** NBliv04m01Dao Autowired. */
 	@Autowired
-	private NBlivb01m04Dao clsDao;
-	
+	private NBlivb01m04Dao nBlivb01m04Dao;
+
 	@Autowired
-	CBillWrkService  clsWrkSvc;
-	
+	CBillWrkService clsWrkSvc;
+
 	@Autowired
-	private ClogService  clslog ;	
-	
-	/** 
-	 * DataSource Autowired.
-	 * 
-	 *  jdbcTemplate 사용을 위해서는 아래 선언 필요
-	 * 
-	 * */
+	private ClogService clslog;
+
 	@Autowired
 	private DataSource dataSource;
 
-	/**
-	 * 목록.
-	 *
-	 * @param condition 조회조건
-	 * @return List<NBliv04m01>
-	 */
+	public LazyLoader<CBillComm> listJdbcDirect(Common comm) {
+		return nBlivb01m04Dao.listInfoDirect(comm);
+	}
 
-	
-	public LazyLoader<CBillComm> listJdbcDirect(Common comm) 
-	{
-		return clsDao.listInfoDirect(comm);
-	}
-	
-	public int saveJdbcDirect(List<Object>  obj) 
-	{
+	public int saveJdbcDirect(List<Object> obj) {
 		int result = 0;
-		
-		result = clsDao.saveInfoDirect(obj);
-	    if ( result <= 0 )
-	    {
-	    	clslog.writeLog("NBlivb01m04-saveJdbcDirect Error : " + obj.get(0).toString() );
-	    	return result;
-	    }
-	    return clsWrkSvc.deleteJdbcDirect(obj);
+
+		result = nBlivb01m04Dao.saveInfoDirect(obj);
+
+		if (result <= 0) {
+			clslog.writeLog("NBlivb01m04-saveJdbcDirect Error : " + obj.get(0).toString());
+			return result;
+		}
+
+		return nBlivb01m04Dao.deleteInfoDirect(obj);
 	}
-	
-	
-	public LazyLoader<CBillComm> listDivJdbcDirect(Common comm) 
-	{
-		return clsDao.listDivInfoDirect(comm);
+
+	public LazyLoader<CBillComm> listDivJdbcDirect(Common comm) {
+		return nBlivb01m04Dao.listDivInfoDirect(comm);
 	}
-	
-	public int saveWrkDirect(List<Object>  obj) {
-	    return  clsWrkSvc.saveJdbcDirect(obj);
+
+	public int saveWrkDirect(List<Object> obj) {
+		return nBlivb01m04Dao.saveWrkDirect(obj);
 
 	}
-	
-	public int saveDivJdbcDirect(List<Object>  obj) 
-	{
-	
+
+	public int saveDivJdbcDirect(List<Object> obj) {
+
 		int result = 0;
-		
-		result = clsDao.saveDivInfoDirect(obj);
-	    if ( result <= 0 )
-	    {
-	    	clslog.writeLog("NBlivb01m04-saveDivInfoDirect Error : " + obj.get(0).toString() );
-	    	return result;
-	    }
-	    return clsWrkSvc.saveJdbcDirect(obj);
+
+		result = nBlivb01m04Dao.saveDivInfoDirect(obj);
+		if (result <= 0) {
+			clslog.writeLog("NBlivb01m04-saveDivInfoDirect Error : " + obj.get(0).toString());
+			return result;
+		}
+
+		return clsWrkSvc.saveJdbcDirect(obj);
 	}
 	
 	
+
 }

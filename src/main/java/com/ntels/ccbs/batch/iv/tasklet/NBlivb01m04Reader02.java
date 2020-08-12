@@ -47,18 +47,10 @@ public class NBlivb01m04Reader02 extends CommonItemReader<CBillComm> {
 	protected boolean isInsertPgmLog() {
 		return false;
 	}
-	
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.ntels.ccbs.batch.common.tasklet.CommonItemReader#geLoader()
-	 */
+
 	@Override
 	protected LazyLoader<CBillComm> getLoader() {
 		comm = getCommon();
-
-		/*------------------------------------------------------ */
-		// Define Values of Input Param.class
 		commonService.commonBillInfo(billYymm, billCycl, soId);
 		comm.setExchRateAppDt(commonService.getBillVal(Common.BILL_EXCHRATEDT));
 		comm.setBillDt(billYymm + commonService.getBillVal(Common.BILL_BILLDT));
@@ -66,10 +58,8 @@ public class NBlivb01m04Reader02 extends CommonItemReader<CBillComm> {
 		try {
 			comm.setUseYymm(CUtil.addMonths(billYymm, -1));
 		} catch (java.text.ParseException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		/*------------------------------------------------------ */
 
 		return clsService.listDivJdbcDirect(comm);
 	}

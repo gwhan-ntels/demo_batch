@@ -10,10 +10,11 @@ import org.springframework.stereotype.Component;
 import com.ntels.ccbs.batch.common.LazyLoader;
 import com.ntels.ccbs.batch.common.tasklet.LazyLoaderLogingTasklet;
 import com.ntels.ccbs.batch.iv.common.entity.BillWork;
-import com.ntels.ccbs.batch.iv.service.GenerateBillWorkService;
+import com.ntels.ccbs.batch.iv.service.NBlivb01m08Service;
 
 /**
  * 청구 전 요금 조정 Tasklet
+ * 
  * @author Cashyalla
  *
  */
@@ -22,36 +23,34 @@ import com.ntels.ccbs.batch.iv.service.GenerateBillWorkService;
 public class NBlivb01m08Tasklet01 extends LazyLoaderLogingTasklet<BillWork, BillWork> {
 
 	@Autowired
-	private GenerateBillWorkService generateBillWorkService;
-    
-    @Override
-    protected boolean isInsertPgmLog() {
-    	return true;
-    }
-    
-    @Override
-    protected boolean isUpdatePgmLog() {
-    	return false;
-    }
-	
+	private NBlivb01m08Service nBlivb01m08Service;
+
+	@Override
+	protected boolean isInsertPgmLog() {
+		return true;
+	}
+
+	@Override
+	protected boolean isUpdatePgmLog() {
+		return false;
+	}
+
 	@Override
 	protected LazyLoader<BillWork> getLoader() throws Exception {
-		
+
 		BillWork billWork = new BillWork();
 		billWork.setSoId(soId);
 		billWork.setBillYymm(billYymm);
 		billWork.setBillCycl(billCycl);
 		billWork.setClcWrkNo(clcWrkNo);
 		billWork.setpSeq(pgmSeq);
-		
+
 		billWork.setExchRateAppDt(getExchRateAplyDt());
 		billWork.setBillDt(getBillDt());
 		billWork.setPayDueDt(getPayDueDt());
 		billWork.setUseYymm(getUseYymm());
-		
-		clog.writeLog("NBlivb01m08Tasklet01.getLoader billWork\n{}", clog.objectToString(billWork));
-		
-		return generateBillWorkService.getAdjInfoBeforeBillList(billWork);
+
+		return nBlivb01m08Service.getAdjInfoBeforeBillList(billWork);
 	}
 
 	@Override
@@ -65,10 +64,10 @@ public class NBlivb01m08Tasklet01 extends LazyLoaderLogingTasklet<BillWork, Bill
 
 	@Override
 	protected void write(List<BillWork> itemList) {
-		int cnt = generateBillWorkService.updateAplyAdjBeforeBill(itemList);
-		
+		int cnt = nBlivb01m08Service.updateAplyAdjBeforeBill(itemList);
+
 		if (cnt > 0) {
-			generateBillWorkService.updateAdjAply(itemList);
+			nBlivb01m08Service.updateAdjAply(itemList);
 		}
 	}
 

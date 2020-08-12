@@ -125,11 +125,11 @@ public class CBillComm {
 	 
 		public void setTimeInfo()
 		{
-			Timestamp tmpT;
-			Date      tmpD = new Date();
-			   	 tmpT  = new Timestamp(tmpD.getTime());
-		         this.setRegDate(tmpT);
-		         this.setChgDate(tmpT);
+//			Timestamp tmpT;
+//			Date      tmpD = new Date();
+//			   	 tmpT  = new Timestamp(tmpD.getTime());
+		         this.setRegDate(new Timestamp(new Date().getTime()));
+		         this.setChgDate(new Timestamp(new Date().getTime()));
 		}
 
 
@@ -1060,17 +1060,11 @@ public class CBillComm {
 		}
 
 
-		/**
-		 * @return the toPymAcntId
-		 */
 		public String getToPymAcntId() {
 			return toPymAcntId;
 		}
 
 
-		/**
-		 * @param toPymAcntId the toPymAcntId to set
-		 */
 		public void setToPymAcntId(String toPymAcntId) {
 			this.toPymAcntId = toPymAcntId;
 		}

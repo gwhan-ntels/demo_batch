@@ -99,7 +99,7 @@ public class GenerateBillWorkDaoImpl extends LazyLoadingDao implements GenerateB
 	
 	@Override
 	public int updateAdjAfterBill(List<BillWork> billWorkList) {
-		return updateOne(dbKind, "updateAdjAfterBill",billWorkList);
+		return update(dbKind, "updateAdjAfterBill", BillWork.class, billWorkList);
 		//return update("updateAdjAfterBill", BillWork.class, billWorkList);
 	}
 	

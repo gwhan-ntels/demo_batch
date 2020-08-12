@@ -37,4 +37,9 @@ public interface NBlivb01m04Dao {
 	public int saveInfoDirect(List<Object> obj);
 	public int saveDivInfoDirect(List<Object> obj);
 
+
+	public int deleteInfoDirect(List<Object> obj);
+
+
+	public int saveWrkDirect(List<Object> obj);
 }

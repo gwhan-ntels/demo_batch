@@ -30,7 +30,7 @@ import com.ntels.ccbs.batch.iv.service.NBlivb01m04Service;
  * </PRE>
  */
 @Component
-@Scope("step") //<-- parameter 필요할 경우 선언
+@Scope("step") // <-- parameter 필요할 경우 선언
 public class NBlivb01m04Reader01 extends CommonItemReader<CBillComm> {
 
 	/** HistoryService Autowired. */
@@ -38,39 +38,33 @@ public class NBlivb01m04Reader01 extends CommonItemReader<CBillComm> {
 	private NBlivb01m04Service clsService;
 
 	@Autowired
-	private CommonService commonService;	
+	private CommonService commonService;
 
 	/** 배치 처리 대상 리스트. */
 	LazyLoader<CBillComm> list;
 
-	private Common comm;	
+	private Common comm;
 
 	@Override
 	protected boolean isUpdatePgmLog() {
 		return false;
 	}
-	
-	/* (non-Javadoc)
-	 * @see com.ntels.ccbs.batch.common.tasklet.CommonItemReader#geLoader()
-	 */
+
 	@Override
 	protected LazyLoader<CBillComm> getLoader() {
 		comm = getCommon();
-		
-		/*------------------------------------------------------ */
-	    //Define Values of Input Param.class
+
 		commonService.commonBillInfo(billYymm, billCycl, soId);
-		comm.setExchRateAppDt( commonService.getBillVal(Common.BILL_EXCHRATEDT));
+		comm.setExchRateAppDt(commonService.getBillVal(Common.BILL_EXCHRATEDT));
 		comm.setBillDt(billYymm + commonService.getBillVal(Common.BILL_BILLDT));
 		comm.setPayDueDt(billYymm + commonService.getBillVal(Common.BILL_PAYDUEDT));
+
 		try {
-			comm.setUseYymm(CUtil.addMonths(billYymm, -1) );
+			comm.setUseYymm(CUtil.addMonths(billYymm, -1));
 		} catch (java.text.ParseException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		
+
 		return clsService.listJdbcDirect(comm);
 	}
-	
 }

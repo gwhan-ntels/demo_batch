@@ -18,6 +18,7 @@ import com.ntels.ccbs.batch.iv.service.NBlivb01m10Service;
 
 /**
  * 청구 대상자 생성 Tasklet
+ * 
  * @author Cashyalla
  *
  */
@@ -27,34 +28,30 @@ public class NBlivb01m10Tasklet01 extends LazyLoaderLogingTasklet<BillCust, Bill
 
 	@Autowired
 	private NBlivb01m10Service nBlivb01m10JdbcService;
-	
+
 	@Autowired
 	private BillCustJdbcService billCustJdbcService;
-	
 	private String remark;
-	
 	private String oldBillSeqNo = "";
-	
 	private String oldProdCmpsId = "";
-	
 	private String oldSvcCmpsId = "";
-	
+
 	@Override
 	protected boolean isInsertPgmLog() {
 		return true;
 	}
-	
+
 	@Override
 	protected boolean isUpdatePgmLog() {
 		return false;
 	}
-	
+
 	@Override
 	protected LazyLoader<BillCust> getLoader() throws Exception {
 
 		String billSeqNo = billYymm.substring(2, 6) + billCycl;
-		
-		//remark = getRemark();
+
+//		remark = getRemark();
 
 		BillCust billCust = new BillCust();
 		// 청구번호 임시값
@@ -64,20 +61,20 @@ public class NBlivb01m10Tasklet01 extends LazyLoaderLogingTasklet<BillCust, Bill
 		billCust.setSoId(soId);
 		billCust.setpSeq(pgmSeq);
 		billCust.setReceivedBillSeqNo(false);
-		
+
 		return nBlivb01m10JdbcService.getBillCustInfo(billCust);
 	}
 
 	@Override
 	protected BillCust process(BillCust item) {
-		
+
 		item.setRmrk(remark);
-		
+
 		item.setLstReIssSeq(0);
 		if (item.getBillSeqNo().equals(oldBillSeqNo) == false) {
-			
+
 			oldBillSeqNo = item.getBillSeqNo();
-			
+
 			if (item.getBillAmt() > item.getSmlBsAmt()) {
 				item.setSmlAmtYn("N");
 			} else {
@@ -91,7 +88,7 @@ public class NBlivb01m10Tasklet01 extends LazyLoaderLogingTasklet<BillCust, Bill
 					item.setSmlAmtYn("Y");
 				}
 			}
-			
+
 			item.setPymMthd(item.getPayMthd());
 			item.setBillFlCrtYn("N");
 			item.setLstReIssSeq(0);
@@ -100,8 +97,7 @@ public class NBlivb01m10Tasklet01 extends LazyLoaderLogingTasklet<BillCust, Bill
 
 			item.setBillCust(item);
 
-			if (oldProdCmpsId.equals(item.getProdCmpsId()) == false
-					&& oldSvcCmpsId.equals(item.getSvcCmpsId()) == false) {
+			if (oldProdCmpsId.equals(item.getProdCmpsId()) == false && oldSvcCmpsId.equals(item.getSvcCmpsId()) == false) {
 
 				oldProdCmpsId = item.getProdCmpsId();
 				oldSvcCmpsId = item.getSvcCmpsId();
@@ -124,24 +120,24 @@ public class NBlivb01m10Tasklet01 extends LazyLoaderLogingTasklet<BillCust, Bill
 				billCustDetail.setRegDate(new Timestamp(new Date().getTime()));
 				billCustDetail.setUseStrtDt(item.getUseStrtDt());
 				billCustDetail.setUseEndDt(item.getUseEndDt());
-				
+
 				billCustDetail.setBillFlCrtYn("N");
-				
+
 				item.setBillCustDetail(billCustDetail);
-				
+
 			}
 		}
-		
+
 		return item;
 	}
 
 	@Override
 	protected void write(List<BillCust> itemList) {
 		clog.writeLog("NBlivb01m10JobWriter.write");
-		
+
 		List<BillCust> billCustDetailList = new ArrayList<>();
 		List<BillCust> billCusts = new ArrayList<>();
-		
+
 		for (BillCust billCust : itemList) {
 			if (billCust.getBillCustDetail() != null) {
 				billCustDetailList.add(billCust.getBillCustDetail());
@@ -154,7 +150,7 @@ public class NBlivb01m10Tasklet01 extends LazyLoaderLogingTasklet<BillCust, Bill
 
 		billCustJdbcService.insertBillCust(billCusts);
 		billCustJdbcService.insertBillCustDetail(billCustDetailList);
-		
+
 		clog.writeLog("nBCCnt[{}], nDetailCnt[{}]", billCusts.size(), billCustDetailList.size());
 	}
 

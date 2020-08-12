@@ -28,7 +28,7 @@ public interface CBLDao {
 	 * @param billCyclStp
 	 * @return
 	 */
-	List<String> getSetLoc(BillCyclStp billCyclStp);
+	List<BillCyclStp> getSetLoc(BillCyclStp billCyclStp);
 	
 	/**
 	 * 
@@ -44,9 +44,6 @@ public interface CBLDao {
 	 * @return
 	 */
 	List<BillStp> getStpSetVal(BillCyclStp billCyclStp);
-	
-	
-	BillStp getStpSetVal(BillCyclStp billCyclStp);
 	
 	/**
 	 * 

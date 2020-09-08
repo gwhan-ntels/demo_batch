@@ -45,8 +45,8 @@
     FROM  (SELECT *
            FROM   TCMBL_ITLLMT_PYM_INFO
            WHERE  1=1
-           AND    SUBSTR(ACT_DTTM,1,8)   &lt;= #{billYymm}||'01'   -- 효력시작일자
-           AND    SUBSTR(INACT_DTTM,1,8) &gt;= #{billYymm}||'01'   -- 효력종료일자
+           AND    SUBSTR(ACT_DTTM,1,8)   &lt;= CONCAT(#{billYymm}, '01')   -- 효력시작일자
+           AND    SUBSTR(INACT_DTTM,1,8) &gt;= CONCAT(#{billYymm}, '01')   -- 효력종료일자
            AND    USE_YN = 'Y'
           ) B                        -- 분리납부정보 TBL
          ,(SELECT CTRT_ID
@@ -70,6 +70,9 @@
     AND   E.SO_ID                   = #{soId}
     AND   E.INACT_DTTM              = '99991231235959'
     AND   C.PYM_ACNT_ID            != E.PYM_ACNT_ID
+    
+/*    AND   E.SVC_CMPS_ID             = A.SVC_CMPS_ID   필요하지 않나 ? 확인 필요 gwhan 2020.08.19 */
+    
     AND   B.CTRT_ID                 = A.CTRT_ID            -- 계약ID
     AND   B.SO_ID                   = A.SO_ID
     AND   C.CTRT_ID                 = A.CTRT_ID            -- 계약ID
@@ -126,8 +129,8 @@
     FROM  (SELECT *
            FROM   TCMBL_ITLLMT_PYM_INFO
            WHERE  1=1
-           AND    SUBSTR(ACT_DTTM,1,8)   &lt;= #{billYymm}||'01'   -- 효력시작일자
-           AND    SUBSTR(INACT_DTTM,1,8) &gt;= #{billYymm}||'01'  -- 효력종료일자
+           AND    SUBSTR(ACT_DTTM,1,8)   &lt;= CONCAT(#{billYymm}, '01')   -- 효력시작일자
+           AND    SUBSTR(INACT_DTTM,1,8) &gt;= CONCAT(#{billYymm}, '01')  -- 효력종료일자
            AND    USE_YN = 'Y'
           ) B                  -- 분리납부정보 TBL
          ,(SELECT CTRT_ID
@@ -151,6 +154,9 @@
     AND    E.SO_ID                   = #{soId}
     AND    E.INACT_DTTM              = '99991231235959'
     AND    C.PYM_ACNT_ID            != E.PYM_ACNT_ID
+    
+/*    AND   E.SVC_CMPS_ID             = A.SVC_CMPS_ID   필요하지 않나 ? 확인 필요 gwhan 2020.08.19 */
+    
     AND    B.CTRT_ID                 = A.CTRT_ID           -- 계약ID
     AND    B.SO_ID                   = A.SO_ID
     AND    C.CTRT_ID                 = A.CTRT_ID           -- 계약ID

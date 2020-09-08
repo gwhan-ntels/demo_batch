@@ -26,19 +26,19 @@ import com.ntels.ccbs.batch.iv.service.NBlivb01m09Service;
 @Component("nBlivb01m09Tasklet")
 @Scope("step")
 public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBlivb01m09> {
-	
+
 	@Autowired
 	private CommonService commonService;
-	
+
 	@Autowired
 	private NBlivb01m09Service nBlivb01m09Service;
-	
+
 	@Autowired
 	private BillingUtilService billingUtilService;
-	
+
 	@Value("${sr.cd.tax}")
 	private String billItemVat;
-	
+
 	@Value("${sr.cd.rounding}")
 	private String billItemRounding;
 	
@@ -47,53 +47,53 @@ public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBliv
 //	
 //	@Value("${bill.item.sct}")
 //	private String billItemSct;
-	
+
 	private String beforeBillYymmdd;
-	
+
 	private String oldBillSeqNo = null;
 	private String oldBillMmTp = null;
 	private String oldSoId = null;
 	private String oldProdCmpsId = null;
 	private String oldSvcCmpsId = null;
-	
+
 	// 부가세 아이템 코드
 	private String oldVchrgItmCd = "";
 	// 특소세 아이템 코드
 	private String oldSchrgItmCd = "";
-	
+
 	double billAmt = 0;
 	double billAmt1 = 0;
 	double billAmt3 = 0;
-	
+
 	double vatBillAmt = 0;
 	double vatBillAmt1 = 0;
 	double vatBillAmt3 = 0;
-	
+
 	double billAmtOfBillSeqNo = 0;
 	double vatOfBillSeqNo = 0;
-	
+
 //	double sctBillAmt = 0;
 //	double sctBillAmt1 = 0;
 //	double sctBillAmt3 = 0;
-	
+
 	private TaxBillBuffer taxBillBuffer;
-	
+
 	@Override
 	protected boolean isInsertPgmLog() {
 		return true;
 	}
-	
+
 	@Override
 	protected boolean isUpdatePgmLog() {
 		return true;
 	}
-	
+
 	@Override
 	protected LazyLoader<TaxTarget> getLoader() throws Exception {
-		
+
 		beforeBillYymmdd = CUtil.addMonths(billYymm, -1);
 		beforeBillYymmdd = beforeBillYymmdd + CUtil.getLastDay(beforeBillYymmdd);
-		
+
 		CBillComm bill = new CBillComm();
 		bill.setBillYymm(billYymm);
 		bill.setBillCycl(billCycl);
@@ -107,7 +107,7 @@ public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBliv
 	@Override
 	protected NBlivb01m09 process(TaxTarget taxTarget) {
 		NBlivb01m09 nBliv01m09 = new NBlivb01m09();
-		
+
 		if (oldBillSeqNo == null) {
 			oldBillSeqNo = taxTarget.getBillSeqNo();
 			oldBillMmTp = taxTarget.getBillMmTp();
@@ -121,78 +121,48 @@ public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBliv
 			// 부가세 계산
 			double vatRate = taxTarget.getVatRate() == null ? 0 : taxTarget.getVatRate() / 100;
 			double vatAmt = nBlivb01m09Service.getVat(taxTarget.getBillAmt(), vatRate, taxTarget.getVatTp());
-			
+
 			if ("2".equals(taxTarget.getVatTp()) == true) {
 				taxTarget.setBillAmt(taxTarget.getBillAmt() - vatAmt);
 			}
-			
+
 			taxTarget.setVat(vatAmt);
-			
-//			double sctRate = taxTarget.getSctRate() == null ? 0 : taxTarget.getSctRate() / 100;
-//			double sctAmt = nBlivb01m09Service.getSct(taxTarget.getBillAmt(), vatAmt, sctRate, taxTarget.getSctTp());
-//			taxTarget.setSct(sctAmt);
-			
+
 			clog.writeLog("==================== CALC TAX ====================");
-			clog.writeLog("BILL_SEQ_NO : {}, CHRG_ITM_CD : {}, BILL_AMT : {}, VAT : {}, SCT : {}"
-					, taxTarget.getBillSeqNo(), taxTarget.getChrgItmCd(), taxTarget.getBillAmt(), taxTarget.getVat(), taxTarget.getSct());
-			clog.writeLog("BILL_MM_TP : {}, PROD_CMPS_ID : {}, SVC_CMPS_ID : {}"
-					, taxTarget.getBillMmTp(), taxTarget.getProdCmpsId(), taxTarget.getSvcCmpsId());
-//			clog.writeLog("vatBillAmt1 : {}, sctBillAmt1 : {}", vatBillAmt1, sctBillAmt1);
+			clog.writeLog("BILL_SEQ_NO : {}, CHRG_ITM_CD : {}, BILL_AMT : {}, VAT : {}, SCT : {}", taxTarget.getBillSeqNo(), taxTarget.getChrgItmCd(), taxTarget.getBillAmt(),
+					taxTarget.getVat(), taxTarget.getSct());
+			clog.writeLog("BILL_MM_TP : {}, PROD_CMPS_ID : {}, SVC_CMPS_ID : {}", taxTarget.getBillMmTp(), taxTarget.getProdCmpsId(), taxTarget.getSvcCmpsId());
 			clog.writeLog("vatBillAmt1 : {}", vatBillAmt1);
 			clog.writeLog("==================================================");
-			
+
 		}
 
 		// 부가세 아이템 코드
-		if (taxTarget.getVchrgItmCd() != null && taxTarget.getVchrgItmCd().trim().length() > 0 
-				&& oldVchrgItmCd.equals(taxTarget.getVchrgItmCd()) == false) {
+		if (taxTarget.getVchrgItmCd() != null && taxTarget.getVchrgItmCd().trim().length() > 0 && oldVchrgItmCd.equals(taxTarget.getVchrgItmCd()) == false) {
 			oldVchrgItmCd = taxTarget.getVchrgItmCd();
 		}
-		
-		// 부가세 아이템 코드
-		if (taxTarget.getSchrgItmCd() != null && taxTarget.getSchrgItmCd().trim().length() > 0 
-				&& oldSchrgItmCd.equals(taxTarget.getSchrgItmCd()) == false) {
+
+		// 특별소비세 아이템 코드
+		if (taxTarget.getSchrgItmCd() != null && taxTarget.getSchrgItmCd().trim().length() > 0 && oldSchrgItmCd.equals(taxTarget.getSchrgItmCd()) == false) {
 			oldSchrgItmCd = taxTarget.getSchrgItmCd();
 		}
-		
-		if (oldBillSeqNo.equals(taxTarget.getBillSeqNo()) == false) {
-				
-//			clog.writeLog(String.format("CHANGE BILL_SEQ_NO : %s, VAT : %f, SCT : %f", taxTarget.getBillSeqNo(), vatBillAmt1, sctBillAmt1));
-//			clog.writeLog("TAX BILL BUFFER BILL_SEQ_NO : " + taxBillBuffer.getBillSeqNo());
-			
-//			if (vatBillAmt1 > 0 || sctBillAmt1 > 0) {
-//				if (vatBillAmt1 > 0) {
-//					CBillComm bill = makeBill(taxBillBuffer, vatBillAmt1, billItemVat);
-//					bill.setChrgItmCd(oldVchrgItmCd);
-//					nBliv01m09.addBill(bill);
-//				}
-//
-//				if (sctBillAmt1 > 0) {
-//					CBillComm bill = makeBill(taxBillBuffer, sctBillAmt1, billItemSct);
-//					bill.setChrgItmCd(oldSchrgItmCd);
-//					nBliv01m09.addBill(bill);
-//				}
-//				
-//				TaxBill taxBill = makeTaxBill(taxBillBuffer, billAmt3, vatBillAmt3, sctBillAmt3);
-//				nBliv01m09.addTaxBill(taxBill);
-//			}
-			
+
+		if (oldBillSeqNo.equals(taxTarget.getBillSeqNo()) == false) {			
 			// 청구번호가 변경 되었을 때 세금 다시 계산해본다.
 			double vatRate = taxTarget.getVatRate() == null ? 0 : taxTarget.getVatRate() / 100;
 			double tempVat = nBlivb01m09Service.getVat(billAmtOfBillSeqNo, vatRate, "1");
-			
+
 			clog.writeLog("tempVat : {}, vatOfBillSeqNo : {}", tempVat, vatOfBillSeqNo);
-			
+
 			CBillComm bill = makeBill(taxBillBuffer, vatBillAmt1, billItemVat);
-			
+
 			if (vatBillAmt1 > 0) {
-//				bill.setChrgItmCd(oldVchrgItmCd);
 				nBliv01m09.addBill(bill);
-				
+
 				TaxBill taxBill = makeTaxBill(taxBillBuffer, billAmt3, vatBillAmt3, 0);
 				nBliv01m09.addTaxBill(taxBill);
 			}
-			
+
 			// Rounding Adjustment
 			CBillComm ronding = roundingAdjustment(bill, billAmt3, vatOfBillSeqNo);
 			nBliv01m09.addBill(ronding);
@@ -202,42 +172,23 @@ public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBliv
 			oldSoId = taxTarget.getSoId();
 			oldProdCmpsId = taxTarget.getProdCmpsId();
 			oldSvcCmpsId = taxTarget.getSvcCmpsId();
-			
+
 			billAmt1 = 0;
 			billAmt3 = 0;
-			
+
 			vatBillAmt1 = 0;
 			vatBillAmt3 = 0;
-			
+
 			vatOfBillSeqNo = 0;
 			billAmtOfBillSeqNo = 0;
 			
-//			sctBillAmt1 = 0;
-//			sctBillAmt3 = 0;
-		} else if (oldBillMmTp.equals(taxTarget.getBillMmTp()) == false
-				|| oldSoId.equals(taxTarget.getSoId()) == false) {
-//			if (vatBillAmt1 > 0 || sctBillAmt1 > 0) {
-//				if (vatBillAmt1 > 0) {
-//					CBillComm bill = makeBill(taxBillBuffer, vatBillAmt1, billItemVat);
-//					bill.setChrgItmCd(oldVchrgItmCd);
-//					nBliv01m09.addBill(bill);
-//				}
-//
-//				if (sctBillAmt1 > 0) {
-//					CBillComm bill = makeBill(taxBillBuffer, sctBillAmt1, billItemSct);
-//					bill.setChrgItmCd(oldSchrgItmCd);
-//					nBliv01m09.addBill(bill);
-//				}
-//				
-//				TaxBill taxBill = makeTaxBill(taxBillBuffer, billAmt3, vatBillAmt3, sctBillAmt3);
-//				nBliv01m09.addTaxBill(taxBill);
-//			}
+		} else if (oldBillMmTp.equals(taxTarget.getBillMmTp()) == false || oldSoId.equals(taxTarget.getSoId()) == false) {
 			
 			if (vatBillAmt1 > 0) {
 				CBillComm bill = makeBill(taxBillBuffer, vatBillAmt1, billItemVat);
 //				bill.setChrgItmCd(oldVchrgItmCd);
 				nBliv01m09.addBill(bill);
-				
+
 				TaxBill taxBill = makeTaxBill(taxBillBuffer, billAmt3, vatBillAmt3, 0);
 				nBliv01m09.addTaxBill(taxBill);
 			}
@@ -246,55 +197,16 @@ public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBliv
 			oldSoId = taxTarget.getSoId();
 			oldProdCmpsId = taxTarget.getProdCmpsId();
 			oldSvcCmpsId = taxTarget.getSvcCd();
-			
+
 			billAmt1 = 0;
 			billAmt3 = 0;
-			
+
 			vatBillAmt1 = 0;
 			vatBillAmt3 = 0;
-			
-//			sctBillAmt1 = 0;
-//			sctBillAmt3 = 0;
-
-//		} else if (oldProdCmpsId.equals(taxTarget.getProdCmpsId()) == false
-//				|| oldSvcCmpsId.equals(taxTarget.getSvcCmpsId()) == false) {
-////			if (vatBillAmt1 > 0 || sctBillAmt1 > 0) {
-////				if (vatBillAmt1 > 0) {
-////					CBillComm bill = makeBill(taxBillBuffer, vatBillAmt1, billItemVat);
-////					bill.setChrgItmCd(oldVchrgItmCd);
-////					nBliv01m09.addBill(bill);
-////				}
-////
-////				if (sctBillAmt1 > 0) {
-////					CBillComm bill = makeBill(taxBillBuffer, sctBillAmt1, billItemSct);
-////					bill.setChrgItmCd(oldSchrgItmCd);
-////					nBliv01m09.addBill(bill);
-////				}
-////			}
-//			
-//			if (vatBillAmt1 > 0) {
-//				CBillComm bill = makeBill(taxBillBuffer, vatBillAmt1, billItemVat);
-////				bill.setChrgItmCd(oldVchrgItmCd);
-//				nBliv01m09.addBill(bill);
-//			}
-//			
-//			oldProdCmpsId = taxTarget.getProdCd();
-//			oldSvcCmpsId = taxTarget.getSvcCmpsId();
-//			
-//			billAmt1 = 0;
-//			vatBillAmt1 = 0;
-////			sctBillAmt1 = 0;
 		}
 		
 		billAmt = taxTarget.getBillAmt();
 		vatBillAmt = taxTarget.getVat();
-//		sctBillAmt = taxTarget.getSct();
-		
-//		if (vatBillAmt > 0 || sctBillAmt > 0) {
-//			billAmt3 += billAmt;
-//			vatBillAmt3 += vatBillAmt;
-//			sctBillAmt3 += sctBillAmt;
-//		}
 		
 		if (vatBillAmt > 0) {
 			billAmt3 += billAmt;
@@ -305,7 +217,6 @@ public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBliv
 		vatBillAmt1 += vatBillAmt;
 		vatOfBillSeqNo += vatBillAmt;
 		billAmtOfBillSeqNo += billAmt;
-//		sctBillAmt1 += sctBillAmt;
 		
 		taxBillBuffer = getBuffer(taxTarget);
 		
@@ -313,30 +224,11 @@ public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBliv
 			
 			clog.writeLog("==================== LAST ITEM ====================");
 			clog.writeLog("BILL_SEQ_NO : {}", taxTarget.getBillSeqNo());
-//			clog.writeLog("vatBillAmt1 : {}, sctBillAmt1 : {}", vatBillAmt1, sctBillAmt1);
 			clog.writeLog("vatBillAmt1 : {}", vatBillAmt1);
-			// 전체의 마지막 처리를 한다.
-//			if (vatBillAmt1 > 0 || sctBillAmt1 > 0) {
-//				if (vatBillAmt1 > 0) {
-//					CBillComm bill = makeBill(taxBillBuffer, vatBillAmt1, billItemVat);
-//					bill.setChrgItmCd(oldVchrgItmCd);
-//					nBliv01m09.addBill(bill);
-//				}
-//
-//				if (sctBillAmt1 > 0) {
-//					CBillComm bill = makeBill(taxBillBuffer, sctBillAmt1, billItemSct);
-//					bill.setChrgItmCd(oldSchrgItmCd);
-//					nBliv01m09.addBill(bill);
-//				}
-//
-//				TaxBill taxBill = makeTaxBill(taxBillBuffer, billAmt3, vatBillAmt3, sctBillAmt3);
-//				nBliv01m09.addTaxBill(taxBill);
-//			}
 			
 			CBillComm bill = makeBill(taxBillBuffer, vatBillAmt1, billItemVat);
 			
 			if (vatBillAmt1 > 0) {
-//				bill.setChrgItmCd(oldVchrgItmCd);
 				nBliv01m09.addBill(bill);
 				
 				TaxBill taxBill = makeTaxBill(taxBillBuffer, billAmt3, vatBillAmt3, 0);
@@ -369,8 +261,6 @@ public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBliv
 			
 		} else {
 			taxBill.setSaleDt(taxBillBuffer.getBillDt());
-//			taxBill.setTaxBillIssDt(taxIssDt);
-//			taxBill.setTaxBillWrDt(taxIssDt);
 		}
 		
 		taxBill.setRepNm(taxBill.getCustNm());
@@ -487,7 +377,6 @@ public class NBlivb01m09Tasklet extends LazyLoaderLogingTasklet<TaxTarget, NBliv
 
 	@Override
 	protected RepeatStatus end() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
